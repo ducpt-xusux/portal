@@ -1,0 +1,57 @@
+{
+  "data": {
+    "evidence_id": "TEST-SC-15",
+    "evidence_kind": "SCENE_SUMMARY",
+    "related_entity_type": "RUN",
+    "related_entity_id": "TEST-module-only",
+    "sha256": "84662250838ed11ead08e7e48f89864f7652b15e4e676aa9142db14b00271e02",
+    "size_bytes": 225,
+    "captured_at": "2026-11-08T00:00:00Z",
+    "source_system": "TEST",
+    "sanitization_state": "SANITIZED",
+    "download_allowed": false,
+    "access_method": "METADATA_ONLY",
+    "notes": [
+      "run_id=TEST-module-only",
+      "context=TEST",
+      "source_host=TEST-host",
+      "scene_ids=SC-15",
+      "imported_at=2026-11-08T14:16:56.900156+00:00",
+      "integrity=BYTE_HASH_MATCH_AT_IMPORT",
+      "hash_basis=SUPPLIED_MANIFEST; not testcase PASS or human signoff",
+      "source_bytes_not_served; current_source_hash_not_rechecked"
+    ],
+    "provenance": {
+      "source_system": "TEST",
+      "source_ref": "sha256:84662250838ed11ead08e7e48f89864f7652b15e4e676aa9142db14b00271e02",
+      "source_schema": "portal-evidence-index-1",
+      "data_as_of": "2026-11-08T00:00:00Z",
+      "observed_at": "2026-11-08T00:00:00Z",
+      "read_at": "2026-11-08T14:27:10.705706Z",
+      "freshness_state": "HISTORICAL",
+      "coverage_kind": "NOT_PROVEN"
+    }
+  },
+  "meta": {
+    "request_id": "ada73afb-48c6-48c6-aa22-b5db755fc5ee",
+    "read_at": "2026-11-08T14:27:10.705605Z",
+    "data_as_of": null,
+    "source_system": "OFFLINE_EVIDENCE_REGISTRY",
+    "source_schema": "portal-evidence-index-1",
+    "freshness_state": "HISTORICAL",
+    "sources": [
+      {
+        "source_system": "OFFLINE_EVIDENCE_REGISTRY",
+        "source_ref": "sha256:8d45d377b62d30dc4817ec762df713c2e323eae01914acf10dc1063f8e21e58a",
+        "source_schema": "portal-evidence-index-1",
+        "data_as_of": null,
+        "observed_at": null,
+        "read_at": "2026-11-08T14:27:10.705619Z",
+        "freshness_state": "HISTORICAL",
+        "coverage_kind": "NOT_PROVEN"
+      }
+    ],
+    "coverage_note": "Offline import; not producer health, testcase verification, human signoff or production RBAC."
+  },
+  "error": null
+}

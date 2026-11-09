@@ -1,0 +1,514 @@
+{
+  "data": {
+    "schema_version": "portal-demo-coverage-2",
+    "runs": [
+      {
+        "run_id": "TEST-module-only",
+        "context": "TEST",
+        "data_as_of": "2026-11-08T00:00:00Z"
+      }
+    ],
+    "items": [
+      {
+        "scenario_id": "SC-01",
+        "group": "Operations",
+        "title": "Overview / topology",
+        "mode": "LIVE",
+        "expected_outcome": "Kiểm tra topology, service health và Galera với nguồn và thời điểm quan sát.",
+        "observed_outcome": "NOT_VERIFIED",
+        "verdict": "UNKNOWN",
+        "portal_section": "System/Health + Workloads",
+        "api_refs": [
+          "/api/v1/system/health"
+        ],
+        "evidence_refs": [
+          "TEST-SC-01"
+        ],
+        "last_evaluated_at": "2026-11-08T00:00:00Z",
+        "run_id": "TEST-module-only",
+        "context": "TEST",
+        "execution_modes": [
+          "LIVE"
+        ],
+        "expected_modes": [
+          "LIVE"
+        ],
+        "reason_codes": [
+          "SOURCE_REPORTED_VERDICT_NOT_INDEPENDENT_SIGNOFF"
+        ],
+        "missing_evidence_refs": [],
+        "basis": "IMPORTED_OBSERVATION",
+        "portal_route": "#/system/health"
+      },
+      {
+        "scenario_id": "SC-02",
+        "group": "Policy",
+        "title": "SQL hợp lệ từ App",
+        "mode": null,
+        "expected_outcome": "APP được ALLOW theo rule; hiển thị backend, risk từ event và trạng thái response.",
+        "observed_outcome": null,
+        "verdict": "NOT_EXECUTED",
+        "portal_section": "Events + Dashboard",
+        "api_refs": [
+          "/api/v1/events"
+        ],
+        "evidence_refs": [],
+        "last_evaluated_at": null,
+        "run_id": "TEST-module-only",
+        "context": "TEST",
+        "execution_modes": [
+          "DESIGN_ONLY"
+        ],
+        "expected_modes": [
+          "LIVE"
+        ],
+        "reason_codes": [
+          "OBSERVATION_NOT_IMPORTED"
+        ],
+        "missing_evidence_refs": [],
+        "basis": "DESIGN_EXPECTED",
+        "portal_route": "#/events"
+      },
+      {
+        "scenario_id": "SC-03",
+        "group": "Policy",
+        "title": "Clone sai context",
+        "mode": null,
+        "expected_outcome": "Hiển thị CTX-006 BLOCK và attribution; kiểm chứng App unaffected theo nguồn.",
+        "observed_outcome": null,
+        "verdict": "NOT_EXECUTED",
+        "portal_section": "Events compare",
+        "api_refs": [
+          "/api/v1/events"
+        ],
+        "evidence_refs": [],
+        "last_evaluated_at": null,
+        "run_id": "TEST-module-only",
+        "context": "TEST",
+        "execution_modes": [
+          "DESIGN_ONLY"
+        ],
+        "expected_modes": [
+          "LIVE"
+        ],
+        "reason_codes": [
+          "OBSERVATION_NOT_IMPORTED"
+        ],
+        "missing_evidence_refs": [],
+        "basis": "DESIGN_EXPECTED",
+        "portal_route": null
+      },
+      {
+        "scenario_id": "SC-04",
+        "group": "Detection",
+        "title": "SQLi đơn lẻ",
+        "mode": null,
+        "expected_outcome": "Hiển thị matched rule, BLOCK, canonical masked và alert ref nếu nguồn có.",
+        "observed_outcome": null,
+        "verdict": "NOT_EXECUTED",
+        "portal_section": "Events/Alert",
+        "api_refs": [
+          "/api/v1/events",
+          "/api/v1/alerts"
+        ],
+        "evidence_refs": [],
+        "last_evaluated_at": null,
+        "run_id": "TEST-module-only",
+        "context": "TEST",
+        "execution_modes": [
+          "DESIGN_ONLY"
+        ],
+        "expected_modes": [
+          "LIVE SAFE"
+        ],
+        "reason_codes": [
+          "OBSERVATION_NOT_IMPORTED"
+        ],
+        "missing_evidence_refs": [],
+        "basis": "DESIGN_EXPECTED",
+        "portal_route": "#/events"
+      },
+      {
+        "scenario_id": "SC-05",
+        "group": "Detection",
+        "title": "SQLi 3 request CORR-002",
+        "mode": null,
+        "expected_outcome": "Kiểm chứng distinct event refs, Incident evidence và confidence từ nguồn.",
+        "observed_outcome": null,
+        "verdict": "NOT_EXECUTED",
+        "portal_section": "Incident Detail",
+        "api_refs": [
+          "/api/v1/incidents"
+        ],
+        "evidence_refs": [],
+        "last_evaluated_at": null,
+        "run_id": "TEST-module-only",
+        "context": "TEST",
+        "execution_modes": [
+          "DESIGN_ONLY"
+        ],
+        "expected_modes": [
+          "LIVE / LAB"
+        ],
+        "reason_codes": [
+          "OBSERVATION_NOT_IMPORTED"
+        ],
+        "missing_evidence_refs": [],
+        "basis": "DESIGN_EXPECTED",
+        "portal_route": "#/incidents"
+      },
+      {
+        "scenario_id": "SC-06",
+        "group": "Decision",
+        "title": "Decision eligibility",
+        "mode": null,
+        "expected_outcome": "Giữ source_verified/isolation_authorized từ P17; OWNER ARM là context riêng.",
+        "observed_outcome": null,
+        "verdict": "NOT_EXECUTED",
+        "portal_section": "Incidents / Decision",
+        "api_refs": [
+          "/api/v1/incidents"
+        ],
+        "evidence_refs": [],
+        "last_evaluated_at": null,
+        "run_id": "TEST-module-only",
+        "context": "TEST",
+        "execution_modes": [
+          "DESIGN_ONLY"
+        ],
+        "expected_modes": [
+          "LIVE + owner lab"
+        ],
+        "reason_codes": [
+          "OBSERVATION_NOT_IMPORTED"
+        ],
+        "missing_evidence_refs": [],
+        "basis": "DESIGN_EXPECTED",
+        "portal_route": null
+      },
+      {
+        "scenario_id": "SC-07",
+        "group": "Response",
+        "title": "Neutron quarantined",
+        "mode": null,
+        "expected_outcome": "Đối chiếu SG trước/trong, đúng Clone port, App unchanged và timestamp nguồn.",
+        "observed_outcome": null,
+        "verdict": "NOT_EXECUTED",
+        "portal_section": "Workloads SG Lifecycle",
+        "api_refs": [
+          "/api/v1/workloads"
+        ],
+        "evidence_refs": [],
+        "last_evaluated_at": null,
+        "run_id": "TEST-module-only",
+        "context": "TEST",
+        "execution_modes": [
+          "DESIGN_ONLY"
+        ],
+        "expected_modes": [
+          "LAB controlled"
+        ],
+        "reason_codes": [
+          "OBSERVATION_NOT_IMPORTED"
+        ],
+        "missing_evidence_refs": [],
+        "basis": "DESIGN_EXPECTED",
+        "portal_route": null
+      },
+      {
+        "scenario_id": "SC-08",
+        "group": "Response",
+        "title": "Watchdog restore",
+        "mode": null,
+        "expected_outcome": "Đối chiếu restore, SG sau bằng SG trước và postchecks từ evidence.",
+        "observed_outcome": null,
+        "verdict": "NOT_EXECUTED",
+        "portal_section": "Workloads/Incident timeline",
+        "api_refs": [
+          "/api/v1/incidents"
+        ],
+        "evidence_refs": [],
+        "last_evaluated_at": null,
+        "run_id": "TEST-module-only",
+        "context": "TEST",
+        "execution_modes": [
+          "DESIGN_ONLY"
+        ],
+        "expected_modes": [
+          "LAB controlled"
+        ],
+        "reason_codes": [
+          "OBSERVATION_NOT_IMPORTED"
+        ],
+        "missing_evidence_refs": [],
+        "basis": "DESIGN_EXPECTED",
+        "portal_route": null
+      },
+      {
+        "scenario_id": "SC-09",
+        "group": "Rules",
+        "title": "Policy 40 rule",
+        "mode": null,
+        "expected_outcome": "Catalog 40 rule theo version/hash, mode/enforce/monitor và witness links.",
+        "observed_outcome": null,
+        "verdict": "NOT_EXECUTED",
+        "portal_section": "System / Rules",
+        "api_refs": [
+          "/api/v1/system/policies"
+        ],
+        "evidence_refs": [],
+        "last_evaluated_at": null,
+        "run_id": "TEST-module-only",
+        "context": "TEST",
+        "execution_modes": [
+          "DESIGN_ONLY"
+        ],
+        "expected_modes": [
+          "OFFLINE+LIVE"
+        ],
+        "reason_codes": [
+          "OBSERVATION_NOT_IMPORTED"
+        ],
+        "missing_evidence_refs": [],
+        "basis": "DESIGN_EXPECTED",
+        "portal_route": "#/system/policies"
+      },
+      {
+        "scenario_id": "SC-10",
+        "group": "Evaluation",
+        "title": "60-case split",
+        "mode": null,
+        "expected_outcome": "Expected 18 live / 32 offline / 3 protocol / 7 P17 API; không đồng nghĩa 60 packet live.",
+        "observed_outcome": null,
+        "verdict": "NOT_EXECUTED",
+        "portal_section": "System / Evaluation",
+        "api_refs": [
+          "/api/v1/evaluations/runs"
+        ],
+        "evidence_refs": [],
+        "last_evaluated_at": null,
+        "run_id": "TEST-module-only",
+        "context": "TEST",
+        "execution_modes": [
+          "DESIGN_ONLY"
+        ],
+        "expected_modes": [
+          "MIXED LAB"
+        ],
+        "reason_codes": [
+          "OBSERVATION_NOT_IMPORTED"
+        ],
+        "missing_evidence_refs": [],
+        "basis": "DESIGN_EXPECTED",
+        "portal_route": null
+      },
+      {
+        "scenario_id": "SC-11",
+        "group": "Evaluation",
+        "title": "13 isolated correlation",
+        "mode": null,
+        "expected_outcome": "So sánh expected/observed cho 13 scenario; không tạo hoặc đếm thành live incident.",
+        "observed_outcome": null,
+        "verdict": "NOT_EXECUTED",
+        "portal_section": "System / Evaluations",
+        "api_refs": [
+          "/api/v1/evaluations/runs"
+        ],
+        "evidence_refs": [],
+        "last_evaluated_at": null,
+        "run_id": "TEST-module-only",
+        "context": "TEST",
+        "execution_modes": [
+          "DESIGN_ONLY"
+        ],
+        "expected_modes": [
+          "HISTORICAL"
+        ],
+        "reason_codes": [
+          "OBSERVATION_NOT_IMPORTED"
+        ],
+        "missing_evidence_refs": [],
+        "basis": "DESIGN_EXPECTED",
+        "portal_route": null
+      },
+      {
+        "scenario_id": "SC-12",
+        "group": "Privacy",
+        "title": "Privacy/Audit",
+        "mode": "OFFLINE",
+        "expected_outcome": "Hiển thị masking, canary và journal provenance theo scope nguồn; không lộ raw SQL.",
+        "observed_outcome": "NOT_VERIFIED",
+        "verdict": "UNKNOWN",
+        "portal_section": "System/Privacy + Events",
+        "api_refs": [
+          "/api/v1/events"
+        ],
+        "evidence_refs": [
+          "TEST-SC-12"
+        ],
+        "last_evaluated_at": "2026-11-08T00:00:00Z",
+        "run_id": "TEST-module-only",
+        "context": "TEST",
+        "execution_modes": [
+          "ISOLATED"
+        ],
+        "expected_modes": [
+          "ISOLATED+LIVE"
+        ],
+        "reason_codes": [
+          "SOURCE_REPORTED_VERDICT_NOT_INDEPENDENT_SIGNOFF"
+        ],
+        "missing_evidence_refs": [],
+        "basis": "IMPORTED_OBSERVATION",
+        "portal_route": null
+      },
+      {
+        "scenario_id": "SC-13",
+        "group": "Availability",
+        "title": "Galera TLS/HA",
+        "mode": null,
+        "expected_outcome": "Phân biệt health snapshot, TLS sessions và isolated failover; không suy live outage.",
+        "observed_outcome": null,
+        "verdict": "NOT_EXECUTED",
+        "portal_section": "System / Galera + TLS",
+        "api_refs": [
+          "/api/v1/system/galera",
+          "/api/v1/system/tls"
+        ],
+        "evidence_refs": [],
+        "last_evaluated_at": null,
+        "run_id": "TEST-module-only",
+        "context": "TEST",
+        "execution_modes": [
+          "DESIGN_ONLY"
+        ],
+        "expected_modes": [
+          "LIVE+ISOLATED"
+        ],
+        "reason_codes": [
+          "OBSERVATION_NOT_IMPORTED"
+        ],
+        "missing_evidence_refs": [],
+        "basis": "DESIGN_EXPECTED",
+        "portal_route": "#/system/galera"
+      },
+      {
+        "scenario_id": "SC-14",
+        "group": "Recovery",
+        "title": "G07 recovery",
+        "mode": null,
+        "expected_outcome": "Report checksum, committed/restored/lost marker và metric LAB; production chưa đo.",
+        "observed_outcome": null,
+        "verdict": "NOT_EXECUTED",
+        "portal_section": "System / Backup/Restore",
+        "api_refs": [
+          "/api/v1/system/restore-runs"
+        ],
+        "evidence_refs": [],
+        "last_evaluated_at": null,
+        "run_id": "TEST-module-only",
+        "context": "TEST",
+        "execution_modes": [
+          "DESIGN_ONLY"
+        ],
+        "expected_modes": [
+          "LAB HISTORICAL"
+        ],
+        "reason_codes": [
+          "OBSERVATION_NOT_IMPORTED"
+        ],
+        "missing_evidence_refs": [],
+        "basis": "DESIGN_EXPECTED",
+        "portal_route": null
+      },
+      {
+        "scenario_id": "SC-15",
+        "group": "Protocol",
+        "title": "Protocol F01/F02",
+        "mode": null,
+        "expected_outcome": "Trình bày staging evidence, negative live pending và production OPEN theo nguồn.",
+        "observed_outcome": "NOT_VERIFIED",
+        "verdict": "UNKNOWN",
+        "portal_section": "System/Resilience / Findings",
+        "api_refs": [
+          "/api/v1/system/resilience-runs"
+        ],
+        "evidence_refs": [
+          "TEST-SC-15"
+        ],
+        "last_evaluated_at": "2026-11-08T00:00:00Z",
+        "run_id": "TEST-module-only",
+        "context": "TEST",
+        "execution_modes": [
+          "STAGING"
+        ],
+        "expected_modes": [
+          "STAGING"
+        ],
+        "reason_codes": [
+          "SOURCE_REPORTED_VERDICT_NOT_INDEPENDENT_SIGNOFF"
+        ],
+        "missing_evidence_refs": [],
+        "basis": "IMPORTED_OBSERVATION",
+        "portal_route": null
+      },
+      {
+        "scenario_id": "SC-16",
+        "group": "P19",
+        "title": "Strict closure",
+        "mode": null,
+        "expected_outcome": "Đọc gate P19 riêng; thiếu nguồn giữ UNKNOWN, không có PASS tổng thể.",
+        "observed_outcome": null,
+        "verdict": "NOT_EXECUTED",
+        "portal_section": "System / P19 & Coverage",
+        "api_refs": [
+          "/api/v1/system/p19-gate"
+        ],
+        "evidence_refs": [],
+        "last_evaluated_at": null,
+        "run_id": "TEST-module-only",
+        "context": "TEST",
+        "execution_modes": [
+          "DESIGN_ONLY"
+        ],
+        "expected_modes": [
+          "HISTORICAL"
+        ],
+        "reason_codes": [
+          "OBSERVATION_NOT_IMPORTED"
+        ],
+        "missing_evidence_refs": [],
+        "basis": "DESIGN_EXPECTED",
+        "portal_route": null
+      }
+    ],
+    "has_more": false,
+    "next_cursor": null,
+    "expected_scene_count": 16,
+    "observed_scene_count": 3,
+    "strict_ready": "UNKNOWN",
+    "strict_reason": "P19_SOURCE_NOT_CONNECTED"
+  },
+  "meta": {
+    "request_id": "f81361c9-fc7c-40bd-ae91-db40b8508aa3",
+    "read_at": "2026-11-08T14:27:10.696449Z",
+    "data_as_of": null,
+    "source_system": "OFFLINE_EVIDENCE_REGISTRY",
+    "source_schema": "portal-evidence-index-1",
+    "freshness_state": "HISTORICAL",
+    "sources": [
+      {
+        "source_system": "OFFLINE_EVIDENCE_REGISTRY",
+        "source_ref": "sha256:8d45d377b62d30dc4817ec762df713c2e323eae01914acf10dc1063f8e21e58a",
+        "source_schema": "portal-evidence-index-1",
+        "data_as_of": null,
+        "observed_at": null,
+        "read_at": "2026-11-08T14:27:10.696463Z",
+        "freshness_state": "HISTORICAL",
+        "coverage_kind": "NOT_PROVEN"
+      }
+    ],
+    "coverage_note": "Offline import; not producer health, testcase verification, human signoff or production RBAC."
+  },
+  "error": null
+}

@@ -1,0 +1,14 @@
+.v4-alert-center { display: grid; gap: 14px; min-width: 0; }
+.v4-alert-filter-panel { padding: 16px 20px; }
+.v4-alert-filter-panel summary { cursor: pointer; font-weight: 600; }
+.v4-alert-filter-panel .v4-filters { padding: 18px 0 0; margin: 0; }
+.v4-alert-table { min-width: 950px; }
+.v4-alert-table td:nth-child(2) { min-width: 230px; }
+.v4-alert-table .v4-id-link { overflow-wrap: anywhere; }
+.v4-alert-badges { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
+.v4-alert-detail { padding: 20px 24px 24px; }
+.v4-alert-detail > p { line-height: 1.65; }
+.v4-alert-detail .v4-fields dd { overflow-wrap: anywhere; }
+.v4-alert-refs { padding-left: 18px; overflow-wrap: anywhere; }
+.v4-alert-refs li { margin: 8px 0; }
+.v4-dialog:has(.v4-alert-detail) { width: min(800px, calc(100vw - 32px)); max-width: 800px; max-height: calc(100dvh - 48px); overflow-y: auto; }

@@ -1,0 +1,714 @@
+{
+  "schema_version": "n91-evaluation-design-catalog-1",
+  "basis": "DESIGN_ONLY",
+  "source_document": "N91_PORTAL_DEV_HANDOFF_CHI_TIET_20261108.docx",
+  "source_document_sha256": "895daad620ff9b40aca8e679746e3c79d3da512c8fbf7ee3c6fb4af0a68d55b5",
+  "cases": [
+    {
+      "case_id": "C-001",
+      "partition": "LIVE_READ_ONLY",
+      "role": "APP",
+      "scenario": "SELECT constant",
+      "expected_old": "ALLOW",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-002",
+      "partition": "LIVE_READ_ONLY",
+      "role": "APP",
+      "scenario": "SELECT authorized table",
+      "expected_old": "ALLOW",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-003",
+      "partition": "LIVE_READ_ONLY",
+      "role": "APP",
+      "scenario": "SELECT with WHERE",
+      "expected_old": "ALLOW",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-004",
+      "partition": "PROTOCOL_OFFLINE",
+      "role": "APP",
+      "scenario": "Parameterized SELECT",
+      "expected_old": "OPEN",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-005",
+      "partition": "LIVE_READ_ONLY",
+      "role": "APP",
+      "scenario": "COUNT aggregate",
+      "expected_old": "ALLOW",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-006",
+      "partition": "LIVE_READ_ONLY",
+      "role": "APP",
+      "scenario": "ORDER BY with LIMIT",
+      "expected_old": "ALLOW",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-007",
+      "partition": "LIVE_READ_ONLY",
+      "role": "APP",
+      "scenario": "Authorized JOIN",
+      "expected_old": "ALLOW",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-008",
+      "partition": "LIVE_READ_ONLY",
+      "role": "APP",
+      "scenario": "GROUP BY query",
+      "expected_old": "ALLOW",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-009",
+      "partition": "LIVE_READ_ONLY",
+      "role": "APP",
+      "scenario": "Valid UTF8 values",
+      "expected_old": "ALLOW",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-010",
+      "partition": "PROTOCOL_OFFLINE",
+      "role": "APP",
+      "scenario": "Read-only transaction",
+      "expected_old": "OPEN",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-011",
+      "partition": "LIVE_READ_ONLY",
+      "role": "APP",
+      "scenario": "Repeated legitimate SELECT",
+      "expected_old": "ALLOW",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-012",
+      "partition": "LIVE_READ_ONLY",
+      "role": "APP",
+      "scenario": "Valid health check",
+      "expected_old": "ALLOW",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-013",
+      "partition": "LIVE_READ_ONLY",
+      "role": "CLONE",
+      "scenario": "Clone unauthorized SELECT",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-014",
+      "partition": "OFFLINE_POLICY",
+      "role": "SIM",
+      "scenario": "Unauthorized database user",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-015",
+      "partition": "OFFLINE_POLICY",
+      "role": "SIM",
+      "scenario": "Source IP outside allowlist",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-016",
+      "partition": "OFFLINE_POLICY",
+      "role": "APP",
+      "scenario": "Wrong database context",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-017",
+      "partition": "OFFLINE_POLICY",
+      "role": "SIM",
+      "scenario": "Missing user identity",
+      "expected_old": "OPEN",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-018",
+      "partition": "OFFLINE_POLICY",
+      "role": "APP",
+      "scenario": "User-role mismatch",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-019",
+      "partition": "LIVE_READ_ONLY",
+      "role": "CLONE",
+      "scenario": "Valid SQL from unauthorized source",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-020",
+      "partition": "LIVE_READ_ONLY",
+      "role": "APP",
+      "scenario": "Same query from App and Clone",
+      "expected_old": "ALLOW",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-021",
+      "partition": "OFFLINE_POLICY",
+      "role": "APP",
+      "scenario": "Tautology injection",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-022",
+      "partition": "OFFLINE_POLICY",
+      "role": "APP",
+      "scenario": "UNION-based injection",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-023",
+      "partition": "OFFLINE_POLICY",
+      "role": "APP",
+      "scenario": "SQL comment manipulation",
+      "expected_old": "ALLOW",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-024",
+      "partition": "OFFLINE_POLICY",
+      "role": "APP",
+      "scenario": "Stacked statement attempt",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-025",
+      "partition": "OFFLINE_POLICY",
+      "role": "APP",
+      "scenario": "Time-based injection",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-026",
+      "partition": "OFFLINE_POLICY",
+      "role": "APP",
+      "scenario": "Error-based injection",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-027",
+      "partition": "OFFLINE_POLICY",
+      "role": "APP",
+      "scenario": "Boolean-blind injection",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-028",
+      "partition": "OFFLINE_POLICY",
+      "role": "APP",
+      "scenario": "Quote manipulation",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-029",
+      "partition": "OFFLINE_POLICY",
+      "role": "APP",
+      "scenario": "Encoded injection representation",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-030",
+      "partition": "OFFLINE_POLICY",
+      "role": "APP",
+      "scenario": "Nested expression injection",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-031",
+      "partition": "OFFLINE_POLICY",
+      "role": "APP",
+      "scenario": "Unauthorized sensitive table",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-032",
+      "partition": "LIVE_READ_ONLY",
+      "role": "APP",
+      "scenario": "Authorized object access",
+      "expected_old": "ALLOW",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-033",
+      "partition": "OFFLINE_POLICY",
+      "role": "APP",
+      "scenario": "Forbidden schema access",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-034",
+      "partition": "OFFLINE_POLICY",
+      "role": "APP",
+      "scenario": "Cross-database access",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-035",
+      "partition": "OFFLINE_POLICY",
+      "role": "APP",
+      "scenario": "Restricted view access",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-036",
+      "partition": "OFFLINE_POLICY",
+      "role": "APP",
+      "scenario": "Restricted column access",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-037",
+      "partition": "OFFLINE_POLICY",
+      "role": "APP",
+      "scenario": "Information schema inspection",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-038",
+      "partition": "LIVE_READ_ONLY",
+      "role": "APP",
+      "scenario": "Least-privilege validation",
+      "expected_old": "ALLOW",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-039",
+      "partition": "OFFLINE_POLICY",
+      "role": "APP",
+      "scenario": "SHOW DATABASES",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-040",
+      "partition": "OFFLINE_POLICY",
+      "role": "APP",
+      "scenario": "SHOW TABLES",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-041",
+      "partition": "OFFLINE_POLICY",
+      "role": "APP",
+      "scenario": "DESCRIBE object",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-042",
+      "partition": "OFFLINE_POLICY",
+      "role": "APP",
+      "scenario": "SHOW GRANTS",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-043",
+      "partition": "OFFLINE_POLICY",
+      "role": "APP",
+      "scenario": "CREATE USER in isolated sandbox",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-044",
+      "partition": "OFFLINE_POLICY",
+      "role": "APP",
+      "scenario": "GRANT privilege in isolated sandbox",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-045",
+      "partition": "OFFLINE_POLICY",
+      "role": "APP",
+      "scenario": "DROP sandbox-only table",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-046",
+      "partition": "PROTOCOL_OFFLINE",
+      "role": "APP",
+      "scenario": "Prepared statement handling",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-047",
+      "partition": "LIVE_READ_ONLY",
+      "role": "APP",
+      "scenario": "Unicode SQL handling",
+      "expected_old": "ALLOW",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-048",
+      "partition": "OFFLINE_POLICY",
+      "role": "APP",
+      "scenario": "Long valid SQL statement",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-049",
+      "partition": "OFFLINE_POLICY",
+      "role": "APP",
+      "scenario": "Multi-statement compatibility",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-050",
+      "partition": "OFFLINE_POLICY",
+      "role": "APP",
+      "scenario": "Legitimate SQL comments",
+      "expected_old": "ALLOW",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-051",
+      "partition": "P17_OFFLINE",
+      "role": "P17 LAB",
+      "scenario": "Duplicate same request hash",
+      "expected_old": "OPEN",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-052",
+      "partition": "P17_OFFLINE",
+      "role": "P17 LAB",
+      "scenario": "Multiple rules in one event",
+      "expected_old": "OPEN",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-053",
+      "partition": "P17_OFFLINE",
+      "role": "P17 LAB",
+      "scenario": "Three distinct SQLi requests",
+      "expected_old": "OPEN",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-054",
+      "partition": "P17_OFFLINE",
+      "role": "P17 LAB",
+      "scenario": "Correlation window boundary",
+      "expected_old": "OPEN",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-055",
+      "partition": "P17_OFFLINE",
+      "role": "P17 LAB",
+      "scenario": "Historical or late event",
+      "expected_old": "OPEN",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-056",
+      "partition": "P17_OFFLINE",
+      "role": "P17 LAB",
+      "scenario": "Two users must not cross-count",
+      "expected_old": "OPEN",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-057",
+      "partition": "LIVE_READ_ONLY",
+      "role": "APP",
+      "scenario": "Authorized App identity",
+      "expected_old": "ALLOW",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-058",
+      "partition": "LIVE_READ_ONLY",
+      "role": "CLONE",
+      "scenario": "Unauthorized Clone identity",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-059",
+      "partition": "OFFLINE_POLICY",
+      "role": "SIM",
+      "scenario": "Unknown user mapping",
+      "expected_old": "BLOCK",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    },
+    {
+      "case_id": "C-060",
+      "partition": "P17_OFFLINE",
+      "role": "P17 LAB",
+      "scenario": "Withheld user identity",
+      "expected_old": "OPEN",
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY",
+      "expected_rule_ids": []
+    }
+  ],
+  "correlations": [
+    {
+      "scenario_id": "pos_corr_001",
+      "signal_rule": "CORR-001",
+      "expected_incident": true,
+      "input_event_count": 5,
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY"
+    },
+    {
+      "scenario_id": "neg_corr_001",
+      "signal_rule": "CORR-001",
+      "expected_incident": false,
+      "input_event_count": 4,
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY"
+    },
+    {
+      "scenario_id": "pos_corr_002",
+      "signal_rule": "CORR-002",
+      "expected_incident": true,
+      "input_event_count": 3,
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY"
+    },
+    {
+      "scenario_id": "neg_corr_002",
+      "signal_rule": "CORR-002",
+      "expected_incident": false,
+      "input_event_count": 2,
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY"
+    },
+    {
+      "scenario_id": "pos_corr_003",
+      "signal_rule": "CORR-003",
+      "expected_incident": true,
+      "input_event_count": 3,
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY"
+    },
+    {
+      "scenario_id": "neg_corr_003",
+      "signal_rule": "CORR-003",
+      "expected_incident": false,
+      "input_event_count": 2,
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY"
+    },
+    {
+      "scenario_id": "pos_corr_004",
+      "signal_rule": "CORR-004",
+      "expected_incident": true,
+      "input_event_count": 3,
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY"
+    },
+    {
+      "scenario_id": "neg_corr_004",
+      "signal_rule": "CORR-004",
+      "expected_incident": false,
+      "input_event_count": 3,
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY"
+    },
+    {
+      "scenario_id": "pos_corr_005",
+      "signal_rule": "CORR-005",
+      "expected_incident": true,
+      "input_event_count": 5,
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY"
+    },
+    {
+      "scenario_id": "neg_corr_005",
+      "signal_rule": "CORR-005",
+      "expected_incident": false,
+      "input_event_count": 4,
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY"
+    },
+    {
+      "scenario_id": "neg_distinct_ips",
+      "signal_rule": "CORR-002",
+      "expected_incident": false,
+      "input_event_count": 3,
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY"
+    },
+    {
+      "scenario_id": "neg_distinct_users",
+      "signal_rule": "CORR-002",
+      "expected_incident": false,
+      "input_event_count": 3,
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY"
+    },
+    {
+      "scenario_id": "neg_withheld_user_distinct_sessions",
+      "signal_rule": "CORR-002",
+      "expected_incident": false,
+      "input_event_count": 3,
+      "catalog_flag": "NOT_RUN",
+      "basis": "DESIGN_ONLY"
+    }
+  ]
+}

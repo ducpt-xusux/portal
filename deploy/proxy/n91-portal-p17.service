@@ -1,0 +1,17 @@
+[Unit]
+Description=Refresh the N91 Portal read-only P17 snapshot
+
+[Service]
+Type=oneshot
+User=n91-portal
+Group=n91-portal
+WorkingDirectory=/opt/n91-portal/backend
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/n91-portal/.venv/bin/python -m app.portal_p17_refresh --source /var/lib/db-firewall-p17/state.sqlite3 --output /var/lib/n91-portal/p17.json
+TimeoutStartSec=15s
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/n91-portal

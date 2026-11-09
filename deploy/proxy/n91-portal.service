@@ -1,0 +1,23 @@
+[Unit]
+Description=N91 Portal API
+After=network.target
+
+[Service]
+Type=simple
+User=n91-portal
+Group=n91-portal
+WorkingDirectory=/opt/n91-portal/backend
+EnvironmentFile=/etc/n91-portal/portal.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/n91-portal/.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8188 --no-proxy-headers
+Restart=on-failure
+RestartSec=3s
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/n91-portal
+
+[Install]
+WantedBy=multi-user.target

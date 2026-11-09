@@ -1,0 +1,2146 @@
+{
+  "context": "TEST",
+  "left": {
+    "event_id": "TEST-event-shared",
+    "stream_id": "TEST-stream-app",
+    "request_id": "TEST-app-request",
+    "stream_sequence": 7,
+    "occurred_at": "2026-11-08T01:00:00.000000Z",
+    "ingested_at": null,
+    "request_received_at": "2026-11-08T01:00:00.000000Z",
+    "storage_recorded_at": "2026-11-08T01:00:01.000000Z",
+    "imported_at": "2026-11-08T13:45:39.346415Z",
+    "time_basis": {
+      "occurred_at": "record.timestamp",
+      "request_received_at": "TEST_PRODUCER_CLOCK",
+      "storage_recorded_at": "delivery.storage_recorded_at",
+      "imported_at": "PORTAL_CLOCK",
+      "ingested_at": null
+    },
+    "identity_status": "STREAM_EVENT",
+    "missing_fields_reason": "SOURCE_NOT_PROVIDED; ingested_at has no verified upstream semantic",
+    "source_ip": "192.0.2.30",
+    "db_user": "app_reader",
+    "database_name": "doan_db",
+    "mysql_command": "COM_QUERY",
+    "decision": "ALLOW",
+    "decision_basis": "P14_POLICY_DECISION",
+    "effective_action": "ALLOW",
+    "runtime_mode": "enforce",
+    "would_block": false,
+    "action_result": "FORWARDED",
+    "matched_rules": [
+      "ALLOW-HEALTH-001"
+    ],
+    "blocking_rules": [],
+    "monitor_rules": [],
+    "policy_id": "db-firewall-main",
+    "policy_version": "TEST-RC5",
+    "reasons": [
+      "TEST approved health"
+    ],
+    "raw_score": 0,
+    "score_breakdown": null,
+    "risk": {
+      "status": "OK",
+      "score": 0,
+      "severity": "LOW"
+    },
+    "masked_query": "SELECT ?",
+    "sql_text_status": "MASKED",
+    "source_metadata": null,
+    "view_kind": "P16H_CANONICAL_AUDIT",
+    "canonical_complete": true,
+    "p17_event_class": null,
+    "incident_refs": [],
+    "incident_membership": "UNAVAILABLE",
+    "source_provenance": {
+      "source_system": "P16H",
+      "source_schema": "portal-p16h-import-1",
+      "source_ref": "TEST-canonical",
+      "source_host": "TEST-host",
+      "source_run_id": "TEST-C-investigation",
+      "collected_at": "2026-11-08T01:00:10.000000Z",
+      "imported_at": "2026-11-08T13:45:39.346415Z",
+      "payload_sha256": null,
+      "payload_hash_basis": null,
+      "artifact_sha256": null,
+      "original_artifact_sha256": null,
+      "verification": "IMPORTED_UNVERIFIED",
+      "human_review": "UNAVAILABLE",
+      "context": "TEST",
+      "coverage_kind": "RECENT_SAMPLE",
+      "delivery_version": "p16h-local-1",
+      "event_role": null,
+      "journal_stream_id": "TEST-journal",
+      "journal_sequence": 17,
+      "segment_index": 1
+    }
+  },
+  "right": {
+    "event_id": "TEST-event-shared",
+    "stream_id": "TEST-stream-clone",
+    "request_id": "TEST-clone-request",
+    "stream_sequence": 7,
+    "occurred_at": "2026-11-08T01:00:00.000000Z",
+    "ingested_at": null,
+    "request_received_at": "2026-11-08T01:00:00.000000Z",
+    "storage_recorded_at": "2026-11-08T01:00:01.000000Z",
+    "imported_at": "2026-11-08T13:45:39.346415Z",
+    "time_basis": {
+      "occurred_at": "record.timestamp",
+      "request_received_at": "TEST_PRODUCER_CLOCK",
+      "storage_recorded_at": "delivery.storage_recorded_at",
+      "imported_at": "PORTAL_CLOCK",
+      "ingested_at": null
+    },
+    "identity_status": "STREAM_EVENT",
+    "missing_fields_reason": "SOURCE_NOT_PROVIDED; ingested_at has no verified upstream semantic",
+    "source_ip": "192.0.2.204",
+    "db_user": "app_reader",
+    "database_name": "doan_db",
+    "mysql_command": "COM_QUERY",
+    "decision": "BLOCK",
+    "decision_basis": "P14_POLICY_DECISION",
+    "effective_action": "BLOCK",
+    "runtime_mode": "enforce",
+    "would_block": false,
+    "action_result": "BLOCKED",
+    "matched_rules": [
+      "CTX-006"
+    ],
+    "blocking_rules": [
+      "CTX-006"
+    ],
+    "monitor_rules": [],
+    "policy_id": "db-firewall-main",
+    "policy_version": "TEST-RC5",
+    "reasons": [
+      "TEST context deny"
+    ],
+    "raw_score": 60,
+    "score_breakdown": null,
+    "risk": {
+      "status": "OK",
+      "score": 60,
+      "severity": "CRITICAL"
+    },
+    "masked_query": "SELECT ?",
+    "sql_text_status": "MASKED",
+    "source_metadata": null,
+    "view_kind": "P16H_CANONICAL_AUDIT",
+    "canonical_complete": true,
+    "p17_event_class": null,
+    "incident_refs": [],
+    "incident_membership": "UNAVAILABLE",
+    "source_provenance": {
+      "source_system": "P16H",
+      "source_schema": "portal-p16h-import-1",
+      "source_ref": "TEST-canonical",
+      "source_host": "TEST-host",
+      "source_run_id": "TEST-C-investigation",
+      "collected_at": "2026-11-08T01:00:10.000000Z",
+      "imported_at": "2026-11-08T13:45:39.346415Z",
+      "payload_sha256": null,
+      "payload_hash_basis": null,
+      "artifact_sha256": null,
+      "original_artifact_sha256": null,
+      "verification": "IMPORTED_UNVERIFIED",
+      "human_review": "UNAVAILABLE",
+      "context": "TEST",
+      "coverage_kind": "RECENT_SAMPLE",
+      "delivery_version": "p16h-local-1",
+      "event_role": null,
+      "journal_stream_id": "TEST-journal",
+      "journal_sequence": 17,
+      "segment_index": 1
+    }
+  },
+  "trace": {
+    "trace_id": "trace:9921cadde46e46c16108aa90",
+    "event_id": "TEST-event-shared",
+    "incident_id": null,
+    "trace_kind": "OFFLINE_CASE",
+    "stages": [
+      {
+        "stage_id": "SQL_PARSE",
+        "stage": "SQL_PARSE",
+        "status": "UNAVAILABLE",
+        "outcome": null,
+        "reason_codes": [
+          "SOURCE_NOT_PROVIDED"
+        ],
+        "reasons": [],
+        "facts": [],
+        "input_refs": [],
+        "output_refs": [],
+        "source_system": "SQL_PARSE",
+        "source_ref": null,
+        "evaluated_at": null,
+        "verification": "UNAVAILABLE"
+      },
+      {
+        "stage_id": "P14_POLICY",
+        "stage": "P14_POLICY",
+        "status": "HISTORICAL",
+        "outcome": "BLOCK",
+        "reason_codes": [
+          "CONTEXT_DENY"
+        ],
+        "reasons": [],
+        "facts": [
+          {
+            "name": "decision_basis",
+            "value_summary": "P14_POLICY_DECISION",
+            "status": "PRESENT",
+            "source_ref": "TEST-canonical",
+            "observed_at": "2026-11-08T01:00:00Z",
+            "verification": "SOURCE_REPORTED"
+          },
+          {
+            "name": "effective_action",
+            "value_summary": "BLOCK",
+            "status": "PRESENT",
+            "source_ref": "TEST-canonical",
+            "observed_at": "2026-11-08T01:00:00Z",
+            "verification": "SOURCE_REPORTED"
+          },
+          {
+            "name": "runtime_mode",
+            "value_summary": "enforce",
+            "status": "PRESENT",
+            "source_ref": "TEST-canonical",
+            "observed_at": "2026-11-08T01:00:00Z",
+            "verification": "SOURCE_REPORTED"
+          },
+          {
+            "name": "matched_rules",
+            "value_summary": "[\"CTX-006\"]",
+            "status": "PRESENT",
+            "source_ref": "TEST-canonical",
+            "observed_at": "2026-11-08T01:00:00Z",
+            "verification": "SOURCE_REPORTED"
+          },
+          {
+            "name": "blocking_rules",
+            "value_summary": "[\"CTX-006\"]",
+            "status": "PRESENT",
+            "source_ref": "TEST-canonical",
+            "observed_at": "2026-11-08T01:00:00Z",
+            "verification": "SOURCE_REPORTED"
+          },
+          {
+            "name": "monitor_rules",
+            "value_summary": "[]",
+            "status": "PRESENT",
+            "source_ref": "TEST-canonical",
+            "observed_at": "2026-11-08T01:00:00Z",
+            "verification": "SOURCE_REPORTED"
+          },
+          {
+            "name": "policy_version",
+            "value_summary": "TEST-RC5",
+            "status": "PRESENT",
+            "source_ref": "TEST-canonical",
+            "observed_at": "2026-11-08T01:00:00Z",
+            "verification": "SOURCE_REPORTED"
+          }
+        ],
+        "input_refs": [],
+        "output_refs": [],
+        "source_system": "P16H",
+        "source_ref": "TEST-canonical",
+        "evaluated_at": "2026-11-08T01:00:00Z",
+        "verification": "SOURCE_REPORTED"
+      },
+      {
+        "stage_id": "P15_RISK",
+        "stage": "P15_RISK",
+        "status": "HISTORICAL",
+        "outcome": "OK",
+        "reason_codes": [],
+        "reasons": [],
+        "facts": [
+          {
+            "name": "risk_status",
+            "value_summary": "OK",
+            "status": "PRESENT",
+            "source_ref": "TEST-canonical",
+            "observed_at": "2026-11-08T01:00:00Z",
+            "verification": "SOURCE_REPORTED"
+          },
+          {
+            "name": "risk_score",
+            "value_summary": "60",
+            "status": "PRESENT",
+            "source_ref": "TEST-canonical",
+            "observed_at": "2026-11-08T01:00:00Z",
+            "verification": "SOURCE_REPORTED"
+          },
+          {
+            "name": "severity",
+            "value_summary": "CRITICAL",
+            "status": "PRESENT",
+            "source_ref": "TEST-canonical",
+            "observed_at": "2026-11-08T01:00:00Z",
+            "verification": "SOURCE_REPORTED"
+          },
+          {
+            "name": "score_breakdown",
+            "value_summary": null,
+            "status": "UNAVAILABLE",
+            "source_ref": "TEST-canonical",
+            "observed_at": "2026-11-08T01:00:00Z",
+            "verification": "UNAVAILABLE"
+          }
+        ],
+        "input_refs": [],
+        "output_refs": [],
+        "source_system": "P16H",
+        "source_ref": "TEST-canonical",
+        "evaluated_at": "2026-11-08T01:00:00Z",
+        "verification": "SOURCE_REPORTED"
+      },
+      {
+        "stage_id": "P16H_AUDIT",
+        "stage": "P16H_AUDIT",
+        "status": "HISTORICAL",
+        "outcome": "RECORDED",
+        "reason_codes": [],
+        "reasons": [],
+        "facts": [
+          {
+            "name": "stream_id",
+            "value_summary": "TEST-stream-clone",
+            "status": "PRESENT",
+            "source_ref": "TEST-canonical",
+            "observed_at": "2026-11-08T01:00:00Z",
+            "verification": "SOURCE_REPORTED"
+          },
+          {
+            "name": "event_id",
+            "value_summary": "TEST-event-shared",
+            "status": "PRESENT",
+            "source_ref": "TEST-canonical",
+            "observed_at": "2026-11-08T01:00:00Z",
+            "verification": "SOURCE_REPORTED"
+          },
+          {
+            "name": "request_id",
+            "value_summary": "TEST-clone-request",
+            "status": "PRESENT",
+            "source_ref": "TEST-canonical",
+            "observed_at": "2026-11-08T01:00:00Z",
+            "verification": "SOURCE_REPORTED"
+          },
+          {
+            "name": "coverage_kind",
+            "value_summary": "RECENT_SAMPLE",
+            "status": "PRESENT",
+            "source_ref": "TEST-canonical",
+            "observed_at": "2026-11-08T01:00:00Z",
+            "verification": "SOURCE_REPORTED"
+          }
+        ],
+        "input_refs": [],
+        "output_refs": [],
+        "source_system": "P16H",
+        "source_ref": "TEST-canonical",
+        "evaluated_at": "2026-11-08T01:00:00Z",
+        "verification": "SOURCE_REPORTED"
+      },
+      {
+        "stage_id": "P17_DETECTION",
+        "stage": "P17_DETECTION",
+        "status": "UNAVAILABLE",
+        "outcome": null,
+        "reason_codes": [
+          "SOURCE_NOT_PROVIDED"
+        ],
+        "reasons": [],
+        "facts": [],
+        "input_refs": [],
+        "output_refs": [],
+        "source_system": "P17_DETECTION",
+        "source_ref": null,
+        "evaluated_at": null,
+        "verification": "UNAVAILABLE"
+      },
+      {
+        "stage_id": "P17_DECISION",
+        "stage": "P17_DECISION",
+        "status": "UNAVAILABLE",
+        "outcome": null,
+        "reason_codes": [
+          "SOURCE_NOT_PROVIDED"
+        ],
+        "reasons": [],
+        "facts": [],
+        "input_refs": [],
+        "output_refs": [],
+        "source_system": "P17_DECISION",
+        "source_ref": null,
+        "evaluated_at": null,
+        "verification": "UNAVAILABLE"
+      },
+      {
+        "stage_id": "P17_5_RESPONSE",
+        "stage": "P17_5_RESPONSE",
+        "status": "UNAVAILABLE",
+        "outcome": null,
+        "reason_codes": [
+          "SOURCE_NOT_PROVIDED"
+        ],
+        "reasons": [],
+        "facts": [],
+        "input_refs": [],
+        "output_refs": [],
+        "source_system": "P17_5_RESPONSE",
+        "source_ref": null,
+        "evaluated_at": null,
+        "verification": "UNAVAILABLE"
+      }
+    ],
+    "overall_outcome": "BLOCK",
+    "link_quality": "PARTIAL",
+    "evidence_refs": [
+      "TEST-canonical"
+    ],
+    "limitations": [
+      "Canonical imported sample; no inferred P17 membership. Missing stage does not mean NOT_TRIGGERED.",
+      "CTX-006 denotes context denial; it alone does not establish SQL injection."
+    ],
+    "provenance": {
+      "source_system": "P16H",
+      "source_ref": "TEST-canonical",
+      "source_schema": "portal-p16h-import-1",
+      "data_as_of": "2026-11-08T01:00:00Z",
+      "observed_at": "2026-11-08T01:00:00Z",
+      "read_at": "2026-11-08T02:00:00Z",
+      "freshness_state": "HISTORICAL",
+      "age_seconds": null,
+      "error_code": null,
+      "coverage_kind": "NOT_PROVEN"
+    }
+  },
+  "incidentTrace": {
+    "trace_id": "trace:eff795a2dd84d6cafb14c9cc",
+    "event_id": null,
+    "incident_id": "TEST-incident",
+    "trace_kind": "INCIDENT",
+    "stages": [
+      {
+        "stage_id": "SQL_PARSE",
+        "stage": "SQL_PARSE",
+        "status": "UNAVAILABLE",
+        "outcome": null,
+        "reason_codes": [
+          "SOURCE_NOT_PROVIDED"
+        ],
+        "reasons": [],
+        "facts": [],
+        "input_refs": [],
+        "output_refs": [],
+        "source_system": "SQL_PARSE",
+        "source_ref": null,
+        "evaluated_at": null,
+        "verification": "UNAVAILABLE"
+      },
+      {
+        "stage_id": "P14_POLICY",
+        "stage": "P14_POLICY",
+        "status": "UNAVAILABLE",
+        "outcome": null,
+        "reason_codes": [
+          "SOURCE_NOT_PROVIDED"
+        ],
+        "reasons": [],
+        "facts": [],
+        "input_refs": [],
+        "output_refs": [],
+        "source_system": "P14_POLICY",
+        "source_ref": null,
+        "evaluated_at": null,
+        "verification": "UNAVAILABLE"
+      },
+      {
+        "stage_id": "P15_RISK",
+        "stage": "P15_RISK",
+        "status": "UNAVAILABLE",
+        "outcome": null,
+        "reason_codes": [
+          "SOURCE_NOT_PROVIDED"
+        ],
+        "reasons": [],
+        "facts": [],
+        "input_refs": [],
+        "output_refs": [],
+        "source_system": "P15_RISK",
+        "source_ref": null,
+        "evaluated_at": null,
+        "verification": "UNAVAILABLE"
+      },
+      {
+        "stage_id": "P16H_AUDIT",
+        "stage": "P16H_AUDIT",
+        "status": "UNAVAILABLE",
+        "outcome": null,
+        "reason_codes": [
+          "SOURCE_NOT_PROVIDED"
+        ],
+        "reasons": [],
+        "facts": [],
+        "input_refs": [],
+        "output_refs": [],
+        "source_system": "P16H_AUDIT",
+        "source_ref": null,
+        "evaluated_at": null,
+        "verification": "UNAVAILABLE"
+      },
+      {
+        "stage_id": "P17_DETECTION",
+        "stage": "P17_DETECTION",
+        "status": "HISTORICAL",
+        "outcome": "CORR-002",
+        "reason_codes": [],
+        "reasons": [],
+        "facts": [
+          {
+            "name": "incident_status",
+            "value_summary": "REVIEW_REQUIRED",
+            "status": "PRESENT",
+            "source_ref": "TEST-incident",
+            "observed_at": null,
+            "verification": "SOURCE_REPORTED"
+          },
+          {
+            "name": "evidence_count",
+            "value_summary": "3",
+            "status": "PRESENT",
+            "source_ref": "TEST-incident",
+            "observed_at": null,
+            "verification": "SOURCE_REPORTED"
+          },
+          {
+            "name": "incident_severity",
+            "value_summary": "HIGH",
+            "status": "PRESENT",
+            "source_ref": "TEST-incident",
+            "observed_at": null,
+            "verification": "SOURCE_REPORTED"
+          },
+          {
+            "name": "confidence",
+            "value_summary": "CANDIDATE_CORRELATED",
+            "status": "PRESENT",
+            "source_ref": "TEST-incident",
+            "observed_at": null,
+            "verification": "SOURCE_REPORTED"
+          }
+        ],
+        "input_refs": [],
+        "output_refs": [],
+        "source_system": "P17",
+        "source_ref": "TEST-incident",
+        "evaluated_at": "2026-11-08T01:00:03Z",
+        "verification": "SOURCE_REPORTED"
+      },
+      {
+        "stage_id": "P17_DECISION",
+        "stage": "P17_DECISION",
+        "status": "UNAVAILABLE",
+        "outcome": null,
+        "reason_codes": [
+          "P17_3_DECISION_NOT_PROVIDED"
+        ],
+        "reasons": [],
+        "facts": [
+          {
+            "name": "source_verified",
+            "value_summary": "0",
+            "status": "PRESENT",
+            "source_ref": "TEST-incident",
+            "observed_at": null,
+            "verification": "SOURCE_REPORTED"
+          },
+          {
+            "name": "isolation_authorized",
+            "value_summary": "0",
+            "status": "PRESENT",
+            "source_ref": "TEST-incident",
+            "observed_at": null,
+            "verification": "SOURCE_REPORTED"
+          },
+          {
+            "name": "incident_status",
+            "value_summary": "REVIEW_REQUIRED",
+            "status": "PRESENT",
+            "source_ref": "TEST-incident",
+            "observed_at": null,
+            "verification": "SOURCE_REPORTED"
+          }
+        ],
+        "input_refs": [],
+        "output_refs": [],
+        "source_system": "P17",
+        "source_ref": "TEST-incident",
+        "evaluated_at": null,
+        "verification": "UNAVAILABLE"
+      },
+      {
+        "stage_id": "P17_5_RESPONSE",
+        "stage": "P17_5_RESPONSE",
+        "status": "HISTORICAL",
+        "outcome": "CONTROLLER_ACTION_RECORDED",
+        "reason_codes": [
+          "CURRENT_NEUTRON_REQUIRED"
+        ],
+        "reasons": [],
+        "facts": [
+          {
+            "name": "controller_action_count_in_bundle",
+            "value_summary": "4",
+            "status": "PRESENT",
+            "source_ref": "TEST-controller",
+            "observed_at": null,
+            "verification": "SOURCE_REPORTED"
+          }
+        ],
+        "input_refs": [],
+        "output_refs": [],
+        "source_system": "CONTROLLER",
+        "source_ref": "TEST-controller",
+        "evaluated_at": null,
+        "verification": "SOURCE_REPORTED"
+      }
+    ],
+    "overall_outcome": "REVIEW_REQUIRED",
+    "link_quality": "PARTIAL",
+    "evidence_refs": [
+      "TEST-incident"
+    ],
+    "limitations": [
+      "P17 persisted flags do not authorize Controller actions. No inferred event membership or AST."
+    ],
+    "provenance": {
+      "source_system": "P17",
+      "source_ref": "TEST-incident",
+      "source_schema": "p17-incident-durable-1",
+      "data_as_of": "2026-11-08T01:00:03Z",
+      "observed_at": "2026-11-08T01:00:03Z",
+      "read_at": "2026-11-08T02:00:00Z",
+      "freshness_state": "HISTORICAL",
+      "age_seconds": null,
+      "error_code": null,
+      "coverage_kind": "NOT_PROVEN"
+    }
+  },
+  "timeline": {
+    "incident_id": "TEST-incident",
+    "incident_status": "REVIEW_REQUIRED",
+    "response_state": "UNKNOWN",
+    "network_observation": null,
+    "items": [
+      {
+        "item_id": "action:7646df937070161d81c123ab",
+        "type": "TRIGGER_ACCEPTED",
+        "occurred_at": "2026-11-08T01:00:00Z",
+        "source_system": "CONTROLLER",
+        "source_ref": "TEST-controller",
+        "description": "TRIGGER_ACCEPTED; cycle=TEST-cycle-1; source-reported evidence",
+        "verification": "SOURCE_REPORTED",
+        "actor": null,
+        "request_id": null
+      },
+      {
+        "item_id": "action:32cd5048bf8b20a88acbe1b0",
+        "type": "PREPARED",
+        "occurred_at": "2026-11-08T01:00:02Z",
+        "source_system": "CONTROLLER",
+        "source_ref": "TEST-controller",
+        "description": "PREPARED; cycle=TEST-cycle-1; source-reported evidence",
+        "verification": "SOURCE_REPORTED",
+        "actor": null,
+        "request_id": null
+      },
+      {
+        "item_id": "p17:5e42ab5a71080e939aeee051",
+        "type": "P17_INCIDENT_CREATED",
+        "occurred_at": "2026-11-08T01:00:02Z",
+        "source_system": "P17",
+        "source_ref": "TEST-incident",
+        "description": "P17_INCIDENT_CREATED; persisted P17 row, not response authorization",
+        "verification": "SOURCE_REPORTED",
+        "actor": null,
+        "request_id": null
+      },
+      {
+        "item_id": "p17:f7f20a40b4c1cac88d145230",
+        "type": "P17_INCIDENT_UPDATED",
+        "occurred_at": "2026-11-08T01:00:03Z",
+        "source_system": "P17",
+        "source_ref": "TEST-incident",
+        "description": "P17_INCIDENT_UPDATED; persisted P17 row, not response authorization",
+        "verification": "SOURCE_REPORTED",
+        "actor": null,
+        "request_id": null
+      },
+      {
+        "item_id": "action:9c98ff709fac8638cad5c159",
+        "type": "QUARANTINE_APPLIED",
+        "occurred_at": "2026-11-08T01:00:05Z",
+        "source_system": "CONTROLLER",
+        "source_ref": "TEST-controller",
+        "description": "QUARANTINE_APPLIED; cycle=TEST-cycle-1; source-reported evidence",
+        "verification": "SOURCE_REPORTED",
+        "actor": null,
+        "request_id": null
+      },
+      {
+        "item_id": "action:ff1d044e29ff94def2363d41",
+        "type": "RESTORE_SUCCESS",
+        "occurred_at": "2026-11-08T01:00:25Z",
+        "source_system": "CONTROLLER",
+        "source_ref": "TEST-controller",
+        "description": "RESTORE_SUCCESS; cycle=TEST-cycle-1; source-reported evidence",
+        "verification": "SOURCE_REPORTED",
+        "actor": null,
+        "request_id": null
+      }
+    ],
+    "limitations": [
+      "Controller action state is historical/source-reported; P17 flags are unchanged.",
+      "NEUTRON_CURRENT_UNAVAILABLE",
+      "Global ARM rows without matching incident_id are excluded. No IP/time joins. Durations require explicit clock marks."
+    ]
+  },
+  "lifecycle": {
+    "schema_version": "investigation-sg-lifecycle-1",
+    "action": {
+      "action_id": "TEST-action",
+      "incident_id": "TEST-incident",
+      "action_state": "RESTORED",
+      "approval_ref": null,
+      "target": {
+        "verified": false,
+        "source_ip": null,
+        "server_id": "TEST-vm",
+        "port_id": "TEST-port",
+        "project_id": "TEST-project",
+        "network_id": null,
+        "fixed_ip": null,
+        "observed_at": null,
+        "expires_at": null,
+        "verification_state": "UNAVAILABLE",
+        "reason": "HISTORICAL_TARGET_FROM_CONTROLLER",
+        "source_system": "OPENSTACK_SNAPSHOT"
+      },
+      "before_sgs": [
+        "TEST-sg-a",
+        "TEST-sg-b"
+      ],
+      "during_sgs": [
+        "TEST-qsg"
+      ],
+      "after_sgs": [
+        "TEST-sg-a",
+        "TEST-sg-b"
+      ],
+      "network_verified": false,
+      "started_at": "2026-11-08T01:00:06Z",
+      "finished_at": "2026-11-08T01:00:26Z",
+      "evidence_refs": [
+        "TEST-controller",
+        "TEST-SG-BEFORE",
+        "TEST-SG-DURING",
+        "TEST-SG-AFTER"
+      ],
+      "warnings": [
+        "Controller action state is historical/source-reported; P17 flags are unchanged.",
+        "NEUTRON_CURRENT_UNAVAILABLE"
+      ]
+    },
+    "incident_id": "TEST-incident",
+    "cycle_id": "TEST-cycle-1",
+    "source": {
+      "source_system": "CONTROLLER",
+      "source_ref": "TEST-controller",
+      "source_schema": "TEST-sanitized-1",
+      "execution_mode": "TEST",
+      "observed_at": "2026-11-08T01:10:00Z",
+      "collected_at": "2026-11-08T01:11:00Z",
+      "source_sha256": null,
+      "verification": "IMPORTED_UNVERIFIED",
+      "human_review": "UNAVAILABLE",
+      "freshness_state": "HISTORICAL",
+      "limitations": [
+        "Synthetic TEST; not live evidence."
+      ]
+    },
+    "history": {
+      "BEFORE": {
+        "phase": "BEFORE",
+        "incident_id": "TEST-incident",
+        "cycle_id": "TEST-cycle-1",
+        "project_id": "TEST-project",
+        "port_id": "TEST-port",
+        "server_id": "TEST-vm",
+        "security_group_ids": [
+          "TEST-sg-a",
+          "TEST-sg-b"
+        ],
+        "observed_at": "2026-11-08T01:00:02Z",
+        "source_ref": "TEST-SG-BEFORE"
+      },
+      "DURING": {
+        "phase": "DURING",
+        "incident_id": "TEST-incident",
+        "cycle_id": "TEST-cycle-1",
+        "project_id": "TEST-project",
+        "port_id": "TEST-port",
+        "server_id": "TEST-vm",
+        "security_group_ids": [
+          "TEST-qsg"
+        ],
+        "observed_at": "2026-11-08T01:00:05Z",
+        "source_ref": "TEST-SG-DURING"
+      },
+      "AFTER": {
+        "phase": "AFTER",
+        "incident_id": "TEST-incident",
+        "cycle_id": "TEST-cycle-1",
+        "project_id": "TEST-project",
+        "port_id": "TEST-port",
+        "server_id": "TEST-vm",
+        "security_group_ids": [
+          "TEST-sg-a",
+          "TEST-sg-b"
+        ],
+        "observed_at": "2026-11-08T01:00:25Z",
+        "source_ref": "TEST-SG-AFTER"
+      }
+    },
+    "current": null,
+    "current_state": "UNKNOWN",
+    "metrics": [
+      {
+        "metric": "detection_response",
+        "seconds": null,
+        "unit": "seconds",
+        "start_kind": "DETECTED",
+        "end_kind": "QUARANTINE_APPLIED",
+        "incident_id": "TEST-incident",
+        "cycle_id": "TEST-cycle-1",
+        "clock_id": null,
+        "time_basis": null,
+        "source_refs": [],
+        "unavailable_reason": "MISSING_CLOCK_MARK"
+      },
+      {
+        "metric": "trigger_to_quarantine",
+        "seconds": 5.0,
+        "unit": "seconds",
+        "start_kind": "TRIGGER_ACCEPTED",
+        "end_kind": "QUARANTINE_APPLIED",
+        "incident_id": "TEST-incident",
+        "cycle_id": "TEST-cycle-1",
+        "clock_id": "TEST-controller-clock",
+        "time_basis": "TEST-controller-monotonic-correlated",
+        "source_refs": [
+          "TEST-controller",
+          "TEST-controller"
+        ],
+        "unavailable_reason": null
+      },
+      {
+        "metric": "quarantine_duration",
+        "seconds": 20.0,
+        "unit": "seconds",
+        "start_kind": "QUARANTINE_APPLIED",
+        "end_kind": "RESTORE_SUCCESS",
+        "incident_id": "TEST-incident",
+        "cycle_id": "TEST-cycle-1",
+        "clock_id": "TEST-controller-clock",
+        "time_basis": "TEST-controller-monotonic-correlated",
+        "source_refs": [
+          "TEST-controller",
+          "TEST-controller"
+        ],
+        "unavailable_reason": null
+      },
+      {
+        "metric": "ingestion_latency",
+        "seconds": null,
+        "unit": "seconds",
+        "start_kind": "REQUEST_RECEIVED",
+        "end_kind": "AUDIT_STORED",
+        "incident_id": "TEST-incident",
+        "cycle_id": "TEST-cycle-1",
+        "clock_id": null,
+        "time_basis": null,
+        "source_refs": [],
+        "unavailable_reason": "MISSING_CLOCK_MARK"
+      }
+    ],
+    "clock_marks": [
+      {
+        "incident_id": "TEST-incident",
+        "cycle_id": "TEST-cycle-1",
+        "kind": "TRIGGER_ACCEPTED",
+        "timestamp": "2026-11-08T01:00:00Z",
+        "clock_id": "TEST-controller-clock",
+        "time_basis": "TEST-controller-monotonic-correlated",
+        "source_ref": "TEST-controller"
+      },
+      {
+        "incident_id": "TEST-incident",
+        "cycle_id": "TEST-cycle-1",
+        "kind": "PREPARED",
+        "timestamp": "2026-11-08T01:00:02Z",
+        "clock_id": "TEST-controller-clock",
+        "time_basis": "TEST-controller-monotonic-correlated",
+        "source_ref": "TEST-controller"
+      },
+      {
+        "incident_id": "TEST-incident",
+        "cycle_id": "TEST-cycle-1",
+        "kind": "QUARANTINE_APPLIED",
+        "timestamp": "2026-11-08T01:00:05Z",
+        "clock_id": "TEST-controller-clock",
+        "time_basis": "TEST-controller-monotonic-correlated",
+        "source_ref": "TEST-controller"
+      },
+      {
+        "incident_id": "TEST-incident",
+        "cycle_id": "TEST-cycle-1",
+        "kind": "RESTORE_SUCCESS",
+        "timestamp": "2026-11-08T01:00:25Z",
+        "clock_id": "TEST-controller-clock",
+        "time_basis": "TEST-controller-monotonic-correlated",
+        "source_ref": "TEST-controller"
+      }
+    ],
+    "arm_context": [
+      {
+        "kind": "GLOBAL_ARMED",
+        "timestamp": "2026-11-08T01:00:00+00:00",
+        "link_quality": "CONTEXT_ONLY",
+        "source_ref": "TEST-controller"
+      }
+    ],
+    "limitations": [
+      "Controller action state is historical/source-reported; P17 flags are unchanged.",
+      "NEUTRON_CURRENT_UNAVAILABLE"
+    ]
+  },
+  "catalog": {
+    "policy_version": "TEST-RC5",
+    "sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+    "rules": [
+      {
+        "rule_id": "TEST-RULE-000",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-001",
+        "name": null,
+        "category": "TEST",
+        "effect": "MONITOR",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-002",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-003",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-004",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-005",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-006",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-007",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-008",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-009",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-010",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-011",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-012",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-013",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-014",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-015",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-016",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-017",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-018",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-019",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-020",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-021",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-022",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-023",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-024",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-025",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-026",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-027",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-028",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-029",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-030",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-031",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-032",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-033",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-034",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-035",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-036",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-037",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-038",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      },
+      {
+        "rule_id": "TEST-RULE-039",
+        "name": null,
+        "category": "TEST",
+        "effect": "BLOCK",
+        "explanation": "Synthetic mechanics rule",
+        "policy_version": "TEST-RC5",
+        "source_ref": "TEST-policy"
+      }
+    ],
+    "risk_algorithm_version": null,
+    "captured_at": "2026-11-08T01:10:00Z"
+  },
+  "rules": {
+    "TEST-RULE-000": {
+      "rule_id": "TEST-RULE-000",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 100,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-001": {
+      "rule_id": "TEST-RULE-001",
+      "category": "TEST",
+      "mode": "monitor",
+      "action": "BLOCK",
+      "priority": 101,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-002": {
+      "rule_id": "TEST-RULE-002",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 102,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-003": {
+      "rule_id": "TEST-RULE-003",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 103,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-004": {
+      "rule_id": "TEST-RULE-004",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 104,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-005": {
+      "rule_id": "TEST-RULE-005",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 105,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-006": {
+      "rule_id": "TEST-RULE-006",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 106,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-007": {
+      "rule_id": "TEST-RULE-007",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 107,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-008": {
+      "rule_id": "TEST-RULE-008",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 108,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-009": {
+      "rule_id": "TEST-RULE-009",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 109,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-010": {
+      "rule_id": "TEST-RULE-010",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 110,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-011": {
+      "rule_id": "TEST-RULE-011",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 111,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-012": {
+      "rule_id": "TEST-RULE-012",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 112,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-013": {
+      "rule_id": "TEST-RULE-013",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 113,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-014": {
+      "rule_id": "TEST-RULE-014",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 114,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-015": {
+      "rule_id": "TEST-RULE-015",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 115,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-016": {
+      "rule_id": "TEST-RULE-016",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 116,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-017": {
+      "rule_id": "TEST-RULE-017",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 117,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-018": {
+      "rule_id": "TEST-RULE-018",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 118,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-019": {
+      "rule_id": "TEST-RULE-019",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 119,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-020": {
+      "rule_id": "TEST-RULE-020",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 120,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-021": {
+      "rule_id": "TEST-RULE-021",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 121,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-022": {
+      "rule_id": "TEST-RULE-022",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 122,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-023": {
+      "rule_id": "TEST-RULE-023",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 123,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-024": {
+      "rule_id": "TEST-RULE-024",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 124,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-025": {
+      "rule_id": "TEST-RULE-025",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 125,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-026": {
+      "rule_id": "TEST-RULE-026",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 126,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-027": {
+      "rule_id": "TEST-RULE-027",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 127,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-028": {
+      "rule_id": "TEST-RULE-028",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 128,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-029": {
+      "rule_id": "TEST-RULE-029",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 129,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-030": {
+      "rule_id": "TEST-RULE-030",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 130,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-031": {
+      "rule_id": "TEST-RULE-031",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 131,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-032": {
+      "rule_id": "TEST-RULE-032",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 132,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-033": {
+      "rule_id": "TEST-RULE-033",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 133,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-034": {
+      "rule_id": "TEST-RULE-034",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 134,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-035": {
+      "rule_id": "TEST-RULE-035",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 135,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-036": {
+      "rule_id": "TEST-RULE-036",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 136,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-037": {
+      "rule_id": "TEST-RULE-037",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 137,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-038": {
+      "rule_id": "TEST-RULE-038",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 138,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    },
+    "TEST-RULE-039": {
+      "rule_id": "TEST-RULE-039",
+      "category": "TEST",
+      "mode": "enforce",
+      "action": "BLOCK",
+      "priority": 139,
+      "enabled": true,
+      "description": "Synthetic mechanics rule",
+      "all_conditions": [
+        {
+          "path": "test_flag",
+          "op": "eq",
+          "value_redacted": "TEST"
+        }
+      ],
+      "any_conditions": [],
+      "policy_version": "TEST-RC5",
+      "policy_sha256": "f9c5ed3c29092dcb003f4c8e2b5641f73813a03b7ea1d52149e514ac8783f8af",
+      "source_ref": "TEST-policy",
+      "captured_at": "2026-11-08T01:10:00Z"
+    }
+  }
+}

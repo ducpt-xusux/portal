@@ -1,0 +1,6 @@
+.v4-proxy-compact-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+.v4-proxy-compact-service { min-width: 0; padding: 12px 14px; border: 1px solid #e0e8ed; border-radius: 8px; background: #f9fbfc; }
+.v4-proxy-compact-service > strong { display: block; font-size: 13px; color: #284b60; margin-bottom: 8px; }
+.v4-proxy-compact-service > div { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.v4-proxy-compact-service .v4-badge { white-space: normal; line-height: 1.5; }
+@media (max-width: 850px) { .v4-proxy-compact-grid { grid-template-columns: minmax(0, 1fr); } }
