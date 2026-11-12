@@ -72,6 +72,8 @@ Bộ thu thập ghi thời điểm đo và tám trường wsrep theo schema `por
 
 Đặt `GALERA_SNAPSHOT_DIR` thành đường dẫn tuyệt đối của thư mục trong file môi trường mà tiến trình Portal đang sử dụng. Khởi động lại Portal sau khi thêm hoặc đổi đường dẫn. Mở `/#/system/galera` và kiểm tra đủ ba node, đủ tám trường và thời điểm đo khớp với các file. Portal hiển thị kết quả theo thời điểm đo với nhãn `SNAPSHOT` / `HISTORICAL`.
 
+Để cập nhật định kỳ, chạy `backend/galera_periodic.py collect --key … --nodes … … … --proxy …` trên Controller mỗi 15 giây. Dùng khóa SSH có lệnh cố định để mỗi node chỉ chạy bộ thu thập wsrep và Proxy chỉ chạy `backend/galera_periodic.py receive <GALERA_SNAPSHOT_DIR>` với Python và `PYTHONPATH` của Portal. Controller đọc ba node song song. Proxy thay nội dung ba file hiện tại. Portal đánh giá trạng thái khi cả ba kết quả cùng đợt đều hợp lệ và còn trong 45 giây.
+
 ## Nâng cấp
 
 Installer dành cho cài mới. Các bước dưới đây áp dụng cho bản chạy từ

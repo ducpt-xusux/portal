@@ -8,6 +8,8 @@ export default function GaleraPanel({ compact = false }) {
   const resource = useV4Resource('/system/galera', { interval: 15000 })
   const nodes = Array.isArray(resource.data?.nodes) ? resource.data.nodes : []
   const summary = resource.data?.summary
+  const periodic = resource.meta?.collection_mode === 'PERIODIC'
+  const currentStatus = resource.error ? 'UNKNOWN' : summary?.current_status
   const historical =
     resource.meta?.source_mode === 'SNAPSHOT' &&
     resource.meta?.scope === 'LOCAL_SOCKET_WSREP'
@@ -51,7 +53,7 @@ export default function GaleraPanel({ compact = false }) {
       {historical && (
         <>
           <div className="v4-proxy-snapshot">
-            <Badge value="HISTORICAL">Bản chụp</Badge>
+            <Badge value="HISTORICAL">{periodic ? 'Tự cập nhật mỗi 15 giây' : 'Bản chụp'}</Badge>
             {resource.meta?.coverage_state && <Badge value={resource.meta.coverage_state} />}
             <span>
               Quan sát {time(summary?.observation_from)} →{' '}
@@ -85,7 +87,11 @@ export default function GaleraPanel({ compact = false }) {
             </div>
             <div>
               <span>Trạng thái hiện tại</span>
-              <Badge value="UNKNOWN">Chưa xác minh</Badge>
+              {currentStatus === 'HEALTHY' || currentStatus === 'DEGRADED' ? (
+                <Badge value={currentStatus} />
+              ) : (
+                <Badge value="UNKNOWN">Chưa xác minh</Badge>
+              )}
             </div>
           </div>
           {resource.meta?.last_error_code && (

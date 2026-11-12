@@ -1,4 +1,4 @@
-"""Independent per-node historical wsrep evidence. No database or remote access."""
+"""Read Galera wsrep observations from local snapshots."""
 from datetime import datetime, timedelta, timezone
 import hashlib
 import json
@@ -31,9 +31,11 @@ class NodeExport(BaseModel):
     observed_at: AwareDatetime | None
     collected_at: AwareDatetime
     read_ok: StrictBool
+    batch_id: UUID | None = None
     metrics: dict[str, str]
     error_code: Literal["WSREP_READ_FAILED", "WSREP_FIELDS_MISSING", "WSREP_TIMEOUT",
-                        "WSREP_CLIENT_UNAVAILABLE", "WSREP_RESULT_INVALID"] | None
+                        "WSREP_CLIENT_UNAVAILABLE", "WSREP_RESULT_INVALID",
+                        "WSREP_SOURCE_UNREACHABLE"] | None
 
     @model_validator(mode="after")
     def check_observation(self):
@@ -95,6 +97,7 @@ def read_node(directory: Path, name: str, now: datetime):
         "status": "UNKNOWN", "current_status": "UNKNOWN",
         "health_at_observation": "HEALTHY" if healthy else "DEGRADED" if read_ok else "UNKNOWN",
         "read_ok": read_ok, "source_read_ok": exported is not None,
+        "batch_id": str(exported.batch_id) if exported and exported.batch_id else None,
         "attempted_at": iso(exported.attempted_at) if exported else None,
         "observed_at": iso(observed) if observed else None,
         "collected_at": iso(exported.collected_at) if exported else None,
@@ -111,30 +114,41 @@ def read_galera(directory: Path, now: datetime | None = None):
     observations = observation_metadata(nodes)
     start, end = observations["observation_from"], observations["observation_to"]
     complete = len(valid) == len(NODES)
-    # The observations were collected sequentially: agreement is historical evidence,
-    # never proof of simultaneous quorum or current three-node health.
+    periodic = any(node["batch_id"] for node in nodes)
+    same_batch = periodic and len({node["batch_id"] for node in nodes}) == 1
+    fresh_batch = same_batch and complete and all(
+        node["observation_freshness_state"] == "FRESH" for node in nodes
+    )
     agreement = complete and (
         all(node["wsrep_cluster_size"] == len(NODES) for node in valid)
         and all(node["wsrep_cluster_state_uuid"] for node in valid)
         and len({str(UUID(node["wsrep_cluster_state_uuid"])) for node in valid}) == 1
         and len({int(node["wsrep_cluster_conf_id"]) for node in valid}) == 1
     )
+    healthy = sum(node["health_at_observation"] == "HEALTHY" for node in nodes)
+    current_status = "UNKNOWN"
+    if fresh_batch:
+        current_status = "HEALTHY" if agreement and healthy == len(NODES) else "DEGRADED"
+        for node in nodes:
+            node["current_status"] = node["health_at_observation"]
     summary = {
         "expected_nodes": len(NODES), "observed_nodes": len(valid),
-        "healthy_node_observations": sum(node["health_at_observation"] == "HEALTHY" for node in nodes),
-        "consistency": "MATCHING_AT_OBSERVATIONS" if agreement else "MISMATCH" if complete else "UNKNOWN",
+        "healthy_node_observations": healthy,
+        "consistency": ("MATCHING_AT_OBSERVATIONS" if agreement else "MISMATCH")
+        if complete and (same_batch or not periodic) else "UNKNOWN",
         "observation_from": start, "observation_to": end,
         "observation_spread_seconds": (
             datetime.fromisoformat(end.replace("Z", "+00:00")) -
             datetime.fromisoformat(start.replace("Z", "+00:00"))
         ).total_seconds() if start else None,
-        "simultaneous_verified": False, "current_status": "UNKNOWN",
+        "simultaneous_verified": False, "current_status": current_status,
     }
     file_reads = sum(node["source_read_ok"] for node in nodes)
     refs = [node["source_ref"] or "MISSING" for node in nodes]
     meta = {
         "source_system": "Galera wsrep snapshots", "source_schema": "portal-galera-node-1",
         "source_mode": "SNAPSHOT", "scope": "LOCAL_SOCKET_WSREP", "data_state": "HISTORICAL",
+        "collection_mode": "PERIODIC" if periodic else "MANUAL",
         "read_at": iso(now), "last_attempt": iso(now), "last_success": iso(now) if file_reads == len(NODES) else None,
         "freshness_state": "FRESH" if file_reads == len(NODES) else "PARTIAL" if file_reads else "UNKNOWN",
         "stale_after_seconds": TTL, "data_as_of": summary["observation_to"],
