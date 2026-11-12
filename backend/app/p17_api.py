@@ -562,8 +562,10 @@ def workloads(request: Request,
     items, meta, fingerprint = workload_read(request)
     if project_id and project_id != request.app.state.settings.openstack_project_id:
         fail(403, "OPENSTACK_PROJECT_OUTSIDE_SCOPE")
-    if network_state and network_state != "UNKNOWN":
+    if network_state and network_state != "UNKNOWN" and meta.get("network_classification") != "CONFIGURED":
         fail(503, "NETWORK_CLASSIFICATION_NOT_CONFIGURED")
+    if network_state:
+        items = [item for item in items if item["network_state"] == network_state]
     if name:
         items = [item for item in items if name.casefold() in (item["name"] or "").casefold()]
     total = len(items)

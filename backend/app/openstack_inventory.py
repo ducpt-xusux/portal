@@ -101,6 +101,20 @@ def rows(value):
     return value
 
 
+def network_state(ports, quarantine_sg_id):
+    if not quarantine_sg_id or not ports or any(
+        port["port_security_enabled"] is not True or not port["security_group_ids"]
+        for port in ports
+    ):
+        return "UNKNOWN"
+    groups = [port["security_group_ids"] for port in ports]
+    if all(ids == [quarantine_sg_id] for ids in groups):
+        return "QUARANTINED"
+    if any(quarantine_sg_id in ids for ids in groups):
+        return "MISMATCH"
+    return "NORMAL"
+
+
 class InventoryReader:
     accepted_roles = (frozenset({"reader"}),)
     role_error_code = "OPENSTACK_READER_SCOPE_REQUIRED"
@@ -115,6 +129,7 @@ class InventoryReader:
         self.token_expiry = None
         self.cached = None
         self.cached_ports = []
+        self.network_classification_configured = False
         self.fingerprint = None
         self.last_attempt = None
         self.last_success = None
@@ -227,6 +242,11 @@ class InventoryReader:
         floating = self.collection(cfg.openstack_network_url, "/v2.0/floatingips", "floatingips", project_filter=True, deadline=deadline)
         groups = self.collection(cfg.openstack_network_url, "/v2.0/security-groups", "security_groups", project_filter=True, deadline=deadline)
         group_names = {group["id"]: text(group.get("name")) for group in groups}
+        quarantine_sg_id = next((
+            group["id"] for group in groups
+            if group["id"].lower() == cfg.openstack_quarantine_sg_id
+            and group.get("project_id", group.get("tenant_id")) == cfg.openstack_project_id
+        ), None)
         fip_by_port = {}
         for fip in floating:
             self.same_project(fip)
@@ -272,18 +292,21 @@ class InventoryReader:
         for server in servers:
             self.same_project(server)
             server_id = server["id"]
+            vm_ports = sorted(by_server.get(server_id, []), key=lambda item: item["port_id"])
+            state = network_state(vm_ports, quarantine_sg_id)
             workloads.append({
                 "server_id": server_id, "name": text(server.get("name")), "project_id": cfg.openstack_project_id,
                 "nova_status": text(server.get("status"), 64),
                 "compute_host": text(server.get("OS-EXT-SRV-ATTR:host")),
-                "role": None, "protected": None, "network_state": "UNKNOWN", "network_observation": None,
+                "role": None, "protected": None, "network_state": state, "network_observation": None,
                 "incident_refs": [], "risk_exposure": None,
-                "ports": sorted(by_server.get(server_id, []), key=lambda item: item["port_id"]),
+                "ports": vm_ports,
             })
         # Keep all Neutron ports, including detached/non-compute ports, so an
         # overlapping address cannot appear unique merely because Nova omitted it.
         self.collected_ports = [port for ports in by_server.values() for port in ports]
-        return sorted(workloads, key=lambda item: ((item["name"] or "").casefold(), item["server_id"]))
+        workloads.sort(key=lambda item: ((item["name"] or "").casefold(), item["server_id"]))
+        return workloads, quarantine_sg_id is not None
 
     def read(self):
         with self.lock:
@@ -300,16 +323,23 @@ class InventoryReader:
         if tick >= self.retry_after:
             self.last_attempt = self.clock()
             try:
-                data = self.collect()
+                data, classification_configured = self.collect()
                 # Hash source values, not observation timestamps. Identical
                 # polls keep cursors valid; membership/state changes invalidate them.
                 fingerprint = hashlib.sha256(json.dumps(data, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
                 observed = self.clock()
                 for vm in data:
                     vm["observed_at"] = iso(observed)
+                    if vm["network_state"] != "UNKNOWN":
+                        vm["network_observation"] = {
+                            "state": vm["network_state"],
+                            "verification": "LIVE_NEUTRON_READ",
+                            "observed_at": vm["observed_at"],
+                        }
                     for port in vm["ports"]:
                         port["observed_at"] = iso(observed)
                 self.cached, self.fingerprint = data, fingerprint
+                self.network_classification_configured = classification_configured
                 self.cached_ports = deepcopy(self.collected_ports)
                 self.last_success, self.observation_from, self.last_error = observed, self.last_attempt, None
             except InventoryError as error:
@@ -330,6 +360,8 @@ class InventoryReader:
             "last_attempt": iso(self.last_attempt), "last_success": iso(self.last_success),
             "last_error_code": self.last_error, "source_ref": "sha256:" + self.fingerprint,
             "project_id": self.settings.openstack_project_id, "refresh_seconds": REFRESH_SECONDS,
-            "scope": "SINGLE_PROJECT_READONLY", "network_classification": "NOT_CONFIGURED",
+            "scope": "SINGLE_PROJECT_READONLY",
+            "network_classification": "CONFIGURED" if self.network_classification_configured else "NOT_CONFIGURED",
+            "network_stale_after_seconds": TTL,
         }
         return deepcopy(self.cached), meta, self.fingerprint

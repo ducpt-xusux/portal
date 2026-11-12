@@ -36,6 +36,7 @@ class Settings:
     openstack_compute_url: str = ""
     openstack_network_url: str = ""
     openstack_project_id: str = ""
+    openstack_quarantine_sg_id: str = ""
     openstack_console_enabled: bool = False
     openstack_console_origin: str = ""
     openstack_console_credential_path: Path | None = None
@@ -122,6 +123,7 @@ class Settings:
             openstack_compute_url=os.getenv("OPENSTACK_COMPUTE_URL", ""),
             openstack_network_url=os.getenv("OPENSTACK_NETWORK_URL", ""),
             openstack_project_id=os.getenv("OPENSTACK_PROJECT_ID", ""),
+            openstack_quarantine_sg_id=os.getenv("OPENSTACK_QUARANTINE_SG_ID", "").strip().lower(),
             openstack_console_enabled=os.getenv("OPENSTACK_CONSOLE_ENABLED", "false").lower() == "true",
             openstack_console_origin=os.getenv("OPENSTACK_CONSOLE_ORIGIN", ""),
             openstack_console_credential_path=absolute_path(os.environ["OPENSTACK_CONSOLE_CREDENTIAL_PATH"]) if os.getenv("OPENSTACK_CONSOLE_CREDENTIAL_PATH") else None,

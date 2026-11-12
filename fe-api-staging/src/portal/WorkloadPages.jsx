@@ -36,6 +36,11 @@ import WorkloadConsole from './WorkloadConsole'
 import { usePortal } from './PortalContext'
 import './WorkloadConsole.css'
 
+const ACTIVITY_LABELS = {
+  NORMAL: 'Bình thường',
+  QUARANTINED: 'Bị cô lập',
+}
+
 export function WorkloadsPage({ params }) {
   const time = useTime()
   const [draft, setDraft] = useState(params)
@@ -73,10 +78,9 @@ export function WorkloadsPage({ params }) {
               với nhãn STALE. {resource.meta.last_error_code || ''}
             </p>
           )}
-          <p>
-            Trạng thái VM, IP và SG là quan sát từ OpenStack. Phân loại vai trò,
-            sự cố exposure và xác minh cách ly cần nguồn riêng.
-          </p>
+          {classificationMissing && (
+            <p>Chưa xác định được Security Group cô lập cho project này.</p>
+          )}
         </div>
       )}
       <form
@@ -113,17 +117,17 @@ export function WorkloadsPage({ params }) {
           />
         </Filter>
         <SelectFilter
-          label="Trạng thái mạng"
+          label="Trạng thái hoạt động"
           value={draft.network_state}
           onChange={(value) =>
             setDraft((current) => ({ ...current, network_state: value }))
           }
           options={[
             ['', 'Tất cả'],
-            ...['NORMAL', 'QUARANTINED', 'MISMATCH', 'UNKNOWN'].map((value) => [
+            ...Object.entries(ACTIVITY_LABELS).map(([value, label]) => [
               value,
-              value,
-              classificationMissing && value !== 'UNKNOWN',
+              label,
+              classificationMissing,
             ]),
           ]}
         />
@@ -144,8 +148,7 @@ export function WorkloadsPage({ params }) {
                 <thead>
                   <tr>
                     <th>MÁY ẢO / PROJECT</th>
-                    <th>VAI TRÒ</th>
-                    <th>NOVA / MẠNG</th>
+                    <th>TRẠNG THÁI HOẠT ĐỘNG</th>
                     <th>IP NỘI BỘ / FLOATING IP</th>
                     <th>SECURITY GROUP</th>
                     <th>RỦI RO LIÊN QUAN</th>
@@ -168,37 +171,20 @@ export function WorkloadsPage({ params }) {
                         <small>{display(vm.project_id)}</small>
                       </td>
                       <td>
-                        <span className="v4-role-label">
-                          {vm.protected === true && <LockKeyhole size={13} />}
-                          {vm.protected === true
-                            ? 'PROTECTED'
-                            : vm.role || 'Chưa phân loại'}
-                        </span>
-                      </td>
-                      <td>
-                        <Badge
-                          value={
-                            freshness(
-                              resource.meta,
-                              Boolean(resource.error)
-                            ) === 'FRESH'
-                              ? vm.nova_status
-                              : 'UNKNOWN'
-                          }
-                        />
-                        <small>
-                          <Badge
-                            value={
-                              isVerifiedNetwork(
-                                vm.network_observation,
-                                resource.meta,
-                                Boolean(resource.error)
-                              )
-                                ? vm.network_observation.state
-                                : 'UNKNOWN'
-                            }
-                          />
-                        </small>
+                        {isVerifiedNetwork(
+                          vm.network_observation,
+                          resource.meta,
+                          Boolean(resource.error)
+                        ) ? (
+                          <Badge value={vm.network_observation.state}>
+                            {ACTIVITY_LABELS[vm.network_observation.state]}
+                          </Badge>
+                        ) : (
+                          <span title="Chưa đủ dữ liệu xác nhận">
+                            <span aria-hidden="true">—</span>
+                            <span className="sr-only">Chưa đủ dữ liệu xác nhận</span>
+                          </span>
+                        )}
                       </td>
                       <td>
                         {vm.ports.length
