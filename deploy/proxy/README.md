@@ -59,6 +59,19 @@ Giữ cửa sổ SSH mở, truy cập `http://127.0.0.1:5188/` và đăng nhập
 
 Khi cần cung cấp Portal qua một địa chỉ mạng chung, cấu hình HTTPS trên reverse proxy, đặt `CORS_ORIGINS` đúng origin công bố và `PORTAL_SESSION_LOCAL_HTTP=false`. Uvicorn cần nhận `X-Forwarded-Proto` chỉ từ reverse proxy tin cậy để nhận diện HTTPS. Bản mặc định phục vụ kiểm tra qua SSH tunnel.
 
+## Thu thập bản chụp Galera
+
+Lấy `backend/collect_galera_snapshot.py` từ checkout Git và chép vào từng node `galera-1`, `galera-2`, `galera-3`. Chạy trên mỗi node bằng tài khoản có quyền đọc MariaDB qua socket cục bộ:
+
+```bash
+sudo -v
+python3 collect_galera_snapshot.py > "$(hostname).json"
+```
+
+Bộ thu thập ghi thời điểm đo và tám trường wsrep theo schema `portal-galera-node-1`. Kiểm tra cả ba file có `read_ok: true`, rồi chuyển `galera-1.json`, `galera-2.json`, `galera-3.json` vào thư mục riêng trên Proxy mà tiến trình Portal đọc được. Nếu Proxy không truy cập được SSH của các node, lấy các file qua Controller rồi chuyển về Proxy.
+
+Đặt `GALERA_SNAPSHOT_DIR` thành đường dẫn tuyệt đối của thư mục trong file môi trường mà tiến trình Portal đang sử dụng. Khởi động lại Portal sau khi thêm hoặc đổi đường dẫn. Mở `/#/system/galera` và kiểm tra đủ ba node, đủ tám trường và thời điểm đo khớp với các file. Portal hiển thị kết quả theo thời điểm đo với nhãn `SNAPSHOT` / `HISTORICAL`.
+
 ## Nâng cấp
 
 Installer dành cho cài mới. Các bước dưới đây áp dụng cho bản chạy từ
