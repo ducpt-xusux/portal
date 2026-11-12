@@ -168,7 +168,7 @@ export default function SystemPage({ tab = 'health' }) {
         <GaleraPanel />
       </>
     ),
-    galera: <GaleraPanel />,
+    galera: <GaleraPanel standalone />,
     policies: <PoliciesPanel />,
     sources: <SourcesPanel />,
     'demo-coverage': <DemoCoveragePage />,

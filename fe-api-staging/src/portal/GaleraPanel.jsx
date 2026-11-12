@@ -3,7 +3,7 @@ import { count } from '../services/portalApi'
 import { useV4Resource } from './IncidentPages'
 import { Badge, Empty, FieldGrid, ObservationAgeBadge, Panel, display, useTime } from './PortalUI'
 
-export default function GaleraPanel({ compact = false }) {
+export default function GaleraPanel({ compact = false, standalone = false }) {
   const time = useTime()
   const resource = useV4Resource('/system/galera', { interval: 15000 })
   const nodes = Array.isArray(resource.data?.nodes) ? resource.data.nodes : []
@@ -50,7 +50,7 @@ export default function GaleraPanel({ compact = false }) {
         </div>
       }
     >
-      {historical && (
+      {!standalone && historical && (
         <>
           <div className="v4-proxy-snapshot">
             <Badge value="HISTORICAL">{periodic ? 'Tự cập nhật mỗi 15 giây' : 'Bản chụp'}</Badge>
@@ -64,36 +64,38 @@ export default function GaleraPanel({ compact = false }) {
       )}
       {resource.data && (
         <>
-          <div className="v4-galera-summary">
-            <div>
-              <span>Node có kết quả đo</span>
-              <strong>
-                {display(count(summary?.observed_nodes))} /{' '}
-                {display(count(summary?.expected_nodes))}
-              </strong>
+          {!standalone && (
+            <div className="v4-galera-summary">
+              <div>
+                <span>Node có kết quả đo</span>
+                <strong>
+                  {display(count(summary?.observed_nodes))} /{' '}
+                  {display(count(summary?.expected_nodes))}
+                </strong>
+              </div>
+              <div>
+                <span>Quan sát đạt điều kiện wsrep</span>
+                <strong>
+                  {historical
+                    ? display(count(summary?.healthy_node_observations))
+                    : '—'}{' '}
+                  / {display(count(summary?.expected_nodes))}
+                </strong>
+              </div>
+              <div>
+                <span>Đối chiếu bản chụp</span>
+                <strong>{agreement}</strong>
+              </div>
+              <div>
+                <span>Trạng thái hiện tại</span>
+                {currentStatus === 'HEALTHY' || currentStatus === 'DEGRADED' ? (
+                  <Badge value={currentStatus} />
+                ) : (
+                  <Badge value="UNKNOWN">Chưa xác minh</Badge>
+                )}
+              </div>
             </div>
-            <div>
-              <span>Quan sát đạt điều kiện wsrep</span>
-              <strong>
-                {historical
-                  ? display(count(summary?.healthy_node_observations))
-                  : '—'}{' '}
-                / {display(count(summary?.expected_nodes))}
-              </strong>
-            </div>
-            <div>
-              <span>Đối chiếu bản chụp</span>
-              <strong>{agreement}</strong>
-            </div>
-            <div>
-              <span>Trạng thái hiện tại</span>
-              {currentStatus === 'HEALTHY' || currentStatus === 'DEGRADED' ? (
-                <Badge value={currentStatus} />
-              ) : (
-                <Badge value="UNKNOWN">Chưa xác minh</Badge>
-              )}
-            </div>
-          </div>
+          )}
           {resource.meta?.last_error_code && (
             <p className="v4-inline-warning" role="status">
               Thiếu kết quả wsrep từ một hoặc nhiều node.
@@ -136,7 +138,13 @@ export default function GaleraPanel({ compact = false }) {
                                   ? node.wsrep_cluster_status
                                   : 'UNKNOWN'
                               }
-                            />
+                            >
+                              {standalone &&
+                              valid(node) &&
+                              node.wsrep_cluster_status?.toUpperCase() === 'PRIMARY'
+                                ? 'Primary'
+                                : undefined}
+                            </Badge>
                           </td>
                           <td>
                             {valid(node)
