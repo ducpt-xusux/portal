@@ -39,7 +39,11 @@ python3 -m venv /opt/n91-portal/.venv
 useradd --system --user-group --home-dir /var/lib/n91-portal --shell /usr/sbin/nologin n91-portal
 install -d -m 0700 -o n91-portal -g n91-portal /var/lib/n91-portal
 install -d -m 0750 -o root -g n91-portal /etc/n91-portal
-install -m 0640 -o root -g n91-portal /dev/null /var/lib/n91-portal/p16h-import.jsonl
+seed=/dev/null
+if [[ -f seed/p16h-import.jsonl ]]; then
+    seed=seed/p16h-import.jsonl
+fi
+install -m 0640 -o root -g n91-portal "$seed" /var/lib/n91-portal/p16h-import.jsonl
 install -m 0600 portal.env.example /etc/n91-portal/portal.env
 install -m 0644 n91-portal.service n91-portal-p17.service n91-portal-p17.timer /etc/systemd/system/
 install -m 0644 n91-portal.nginx.conf /etc/nginx/conf.d/n91-portal.conf

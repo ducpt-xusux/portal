@@ -26,6 +26,7 @@ from .openstack_inventory import InventoryError
 from .incident_mapping import IncidentMapping
 from .alerts import AlertError, AlertResponse, AlertsResponse, Kind, alert_key, alert_meta, read_alerts
 from .dashboard_funnel import (FunnelResponse, RunsResponse, RunResponse, build_funnel, evaluation_response)
+from .defense_bundle import DefenseBundleError, DefenseRegistry, summarize_registry
 
 
 def fail(status, code, message="The requested source or capability is unavailable."):
@@ -60,6 +61,21 @@ router = APIRouter(prefix="/api/v1", tags=["P17 snapshot"],
                    dependencies=[Depends(require_key), Depends(require_snapshot_access)])
 observation_auth_router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_key), Depends(require_snapshot_access)])
 evaluation_run_router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_key), Depends(require_read_access)])
+
+
+def has_independent_status_sources(settings):
+    return any((settings.defense_source_registry_path, settings.proxy_services_path, settings.galera_snapshot_dir))
+
+
+def require_source_status_access(request: Request):
+    if not has_independent_status_sources(request.app.state.settings):
+        require_snapshot_access(request)
+    else:
+        require_read_access(request)
+
+
+source_status_router = APIRouter(prefix="/api/v1", tags=["Data sources"],
+                                dependencies=[Depends(require_key), Depends(require_source_status_access)])
 IdPath = Annotated[str, Path(min_length=1, max_length=160, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.:-]*$")]
 
 
@@ -102,6 +118,14 @@ def read(request):
 
 def envelope(request, snapshot, error, data, **meta):
     return {"data": data, "meta": {"request_id": request.state.request_id, **snapshot_meta(snapshot, error, **meta)}, "error": None}
+
+
+def status_report(request, data):
+    return {"data": data, "meta": {
+        "request_id": request.state.request_id, "read_at": utc_now(),
+        "source_system": "Portal source status report", "source_mode": "STATUS_REPORT",
+        "freshness_state": "FRESH", "coverage_complete": False,
+    }, "error": None}
 
 
 def incident_or_404(snapshot, incident_id):
@@ -434,35 +458,63 @@ def dashboard_series(request: Request, window: Annotated[str, Query(max_length=1
     return envelope(request, snapshot, error, {"window_from": iso(start), "window_to": iso(finish), "points": points})
 
 
-@router.get("/system/proxy-services")
+@source_status_router.get("/system/proxy-services")
 def proxy_services(request: Request):
     result = read_services(request.app.state.settings.proxy_services_path)
     return {"data": {"components": result["components"]},
             "meta": {"request_id": request.state.request_id, **result["source"]}, "error": None}
 
 
-@router.get("/system/health")
+@source_status_router.get("/system/health")
 def system_health(request: Request):
-    snapshot, error = read(request)
-    components = [{"component_id": "p17-snapshot-reader", "name": "Proxy P17 SSH reader" if snapshot.remote_status is not None else "P17 snapshot reader", "status": "DEGRADED" if error else "HEALTHY",
-                   "observed_at": utc_now(), "last_success": None if error else utc_now(), "last_attempt": utc_now(),
-                   "source_ref": "sha256:" + snapshot.fingerprint}]
+    settings = request.app.state.settings
+    snapshot = None
+    try:
+        snapshot, error = read(request)
+    except HTTPException as exc:
+        if exc.status_code != 503 or not has_independent_status_sources(settings):
+            raise
+        error = exc.detail["code"]
+    now = utc_now()
+    components = [{
+        "component_id": "p17-snapshot-reader",
+        "name": "Proxy P17 SSH reader" if snapshot and snapshot.remote_status is not None else "P17 snapshot reader",
+        "status": "UNKNOWN" if snapshot is None else "DEGRADED" if error else "HEALTHY",
+        "observed_at": now if snapshot else None, "last_success": None if error else now,
+        "last_attempt": now, "source_ref": "sha256:" + snapshot.fingerprint if snapshot else None,
+        "last_error_code": error,
+    }]
     components.extend({"component_id": name, "name": name, "status": "UNKNOWN", "observed_at": None,
                        "last_success": None, "last_attempt": None, "source_ref": None}
                       for name in ("P17 worker live", "P16H canonical reader", "P17.5 controller", "Nova / Neutron", "Galera"))
-    services = read_services(request.app.state.settings.proxy_services_path)
-    return envelope(request, snapshot, error, {"components": components + services["components"],
-                                              "proxy_services_source": services["source"]})
+    services = read_services(settings.proxy_services_path)
+    data = {"components": components + services["components"], "proxy_services_source": services["source"]}
+    if snapshot is None:
+        return status_report(request, data)
+    return envelope(request, snapshot, error, data)
 
 
-@router.get("/system/data-sources")
+@source_status_router.get("/system/data-sources")
 def data_sources(request: Request):
-    snapshot, error = read(request)
-    remote = snapshot.remote_status
-    items = [{"source_system": "Proxy P17 via SSH" if remote is not None else "P17 snapshot", "source_schema": snapshot.metadata["schema"],
-              "source_mode": "REMOTE_READONLY" if remote is not None else "SNAPSHOT", "freshness_state": "STALE" if error else "FRESH",
-              "data_as_of": iso(snapshot.export.exported_at), "last_success": remote.get("last_success") if remote is not None else None if error else utc_now(),
-              "last_attempt": remote.get("last_attempt") if remote is not None else utc_now(), "last_error_code": error}]
+    settings = request.app.state.settings
+    registry_path = settings.defense_source_registry_path
+    snapshot = None
+    try:
+        snapshot, error = read(request)
+    except HTTPException as exc:
+        if not has_independent_status_sources(settings) or exc.status_code != 503:
+            raise
+        error = exc.detail["code"]
+    items = []
+    if snapshot is None:
+        items.append({"source_system": "P17 snapshot", "freshness_state": "UNKNOWN",
+                      "last_error_code": error})
+    else:
+        remote = snapshot.remote_status
+        items.append({"source_system": "Proxy P17 via SSH" if remote is not None else "P17 snapshot", "source_schema": snapshot.metadata["schema"],
+                      "source_mode": "REMOTE_READONLY" if remote is not None else "SNAPSHOT", "freshness_state": "STALE" if error else "FRESH",
+                      "data_as_of": iso(snapshot.export.exported_at), "last_success": remote.get("last_success") if remote is not None else None if error else utc_now(),
+                      "last_attempt": remote.get("last_attempt") if remote is not None else utc_now(), "last_error_code": error})
     if request.app.state.settings.proxy_sync_status_path is not None and not (
         request.app.state.settings.v4_audit_enabled and request.app.state.settings.mode == "snapshot"
     ):
@@ -483,6 +535,20 @@ def data_sources(request: Request):
         items.append(read_services(request.app.state.settings.proxy_services_path)["source"])
     if request.app.state.settings.galera_snapshot_dir is not None:
         items.append(read_galera(request.app.state.settings.galera_snapshot_dir)["meta"])
+    if registry_path is not None:
+        try:
+            registry, registry_sha = DefenseRegistry(registry_path).read()
+            summary = summarize_registry(registry, registry_sha)
+            row = summary.model_dump(mode="json")
+            row.update(last_success=row["read_at"], last_attempt=row["read_at"])
+            items.append(row)
+        except DefenseBundleError as exc:
+            items.append({"source_system": "N91 defense source registry",
+                          "source_schema": "n91-defense-source-registry-1", "freshness_state": "UNKNOWN",
+                          "last_attempt": utc_now(), "last_error_code": exc.code})
+    # The report read succeeded. Each source retains its own observation state.
+    if has_independent_status_sources(settings):
+        return status_report(request, {"items": items})
     return envelope(request, snapshot, error, {"items": items})
 
 
@@ -574,7 +640,7 @@ def console_create(request: Request, server_id: IdPath, body: ConsoleRequest):
     return {"data": data, "meta": {"request_id": request.state.request_id, "read_at": utc_now()}, "error": None}
 
 
-@router.get("/system/galera")
+@source_status_router.get("/system/galera")
 def galera_status(request: Request):
     directory = request.app.state.settings.galera_snapshot_dir
     if directory is None:

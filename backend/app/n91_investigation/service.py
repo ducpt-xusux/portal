@@ -108,6 +108,7 @@ class InvestigationService:
     stage_loader: object | None = None
     neutron_loader: object | None = None
     clock: object = utc
+    response_history_reader: object | None = None
     _cursor_key: bytes = field(default_factory=lambda: secrets.token_bytes(32), repr=False)
 
     def __post_init__(self):
@@ -260,7 +261,8 @@ class InvestigationService:
             check_mode(observation.source.execution_mode, self.mode)
             if observation.source.execution_mode not in ({'TEST'} if self.mode == 'TEST' else {'EVALUATION'} if self.mode == 'EVALUATION' else {'LIVE'}):
                 return None, 'NEUTRON_CURRENT_NOT_LIVE'
-            if observation.source.freshness_state != 'FRESH' or observation.observed_at > self.clock() or observation.expires_at <= self.clock() or observation.expires_at <= observation.observed_at or observation.expires_at - observation.observed_at > timedelta(seconds=300):
+            now = self.clock()
+            if observation.source.freshness_state != 'FRESH' or observation.observed_at > now or observation.expires_at <= now or observation.expires_at <= observation.observed_at or observation.expires_at - observation.observed_at > timedelta(seconds=300):
                 return None, 'NEUTRON_CURRENT_STALE'
             if (observation.project_id, observation.port_id, observation.server_id) != (
                 cycle.project_id, cycle.containment.port_id, cycle.containment.vm_id):

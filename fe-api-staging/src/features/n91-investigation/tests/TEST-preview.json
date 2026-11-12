@@ -29,16 +29,12 @@
     "runtime_mode": "enforce",
     "would_block": false,
     "action_result": "FORWARDED",
-    "matched_rules": [
-      "ALLOW-HEALTH-001"
-    ],
+    "matched_rules": ["ALLOW-HEALTH-001"],
     "blocking_rules": [],
     "monitor_rules": [],
     "policy_id": "db-firewall-main",
     "policy_version": "TEST-RC5",
-    "reasons": [
-      "TEST approved health"
-    ],
+    "reasons": ["TEST approved health"],
     "raw_score": 0,
     "score_breakdown": null,
     "risk": {
@@ -106,18 +102,12 @@
     "runtime_mode": "enforce",
     "would_block": false,
     "action_result": "BLOCKED",
-    "matched_rules": [
-      "CTX-006"
-    ],
-    "blocking_rules": [
-      "CTX-006"
-    ],
+    "matched_rules": ["CTX-006"],
+    "blocking_rules": ["CTX-006"],
     "monitor_rules": [],
     "policy_id": "db-firewall-main",
     "policy_version": "TEST-RC5",
-    "reasons": [
-      "TEST context deny"
-    ],
+    "reasons": ["TEST context deny"],
     "raw_score": 60,
     "score_breakdown": null,
     "risk": {
@@ -167,9 +157,7 @@
         "stage": "SQL_PARSE",
         "status": "UNAVAILABLE",
         "outcome": null,
-        "reason_codes": [
-          "SOURCE_NOT_PROVIDED"
-        ],
+        "reason_codes": ["SOURCE_NOT_PROVIDED"],
         "reasons": [],
         "facts": [],
         "input_refs": [],
@@ -184,9 +172,7 @@
         "stage": "P14_POLICY",
         "status": "HISTORICAL",
         "outcome": "BLOCK",
-        "reason_codes": [
-          "CONTEXT_DENY"
-        ],
+        "reason_codes": ["CONTEXT_DENY"],
         "reasons": [],
         "facts": [
           {
@@ -354,9 +340,7 @@
         "stage": "P17_DETECTION",
         "status": "UNAVAILABLE",
         "outcome": null,
-        "reason_codes": [
-          "SOURCE_NOT_PROVIDED"
-        ],
+        "reason_codes": ["SOURCE_NOT_PROVIDED"],
         "reasons": [],
         "facts": [],
         "input_refs": [],
@@ -371,9 +355,7 @@
         "stage": "P17_DECISION",
         "status": "UNAVAILABLE",
         "outcome": null,
-        "reason_codes": [
-          "SOURCE_NOT_PROVIDED"
-        ],
+        "reason_codes": ["SOURCE_NOT_PROVIDED"],
         "reasons": [],
         "facts": [],
         "input_refs": [],
@@ -388,9 +370,7 @@
         "stage": "P17_5_RESPONSE",
         "status": "UNAVAILABLE",
         "outcome": null,
-        "reason_codes": [
-          "SOURCE_NOT_PROVIDED"
-        ],
+        "reason_codes": ["SOURCE_NOT_PROVIDED"],
         "reasons": [],
         "facts": [],
         "input_refs": [],
@@ -403,9 +383,7 @@
     ],
     "overall_outcome": "BLOCK",
     "link_quality": "PARTIAL",
-    "evidence_refs": [
-      "TEST-canonical"
-    ],
+    "evidence_refs": ["TEST-canonical"],
     "limitations": [
       "Canonical imported sample; no inferred P17 membership. Missing stage does not mean NOT_TRIGGERED.",
       "CTX-006 denotes context denial; it alone does not establish SQL injection."
@@ -434,9 +412,7 @@
         "stage": "SQL_PARSE",
         "status": "UNAVAILABLE",
         "outcome": null,
-        "reason_codes": [
-          "SOURCE_NOT_PROVIDED"
-        ],
+        "reason_codes": ["SOURCE_NOT_PROVIDED"],
         "reasons": [],
         "facts": [],
         "input_refs": [],
@@ -451,9 +427,7 @@
         "stage": "P14_POLICY",
         "status": "UNAVAILABLE",
         "outcome": null,
-        "reason_codes": [
-          "SOURCE_NOT_PROVIDED"
-        ],
+        "reason_codes": ["SOURCE_NOT_PROVIDED"],
         "reasons": [],
         "facts": [],
         "input_refs": [],
@@ -468,9 +442,7 @@
         "stage": "P15_RISK",
         "status": "UNAVAILABLE",
         "outcome": null,
-        "reason_codes": [
-          "SOURCE_NOT_PROVIDED"
-        ],
+        "reason_codes": ["SOURCE_NOT_PROVIDED"],
         "reasons": [],
         "facts": [],
         "input_refs": [],
@@ -485,9 +457,7 @@
         "stage": "P16H_AUDIT",
         "status": "UNAVAILABLE",
         "outcome": null,
-        "reason_codes": [
-          "SOURCE_NOT_PROVIDED"
-        ],
+        "reason_codes": ["SOURCE_NOT_PROVIDED"],
         "reasons": [],
         "facts": [],
         "input_refs": [],
@@ -550,9 +520,7 @@
         "stage": "P17_DECISION",
         "status": "UNAVAILABLE",
         "outcome": null,
-        "reason_codes": [
-          "P17_3_DECISION_NOT_PROVIDED"
-        ],
+        "reason_codes": ["P17_3_DECISION_NOT_PROVIDED"],
         "reasons": [],
         "facts": [
           {
@@ -592,9 +560,7 @@
         "stage": "P17_5_RESPONSE",
         "status": "HISTORICAL",
         "outcome": "CONTROLLER_ACTION_RECORDED",
-        "reason_codes": [
-          "CURRENT_NEUTRON_REQUIRED"
-        ],
+        "reason_codes": ["CURRENT_NEUTRON_REQUIRED"],
         "reasons": [],
         "facts": [
           {
@@ -616,9 +582,7 @@
     ],
     "overall_outcome": "REVIEW_REQUIRED",
     "link_quality": "PARTIAL",
-    "evidence_refs": [
-      "TEST-incident"
-    ],
+    "evidence_refs": ["TEST-incident"],
     "limitations": [
       "P17 persisted flags do not authorize Controller actions. No inferred event membership or AST."
     ],
@@ -735,17 +699,9 @@
         "reason": "HISTORICAL_TARGET_FROM_CONTROLLER",
         "source_system": "OPENSTACK_SNAPSHOT"
       },
-      "before_sgs": [
-        "TEST-sg-a",
-        "TEST-sg-b"
-      ],
-      "during_sgs": [
-        "TEST-qsg"
-      ],
-      "after_sgs": [
-        "TEST-sg-a",
-        "TEST-sg-b"
-      ],
+      "before_sgs": ["TEST-sg-a", "TEST-sg-b"],
+      "during_sgs": ["TEST-qsg"],
+      "after_sgs": ["TEST-sg-a", "TEST-sg-b"],
       "network_verified": false,
       "started_at": "2026-11-08T01:00:06Z",
       "finished_at": "2026-11-08T01:00:26Z",
@@ -773,9 +729,7 @@
       "verification": "IMPORTED_UNVERIFIED",
       "human_review": "UNAVAILABLE",
       "freshness_state": "HISTORICAL",
-      "limitations": [
-        "Synthetic TEST; not live evidence."
-      ]
+      "limitations": ["Synthetic TEST; not live evidence."]
     },
     "history": {
       "BEFORE": {
@@ -785,10 +739,7 @@
         "project_id": "TEST-project",
         "port_id": "TEST-port",
         "server_id": "TEST-vm",
-        "security_group_ids": [
-          "TEST-sg-a",
-          "TEST-sg-b"
-        ],
+        "security_group_ids": ["TEST-sg-a", "TEST-sg-b"],
         "observed_at": "2026-11-08T01:00:02Z",
         "source_ref": "TEST-SG-BEFORE"
       },
@@ -799,9 +750,7 @@
         "project_id": "TEST-project",
         "port_id": "TEST-port",
         "server_id": "TEST-vm",
-        "security_group_ids": [
-          "TEST-qsg"
-        ],
+        "security_group_ids": ["TEST-qsg"],
         "observed_at": "2026-11-08T01:00:05Z",
         "source_ref": "TEST-SG-DURING"
       },
@@ -812,10 +761,7 @@
         "project_id": "TEST-project",
         "port_id": "TEST-port",
         "server_id": "TEST-vm",
-        "security_group_ids": [
-          "TEST-sg-a",
-          "TEST-sg-b"
-        ],
+        "security_group_ids": ["TEST-sg-a", "TEST-sg-b"],
         "observed_at": "2026-11-08T01:00:25Z",
         "source_ref": "TEST-SG-AFTER"
       }
@@ -846,10 +792,7 @@
         "cycle_id": "TEST-cycle-1",
         "clock_id": "TEST-controller-clock",
         "time_basis": "TEST-controller-monotonic-correlated",
-        "source_refs": [
-          "TEST-controller",
-          "TEST-controller"
-        ],
+        "source_refs": ["TEST-controller", "TEST-controller"],
         "unavailable_reason": null
       },
       {
@@ -862,10 +805,7 @@
         "cycle_id": "TEST-cycle-1",
         "clock_id": "TEST-controller-clock",
         "time_basis": "TEST-controller-monotonic-correlated",
-        "source_refs": [
-          "TEST-controller",
-          "TEST-controller"
-        ],
+        "source_refs": ["TEST-controller", "TEST-controller"],
         "unavailable_reason": null
       },
       {

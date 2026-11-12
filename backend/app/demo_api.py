@@ -1,17 +1,21 @@
-"""Injectable read-only routes. Deliberately not mounted in shared main.py yet."""
+"""Read-only Evidence and Demo Coverage routes."""
 from collections.abc import Callable
 from ipaddress import ip_address
 from typing import Annotated
 from uuid import uuid4
 from fastapi import APIRouter, Depends, Path, Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from .api import require_key
+from .defense_bundle import DefenseBundleError
+from .defense_coverage import defense_coverage
 from .evidence_models import EvidenceResponse, DemoResponse
 from .evidence_registry import EvidenceError, EvidenceConfig, EvidenceRegistry, now
 from .demo_coverage import metadata, evidence_view, coverage
 
 
-def create_evidence_router(config: EvidenceConfig, role_resolver: Callable | None = None):
+def create_evidence_router(config: EvidenceConfig, role_resolver: Callable | None = None,
+                           *, defense_registry_path=None, defense_archive_dir=None):
     """role_resolver(request) is a trusted server session adapter, never a browser header.
 
     Without it, only explicitly enabled loopback local owner access is accepted,
@@ -78,5 +82,26 @@ def create_evidence_router(config: EvidenceConfig, role_resolver: Callable | Non
                 openapi_extra={'x-role-required': 'Viewer', 'x-readonly': True, 'x-local-schema-version': 'portal-demo-coverage-2'})
     def demo(request: Request):
         return serve(request, 'Viewer')
+
+    @router.get('/system/demo-coverage/defense-run',
+                openapi_extra={'x-role-required': 'Viewer', 'x-readonly': True,
+                               'x-local-schema-version': 'portal-defense-coverage-1'})
+    def defense_run(request: Request):
+        denied = access(request, 'Viewer')
+        if denied is not None:
+            return denied
+        if request.query_params:
+            return error(request, 422, 'EVIDENCE_QUERY_UNSUPPORTED')
+        if defense_registry_path is None or defense_archive_dir is None:
+            return error(request, 503, 'DEFENSE_COVERAGE_NOT_CONFIGURED')
+        try:
+            data = defense_coverage(defense_registry_path, defense_archive_dir)
+        except DefenseBundleError as exc:
+            return error(request, 503, exc.code)
+        request_id = getattr(request.state, 'request_id', str(uuid4()))
+        meta = {'request_id': request_id, 'read_at': now(), 'source_system': 'DEFENSE_ARCHIVES',
+                'freshness_state': 'HISTORICAL'}
+        return JSONResponse(jsonable_encoder({'data': data, 'meta': meta, 'error': None}),
+                            headers={'Cache-Control': 'no-store', 'X-Request-ID': request_id})
 
     return router

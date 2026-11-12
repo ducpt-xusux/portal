@@ -7,14 +7,16 @@ from fastapi.responses import JSONResponse, Response
 from fastapi.routing import APIRoute
 from pydantic import ValidationError
 from .gate import envelope
-from .models import Login, NoteInput, TriageInput, AlertReviewInput, UserCreate, UserUpdate
-from .privacy import notes_csv
+from .models import Login, NoteInput, TriageInput, AlertReviewInput, EvidenceExportInput, ReadStateInput, UserCreate, UserUpdate
+from .privacy import evidence_csv, notes_csv
 from .service import BusinessError, iso
-from .dto import (Success, AuthSession, Note, NotePage, Overlay, User, UserPage,
+from .dto import (Success, AuthSession, EvidenceExport, Note, NotePage, Overlay, IncidentReadState, User, UserPage,
                   AssigneePage, Capabilities, AuditPage, ExtendedAuditPage)
 
 ID = Annotated[str, Path(min_length=1, max_length=160, pattern=r'^[A-Za-z0-9][A-Za-z0-9_.:-]*$')]
-Stream = Annotated[str | None, Query(min_length=1, max_length=160, pattern=r'^[A-Za-z0-9][A-Za-z0-9_.:-]*$')]
+STREAM_QUERY = Query(min_length=1, max_length=160, pattern=r'^[A-Za-z0-9][A-Za-z0-9_.:-]*$')
+Stream = Annotated[str | None, STREAM_QUERY]
+ExactStream = Annotated[str, STREAM_QUERY]
 Limit = Annotated[int, Query(ge=1, le=100)]
 After = Annotated[int, Query(ge=0, le=100_000)]
 Cursor = Annotated[str | None, Query(min_length=1, max_length=2048)]
@@ -56,6 +58,10 @@ def create_business_router(service):
     def result(request, data, **headers):
         return JSONResponse(envelope(request, service, data), headers={'Cache-Control': 'no-store', **headers})
 
+    def exact_scope(request):
+        if list(request.query_params.keys()) != ['stream_id'] or len(request.query_params.getlist('stream_id')) != 1:
+            raise BusinessError(422, 'INVALID_INCIDENT_SCOPE')
+
     def paged(request, scope, cursor, limit, read, *, sequence=False, extra=None):
         user = actor(request)
         position = service.cursor(user, [scope,limit], token=cursor) if cursor else 0
@@ -94,10 +100,12 @@ def create_business_router(service):
         return response
 
     @router.post('/incidents/{id}/notes', response_model=Success[Note])
-    def add_note(request: Request, id: ID, payload: NoteInput):
-        ref = service.resolve('incident', id)
-        return result(request, service.add_note(actor(request), ref, payload.note,
-                      request.headers.get('idempotency-key'), rid(request)))
+    def add_note(request: Request, id: ID, payload: NoteInput, stream_id: Stream = None):
+        key = request.headers.get('idempotency-key')
+        if stream_id is not None and not key:
+            raise BusinessError(422, 'IDEMPOTENCY_KEY_REQUIRED')
+        ref = service.resolve('incident', id, stream_id)
+        return result(request, service.add_note(actor(request), ref, payload.note, key, rid(request)))
 
     @router.get('/portal/incidents/{id}/notes', response_model=Success[NotePage])
     def notes(request: Request, id: ID, stream_id: Stream = None, limit: Limit = 25, cursor: Cursor = None):
@@ -122,6 +130,45 @@ def create_business_router(service):
         return result(request, service.triage(actor(request), service.resolve('incident', id, stream_id),
                       payload.model_dump(), request.headers.get('idempotency-key'), rid(request)))
 
+    @router.post('/incidents/{id}/review', response_model=Success[Overlay])
+    def review_incident(request: Request, id: ID, payload: TriageInput, stream_id: ExactStream):
+        """Versioned alias of Portal incident triage."""
+        exact_scope(request)
+        return triage(request, id, payload, stream_id)
+
+    @router.post('/incidents/{id}/evidence/exports', response_model=Success[EvidenceExport],
+                 responses={200: {'content': {
+                     'text/csv': {'schema': {'type': 'string'}},
+                     'application/vnd.n91.evidence+json': {'schema': {'type': 'object'}},
+                 }}})
+    def export_evidence(request: Request, id: ID, payload: EvidenceExportInput, stream_id: ExactStream):
+        exact_scope(request)
+        data = service.export_evidence(actor(request), id, stream_id, payload.model_dump(),
+                                       request.headers.get('idempotency-key'), rid(request))
+        media_type = {'csv': 'text/csv', 'json': 'application/vnd.n91.evidence+json'}[payload.format]
+        if request.headers.get('accept', '').strip().lower() == media_type:
+            filename = id.replace(':', '_').rstrip('.') + f'-evidence-partial.{payload.format}'
+            content = evidence_csv(data) if payload.format == 'csv' else json.dumps({
+                'metadata': {**{key: value for key, value in data.items() if key != 'items'}, 'completeness': 'PARTIAL'},
+                'items': data['items'],
+            }, indent=2)
+            return Response(content, media_type=media_type, headers={
+                'Cache-Control': 'no-store', 'Content-Disposition': f'attachment; filename="{filename}"',
+                'X-Export-ID': data['export_id'], 'X-Audit-ID': data['audit_id'],
+                'X-Incident-ID': data['incident_id'], 'X-Stream-ID': data['stream_id'],
+                'X-Export-Completeness': 'PARTIAL', 'X-Exported-Event-Count': str(data['exported_event_count']),
+            })
+        return result(request, data)
+
+    @router.get('/portal/incidents/{id}/read-state', response_model=Success[IncidentReadState])
+    def read_state(request: Request, id: ID, stream_id: ExactStream):
+        return result(request, service.read_state(actor(request), service.resolve('incident', id, stream_id)))
+
+    @router.patch('/portal/incidents/{id}/read-state', response_model=Success[IncidentReadState])
+    def set_read_state(request: Request, id: ID, payload: ReadStateInput, stream_id: ExactStream):
+        return result(request, service.set_read_state(actor(request), service.resolve('incident', id, stream_id),
+                      payload.model_dump(), request.headers.get('idempotency-key'), rid(request)))
+
     @router.patch('/portal/alerts/{id}/review', response_model=Success[Overlay])
     def review(request: Request, id: ID, payload: AlertReviewInput, stream_id: Stream = None):
         return result(request, service.triage(actor(request), service.resolve('alert', id, stream_id),
@@ -139,6 +186,7 @@ def create_business_router(service):
         return result(request, {'user_id': user.user_id, 'portal_admin': user.portal_admin,
             'can_triage': bool(set(user.roles).intersection(WRITE_ROLES)),
             'can_read_notes': bool(set(user.roles).intersection(EVIDENCE_ROLES)),
+            'can_export_evidence': service.evidence_loader is not None and bool(set(user.roles).intersection(EVIDENCE_ROLES)),
             'network_actions_enabled': False, 'context': service.config.context})
 
     @router.get('/portal/admin/users', response_model=Success[UserPage])

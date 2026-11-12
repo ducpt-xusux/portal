@@ -7,8 +7,17 @@ export default defineConfig({
   root: fileURLToPath(new URL('.', import.meta.url)),
   plugins: [react()],
   build: {
-    outDir: fileURLToPath(new URL('../../../../delivery-n91/C-investigation/feature-build', import.meta.url)),
+    outDir: fileURLToPath(
+      new URL(
+        '../../../../delivery-n91/C-investigation/feature-build',
+        import.meta.url
+      )
+    ),
     emptyOutDir: false,
-    rollupOptions: { input: fileURLToPath(new URL('./investigation-preview.html', import.meta.url)) },
+    rollupOptions: {
+      input: fileURLToPath(
+        new URL('./investigation-preview.html', import.meta.url)
+      ),
+    },
   },
 })

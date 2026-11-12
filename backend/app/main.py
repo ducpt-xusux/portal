@@ -17,18 +17,22 @@ from .ingest import Importer
 from .schemas import utc_now
 from .store import Store
 from .p17_snapshot import SnapshotReader
-from .p17_api import CursorCodec, evaluation_run_router, observation_auth_router, require_read_access, router as p17_router
+from .p17_api import CursorCodec, evaluation_run_router, observation_auth_router, require_read_access, router as p17_router, source_status_router
 from .openstack_inventory import InventoryReader
 from .remote_console import ConsoleService
 from .demo_api import create_evidence_router
 from .evidence_registry import EvidenceConfig, EvidenceRegistry
-from .integration_sources import business_snapshot_resolver, evaluation_sources, investigation_sources
+from .integration_sources import business_evidence_loader, business_snapshot_resolver, evaluation_sources, investigation_sources
 from .n91_business import BusinessConfig, BusinessService, SessionGate, create_business_router, trusted_roles
+from .n91_business.gate import INCIDENT_WRITE_POLICIES
 from .n91_evaluation.api import create_evaluation_system_router
 from .n91_investigation.api import assert_no_duplicate_routes, business_session_access_gate, create_investigation_router
 
 
 SESSION_POLICIES = (
+    ('GET', '/api/v1/system/demo-coverage/defense-run', 'read'),
+    ('GET', '/api/v1/portal/incidents/{incident_id}/investigation', 'evidence'),
+    ('GET', '/api/v1/portal/investigation/response-history', 'evidence'),
     ('GET', '/api/v1/investigation/actions/{action_id}/sg-lifecycle', 'evidence'),
     ('GET', '/api/v1/n91/evaluation-system/catalog', 'read'),
     ('GET', '/api/v1/n91/evaluation-system/runs/{run_id}', 'read'),
@@ -45,7 +49,9 @@ def validate_business_database(config, settings, evidence):
         evidence.index_path, settings.evaluation_index_path, settings.proxy_sync_status_path,
         settings.openstack_credential_path, settings.openstack_console_credential_path,
         settings.investigation_policy_path, settings.investigation_controller_path,
+        settings.investigation_controller_archive_path, settings.investigation_controller_binding_path,
         settings.evaluation_observations_path, settings.system_observations_path,
+        settings.defense_source_registry_path,
     )
     for source in sources:
         if source is None:
@@ -75,7 +81,8 @@ def create_app(settings: Settings | None = None, *, evidence_config: EvidenceCon
         if config.context == 'TEST' and settings.mode != 'snapshot':
             raise ValueError('TEST sessions require an isolated snapshot instance')
         resolver = business_source_resolver or business_snapshot_resolver(snapshot_reader, config.context)
-        business = BusinessService(config, source_resolver=resolver)
+        business = BusinessService(config, source_resolver=resolver, evidence_loader=business_evidence_loader(
+            snapshot_reader, config.context, settings.p16h_import_context) if settings.p17_snapshot_path else None)
     store = Store(settings.database_path)
     importer = Importer(settings, store)
 
@@ -173,12 +180,20 @@ def create_app(settings: Settings | None = None, *, evidence_config: EvidenceCon
     app.include_router(router)
     app.include_router(p17_router)
     app.include_router(evaluation_run_router)
+    app.include_router(source_status_router)
     if business:
         app.include_router(create_business_router(business), dependencies=[Depends(require_key)])
     else:
         app.include_router(observation_auth_router)
+        def observation_write_denied(request: Request):
+            return error(request, 403, {'code': 'OBSERVATION_READ_ONLY',
+                                        'message': 'This operation requires Portal session access.'})
+        for method, path, _ in INCIDENT_WRITE_POLICIES:
+            app.add_api_route(path, observation_write_denied, methods=[method], include_in_schema=False)
     app.include_router(create_evidence_router(
         evidence, trusted_roles if business else evidence_role_resolver,
+        defense_registry_path=settings.defense_source_registry_path,
+        defense_archive_dir=settings.defense_archive_dir,
     ))
     app.include_router(create_investigation_router(
         investigation_service or investigation_sources(settings),

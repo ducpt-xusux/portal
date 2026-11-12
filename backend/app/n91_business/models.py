@@ -40,10 +40,20 @@ class TriageInput(StrictModel):
     priority: Literal['UNSET', 'LOW', 'MEDIUM', 'HIGH', 'URGENT'] = 'UNSET'
 
 
+class EvidenceExportInput(StrictModel):
+    format: Literal['json', 'csv']
+    scope: Literal['EVIDENCE_REFERENCES']
+
+
 class AlertReviewInput(StrictModel):
     version: int = Field(ge=0)
     review_state: Literal['UNREAD', 'REVIEWED']
     acknowledged: bool
+
+
+class ReadStateInput(StrictModel):
+    version: int = Field(ge=0)
+    is_read: bool
 
 
 class UserCreate(StrictModel):

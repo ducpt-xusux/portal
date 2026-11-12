@@ -79,6 +79,20 @@ def unique_object(pairs):
     return result
 
 
+def observation_metadata(rows):
+    observed = [row for row in rows if row["read_ok"]]
+    times = sorted(row["observed_at"] for row in observed)  # iso() normalizes to UTC with fixed precision.
+    return {
+        "coverage_state": "UNKNOWN" if not observed else "COMPLETE" if len(observed) == len(rows) else "PARTIAL",
+        "observation_freshness_state": (
+            "UNKNOWN" if not observed else
+            "STALE" if any(row["observation_freshness_state"] == "STALE" for row in observed) else "FRESH"
+        ),
+        "observation_from": times[0] if times else None,
+        "observation_to": times[-1] if times else None,
+    }
+
+
 def read_services(path: Path | None, now: datetime | None = None):
     now = now or datetime.now(timezone.utc)
     source_error, exported, digest = None, None, None
@@ -140,4 +154,7 @@ def read_services(path: Path | None, now: datetime | None = None):
             "active_state": props.ActiveState if props else None, "sub_state": props.SubState if props else None,
             "result": props.Result if props else None, "source_ref": digest, "last_error_code": row_error,
         })
+    meta.update(observation_metadata(components))
+    if exported and meta["coverage_state"] != "COMPLETE":
+        meta["last_error_code"] = "PROXY_SERVICES_INCOMPLETE"
     return {"components": components, "source": meta}

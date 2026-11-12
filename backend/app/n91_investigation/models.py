@@ -214,7 +214,7 @@ class SgSnapshot(DTO):
     port_id: ID
     server_id: ID
     security_group_ids: Refs
-    observed_at: AwareDatetime
+    observed_at: AwareDatetime | None
     source_ref: ID
 
 

@@ -56,8 +56,30 @@ class Settings:
     system_observations_path: Path | None = None
     system_observations_sha256: str = ""
     evaluation_source_context: str = "EVALUATION"
+    defense_source_registry_path: Path | None = None
+    defense_archive_dir: Path | None = None
+    investigation_controller_archive_path: Path | None = None
+    investigation_controller_binding_path: Path | None = None
+    investigation_controller_binding_sha256: str = ""
 
     def __post_init__(self):
+        if self.defense_source_registry_path is not None:
+            protected_paths = (
+                self.audit_path, self.database_path, self.p17_snapshot_path,
+                self.evidence_index_path, self.evaluation_index_path, self.business_database_path,
+                self.openstack_credential_path, self.openstack_console_credential_path,
+                self.proxy_sync_status_path, self.proxy_services_path,
+                self.investigation_policy_path, self.investigation_controller_path,
+                self.investigation_controller_archive_path, self.investigation_controller_binding_path,
+                self.evaluation_observations_path, self.system_observations_path,
+            )
+            registry = self.defense_source_registry_path.resolve()
+            for source in protected_paths:
+                if source is not None and (
+                    registry == source.resolve()
+                    or registry.is_file() and source.is_file() and registry.samefile(source)
+                ):
+                    raise ValueError("Defense source registry must use a dedicated metadata file")
         if self.evidence_index_path and self.evidence_index_path.resolve() in {
             path.resolve() for path in (self.audit_path, self.database_path, self.p17_snapshot_path, self.evaluation_index_path) if path
         }:
@@ -120,4 +142,9 @@ class Settings:
             system_observations_path=optional_path("PORTAL_SYSTEM_OBSERVATIONS"),
             system_observations_sha256=os.getenv("PORTAL_SYSTEM_OBSERVATIONS_SHA256", ""),
             evaluation_source_context=os.getenv("PORTAL_EVALUATION_SOURCE_CONTEXT", "EVALUATION"),
+            defense_source_registry_path=optional_path("PORTAL_DEFENSE_SOURCE_REGISTRY"),
+            defense_archive_dir=optional_path("PORTAL_DEFENSE_ARCHIVE_DIR"),
+            investigation_controller_archive_path=optional_path("PORTAL_INVESTIGATION_CONTROLLER_ARCHIVE"),
+            investigation_controller_binding_path=optional_path("PORTAL_INVESTIGATION_CONTROLLER_BINDING"),
+            investigation_controller_binding_sha256=os.getenv("PORTAL_INVESTIGATION_CONTROLLER_BINDING_SHA256", ""),
         )

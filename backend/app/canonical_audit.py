@@ -128,7 +128,7 @@ def aggregate(request, window, end, bucket=None):
         fail(422, "INVALID_BUCKET")
     with audit_read(request) as (db, meta, _):
         historical = meta["source_mode"] == "SNAPSHOT"
-        last = datetime.fromisoformat(meta["last_event_at"]) if meta["last_event_at"] else None
+        last = datetime.fromisoformat(meta["last_event_at"].replace("Z", "+00:00")) if meta["last_event_at"] else None
         finish = end or (last if historical and last else datetime.now(timezone.utc))
         start = finish - period
         rows = db.execute("SELECT timestamp, policy_decision, json_extract(payload, '$.risk_status') AS risk_status "
@@ -149,7 +149,8 @@ def aggregate(request, window, end, bucket=None):
             points = [{"occurred_at": iso(start + i * interval), "allow": None, "block": None,
                        "records": 0, "coverage_complete": False} for i in range(math.ceil(period / interval))]
             for row in rows:
-                index = min(len(points) - 1, int((datetime.fromisoformat(row["timestamp"]) - start) / interval))
+                observed = datetime.fromisoformat(row["timestamp"].replace("Z", "+00:00"))
+                index = min(len(points) - 1, int((observed - start) / interval))
                 point = points[index]
                 if not point["records"]:
                     point.update(allow=0, block=0)

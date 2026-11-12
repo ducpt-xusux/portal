@@ -1,18 +1,18 @@
-import { useState } from "react";
-import { numberLabel, timeLabel } from "../utils/format";
+import { useState } from 'react'
+import { numberLabel, timeLabel } from '../utils/format'
 
 const WINDOWS = [
-  { id: "1h", label: "1 giờ", minutes: 60 },
-  { id: "6h", label: "6 giờ", minutes: 360 },
-  { id: "24h", label: "24 giờ", minutes: 1440 },
-];
+  { id: '1h', label: '1 giờ', minutes: 60 },
+  { id: '6h', label: '6 giờ', minutes: 360 },
+  { id: '24h', label: '24 giờ', minutes: 1440 },
+]
 
 const WIDTH = 760,
   HEIGHT = 214,
   LEFT = 38,
   RIGHT = 12,
   TOP = 14,
-  BOTTOM = 28;
+  BOTTOM = 28
 
 export default function ActivityChart({
   activity,
@@ -20,23 +20,26 @@ export default function ActivityChart({
   onWindowChange,
   busy,
 }) {
-  const [hovered, setHovered] = useState(null);
-  const data = activity.chart;
-  const peak = Math.max(...data.flatMap(point => [point.allowed, point.blocked]), 1);
-  const step = peak <= 10 ? 1 : peak <= 50 ? 5 : 50;
-  const max = Math.ceil(peak / step) * step;
-  const plotWidth = WIDTH - LEFT - RIGHT;
-  const plotHeight = HEIGHT - TOP - BOTTOM;
-  const x = (index) => LEFT + (index * plotWidth) / Math.max(1, data.length - 1);
-  const y = (value) => TOP + plotHeight - (value / max) * plotHeight;
+  const [hovered, setHovered] = useState(null)
+  const data = activity.chart
+  const peak = Math.max(
+    ...data.flatMap((point) => [point.allowed, point.blocked]),
+    1
+  )
+  const step = peak <= 10 ? 1 : peak <= 50 ? 5 : 50
+  const max = Math.ceil(peak / step) * step
+  const plotWidth = WIDTH - LEFT - RIGHT
+  const plotHeight = HEIGHT - TOP - BOTTOM
+  const x = (index) => LEFT + (index * plotWidth) / Math.max(1, data.length - 1)
+  const y = (value) => TOP + plotHeight - (value / max) * plotHeight
   const path = (field) =>
     data
       .map(
         (point, index) =>
-          `${index === 0 ? "M" : "L"} ${x(index)} ${y(point[field])}`,
+          `${index === 0 ? 'M' : 'L'} ${x(index)} ${y(point[field])}`
       )
-      .join(" ");
-  const current = hovered === null ? null : data[hovered];
+      .join(' ')
+  const current = hovered === null ? null : data[hovered]
 
   return (
     <section className="panel activity-panel" aria-labelledby="activity-title">
@@ -50,7 +53,7 @@ export default function ActivityChart({
             <button
               key={period.id}
               aria-pressed={window === period.id}
-              className={window === period.id ? "selected" : ""}
+              className={window === period.id ? 'selected' : ''}
               onClick={() => onWindowChange(period.id)}
               disabled={busy}
             >
@@ -121,11 +124,11 @@ export default function ActivityChart({
             </g>
           ))}
           <path
-            d={`${path("allowed")} L ${x(data.length - 1)} ${y(0)} L ${x(0)} ${y(0)} Z`}
+            d={`${path('allowed')} L ${x(data.length - 1)} ${y(0)} L ${x(0)} ${y(0)} Z`}
             fill="url(#allowed-fill)"
           />
           <path
-            d={path("allowed")}
+            d={path('allowed')}
             fill="none"
             stroke="#3978ed"
             strokeWidth="2.8"
@@ -133,7 +136,7 @@ export default function ActivityChart({
             strokeLinecap="round"
           />
           <path
-            d={path("blocked")}
+            d={path('blocked')}
             fill="none"
             stroke="#ef7768"
             strokeWidth="2.6"
@@ -194,12 +197,13 @@ export default function ActivityChart({
       </div>
       <div className="chart-footnote">
         <span className="status-dot blue" />
-        {activity.bucketMinutes ?? WINDOWS.find((item) => item.id === window).minutes / 12} phút / điểm dữ
-        liệu
+        {activity.bucketMinutes ??
+          WINDOWS.find((item) => item.id === window).minutes / 12}{' '}
+        phút / điểm dữ liệu
         <span className="chart-rate">
-          Tỷ lệ chặn <b>{activity.blockRate.toFixed(2).replace(".", ",")}%</b>
+          Tỷ lệ chặn <b>{activity.blockRate.toFixed(2).replace('.', ',')}%</b>
         </span>
       </div>
     </section>
-  );
+  )
 }

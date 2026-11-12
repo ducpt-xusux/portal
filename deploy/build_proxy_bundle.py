@@ -1,9 +1,10 @@
-"""Package a built N91 frontend, backend  for Linux."""
+"""Package a built N91 frontend and backend for Linux."""
 
 import argparse
 from hashlib import sha256
 from io import BytesIO
 from pathlib import Path
+import re
 import tarfile
 
 
@@ -35,8 +36,8 @@ def bundle_files(web: Path):
             yield f'web/{relative.as_posix()}', path.read_bytes()
 
 
-def add(archive, name, raw):
-    member = tarfile.TarInfo(f'{RELEASE}/{name}')
+def add(archive, name, raw, release):
+    member = tarfile.TarInfo(f'{release}/{name}')
     member.size = len(raw)
     member.mode = 0o755 if name == 'install.sh' else 0o644
     archive.addfile(member, BytesIO(raw))
@@ -45,15 +46,19 @@ def add(archive, name, raw):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--web', type=Path, default=ROOT / 'deploy/.proxy-web-build')
-    parser.add_argument('--output', type=Path, default=ROOT / f'deploy/{RELEASE}.tar.gz')
+    parser.add_argument('--release-name', default=RELEASE)
+    parser.add_argument('--output', type=Path)
     args = parser.parse_args()
+    if not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,79}', args.release_name):
+        parser.error('Invalid release name')
+    output = args.output or ROOT / 'deploy' / f'{args.release_name}.tar.gz'
     files = dict(bundle_files(args.web))
     sums = ''.join(f'{sha256(raw).hexdigest()}  {name}\n' for name, raw in sorted(files.items()))
-    with args.output.open('xb') as target, tarfile.open(fileobj=target, mode='w:gz') as archive:
+    with output.open('xb') as target, tarfile.open(fileobj=target, mode='w:gz') as archive:
         for name, raw in files.items():
-            add(archive, name, raw)
-        add(archive, 'SHA256SUMS', sums.encode('ascii'))
-    print(f'{args.output} ({len(files)} verified inputs)')
+            add(archive, name, raw, args.release_name)
+        add(archive, 'SHA256SUMS', sums.encode('ascii'), args.release_name)
+    print(f'{output} ({len(files)} inputs with SHA-256)')
 
 
 if __name__ == '__main__':

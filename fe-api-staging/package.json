@@ -9,7 +9,9 @@
     "preview": "vite preview --host 127.0.0.1",
     "test": "node --test src/services/auditApi.test.js src/services/portalApi.test.js src/services/incidentActions.test.js src/services/dashboardAudit.test.js src/services/incidentFilters.test.js src/services/demoCoverageApi.test.js",
     "test:v4": "node --test src/services/portalApi.test.js src/services/incidentActions.test.js src/services/dashboardAudit.test.js src/services/incidentFilters.test.js src/services/demoCoverageApi.test.js",
-    "qa:api": "node tests/qa-api.mjs"
+    "qa:api": "node tests/qa-api.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@fontsource-variable/inter": "5.3.0",
@@ -20,6 +22,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "6.1.2",
+    "prettier": "^3.5.0",
     "vite": "8.3.4"
   }
 }

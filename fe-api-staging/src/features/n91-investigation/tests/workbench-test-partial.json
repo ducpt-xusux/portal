@@ -1,0 +1,309 @@
+{
+  "data": {
+    "schema_version": "portal-investigation-1",
+    "identity": {
+      "stream_id": "TEST-investigation-stream",
+      "incident_id": "TEST-investigation-incident"
+    },
+    "incident": {
+      "stream_id": "TEST-investigation-stream",
+      "incident_id": "TEST-investigation-incident",
+      "signal_rule": "CORR-002",
+      "source_ip": "192.0.2.15",
+      "source_key_hash": "9746af339a2cf7cd8aa3be0ebe371b6f3874356c0e9ce8a31cc53f8095549a86",
+      "source_key_hash_basis": "PORTAL_HASH_OF_SOURCE_KEY",
+      "severity": "HIGH",
+      "status": "REVIEW_REQUIRED",
+      "confidence": "CANDIDATE_CORRELATED",
+      "evidence_count": 3,
+      "peak_p15": 100,
+      "source_verified": false,
+      "isolation_authorized": false,
+      "first_seen": "2026-11-08T00:00:00Z",
+      "last_seen": "2026-11-08T00:00:00.002000Z",
+      "created_at": "2026-11-08T00:00:00Z",
+      "updated_at": "2026-11-08T00:00:00.003000Z"
+    },
+    "event_members": {
+      "available": true,
+      "items": [
+        {
+          "event_ref": {
+            "stream_id": "TEST-investigation-stream",
+            "event_id": "TEST-event-0",
+            "request_id": "TEST-request-0"
+          },
+          "projection": {
+            "stream_sequence": 1,
+            "occurred_at": "2026-11-08T00:00:00Z",
+            "ingested_at": "2026-11-08T00:00:00.100000Z",
+            "blocked": true,
+            "event_class": "LIVE",
+            "live_eligible": true,
+            "matched_rules": ["INJ-001", "INJ-002", "INJ-006", "INJ-008"],
+            "risk": {
+              "status": "OK",
+              "score": 100,
+              "severity": null
+            },
+            "payload_sha256": "0000000000000000000000000000000000000000000000000000000000000001",
+            "payload_hash_basis": "P17_RECORDED_UPSTREAM_HASH"
+          },
+          "canonical": {
+            "stream_id": "TEST-investigation-stream",
+            "event_id": "TEST-event-0",
+            "request_id": "TEST-request-0",
+            "occurred_at": "2026-11-08T00:00:00Z",
+            "decision": "BLOCK",
+            "effective_action": "BLOCK",
+            "action_result": "BLOCKED",
+            "policy_id": "db-firewall-main",
+            "policy_version": "1.4.0",
+            "runtime_mode": "enforce",
+            "matched_rules": ["INJ-001", "INJ-002", "INJ-006", "INJ-008"],
+            "blocking_rules": ["INJ-001"],
+            "monitor_rules": [],
+            "risk": {
+              "status": "OK",
+              "score": 100,
+              "severity": "CRITICAL"
+            },
+            "source_ref": "p16h-ref:fcec5f4c36d83f474f437665db2ac2ef426e00702e5ae96622fa2369ef1876e2",
+            "payload_sha256": "0000000000000000000000000000000000000000000000000000000000000001",
+            "payload_hash_basis": "UPSTREAM_UNVERIFIED"
+          },
+          "canonical_availability": "AVAILABLE",
+          "join_state": "RECONSTRUCTED_WINDOW",
+          "candidate_basis": "LEGACY_UNPINNED",
+          "hash_comparability": "NOT_PROVEN",
+          "eligible_for_corr": null,
+          "reason_codes": [
+            "LEGACY_DETECTOR_PROFILE_UNPINNED",
+            "DIRECT_MEMBERSHIP_NOT_PROVIDED",
+            "PAYLOAD_HASH_BASIS_NOT_PROVEN"
+          ]
+        }
+      ],
+      "authoritative_count": 3,
+      "total_candidates": 3,
+      "verified_linked_count": 0,
+      "direct_membership_supported": false,
+      "membership": "RECONSTRUCTED_WINDOW",
+      "candidate_basis": "LEGACY_UNPINNED",
+      "matches_recorded_count": true,
+      "limit": 1,
+      "has_more": true,
+      "next_cursor": "eyJ2IjoxLCJzY29wZSI6IjMzOGFmYTA3ZWQ5ZDIyMDhhYzBlZjIzMjk4Yzg1ZjM3OWRiYTU0NDFmMDc4ZjY4MWQzMTUwYzQ2ZDkyN2UxMGMiLCJzb3VyY2UiOiIwZTY5MjRhYjFhYTc2ZDUwZGU5ODE1Nzg0YTJkNjg4Yzg3ZjYzZjU2ZGY1Y2MxYjY5OTYwNWNmMzkxMGI4N2JhIiwiYWZ0ZXIiOlsxNzk0MDk2MDAwMDAwLDEsIlRFU1QtZXZlbnQtMCJdLCJleHAiOjE3OTQzODI5NjV9.d1c8cc0925c62354961251e46fde3ae832f348314e9438dcb8a8f98952fc2490"
+    },
+    "alerts": {
+      "availability": "AVAILABLE",
+      "items": [
+        {
+          "alert_id": "TEST-correlated-alert",
+          "incident_id": "TEST-investigation-incident",
+          "stream_id": "TEST-investigation-stream",
+          "created_at": "2026-11-08T00:00:00.500000Z",
+          "signal_code": "CORR-002",
+          "severity": "HIGH",
+          "trigger_event": {
+            "stream_id": "TEST-investigation-stream",
+            "event_id": "TEST-event-0",
+            "request_id": "TEST-request-0"
+          },
+          "link_basis": "P17_OUTBOX_INCIDENT_ID_IN_STREAM",
+          "delivered_is_review": false
+        }
+      ],
+      "total_count": 1,
+      "has_more": false,
+      "reason_codes": []
+    },
+    "detection": {
+      "availability": "UNAVAILABLE",
+      "outcome": null,
+      "reason_codes": [
+        "DETECTOR_PROFILE_UNAVAILABLE",
+        "LEGACY_CANDIDATES_UNPINNED"
+      ]
+    },
+    "decision": {
+      "availability": "UNAVAILABLE",
+      "outcome": null,
+      "reason_codes": ["P17_3_DECISION_NOT_PROVIDED"]
+    },
+    "response": {
+      "availability": "UNAVAILABLE",
+      "outcome": null,
+      "reason_codes": ["CONTROLLER_SEMANTIC_PROJECTION_NOT_PROVIDED"]
+    },
+    "analyst_case": {
+      "availability": "UNAVAILABLE",
+      "overlay": null,
+      "write_enabled": false,
+      "reason_codes": ["OBSERVATION_READ_ONLY"]
+    },
+    "defense_registry": {
+      "source_system": "N91 defense source registry",
+      "source_schema": "n91-defense-source-registry-1",
+      "source_mode": "OFFLINE_METADATA_ONLY",
+      "source_ref": "sha256:68ebb23cc8cfc4a6b6b28dc02c7c7fc3527011e8b7dbd045767f1d9f73301780",
+      "generation": "3899ec895adbd2b404683a0ebd6aeca3dded5041f9070d74bec2dfc5577c7383",
+      "run_id": "TEST-source-run",
+      "run_context": "TEST",
+      "freshness_state": "HISTORICAL",
+      "overall_status": "PARTIAL",
+      "archive_count": 1,
+      "artifact_count": 3,
+      "missing_hosts": [
+        "controller",
+        "g07-restore-c1",
+        "galera-1",
+        "galera-2",
+        "galera-3",
+        "p17-lab-clone",
+        "proxy"
+      ],
+      "coverage_complete": false,
+      "content_review": "REQUIRED",
+      "data_as_of": null,
+      "observed_at": null,
+      "read_at": "2026-11-11T07:32:45.231230Z",
+      "imported_at": "2026-11-11T00:00:00Z",
+      "reason_codes": [
+        "CONTENT_REVIEW_REQUIRED",
+        "TIMESTAMP_UNAVAILABLE",
+        "HOST_BUNDLE_MISSING"
+      ]
+    }
+  },
+  "meta": {
+    "request_id": "ccafd3d1-7c82-43fd-add5-7e2b99cec237",
+    "read_at": "2026-11-11T07:32:45.231230Z",
+    "data_as_of": null,
+    "source_system": "PORTAL_INVESTIGATION",
+    "source_schema": "portal-investigation-1",
+    "overall_status": "PARTIAL",
+    "freshness_state": "HISTORICAL",
+    "execution_mode": "HISTORICAL",
+    "source_context": "TEST",
+    "sources": [
+      {
+        "source_system": "P17",
+        "availability": "AVAILABLE",
+        "freshness_state": "HISTORICAL",
+        "read_at": "2026-11-11T07:32:45.231230Z",
+        "data_as_of": null,
+        "observed_at": null,
+        "captured_at": "2026-11-08T00:00:01Z",
+        "source_ref": "sha256:4f72ef25b5d4a098c6339dfb1f2f37974c910499794a1b63a33fbf67e9dfebb4",
+        "generation": "4f72ef25b5d4a098c6339dfb1f2f37974c910499794a1b63a33fbf67e9dfebb4",
+        "source_schema": "p17-incident-durable-1",
+        "context": "TEST",
+        "error_code": null,
+        "coverage_complete": false,
+        "reason_codes": [
+          "DATA_AS_OF_NOT_PROVIDED",
+          "OBSERVATION_TIME_NOT_PROVIDED"
+        ]
+      },
+      {
+        "source_system": "P16H",
+        "availability": "AVAILABLE",
+        "freshness_state": "HISTORICAL",
+        "read_at": "2026-11-11T07:32:45.231230Z",
+        "data_as_of": "2026-11-08T00:00:00.002000Z",
+        "observed_at": null,
+        "captured_at": null,
+        "source_ref": "sha256:f0be5d9a1b2f178247169f88b41162f21432a24c85de2b0ba4bf182b80177ffa",
+        "generation": "f0be5d9a1b2f178247169f88b41162f21432a24c85de2b0ba4bf182b80177ffa",
+        "source_schema": "portal-p16h-import-1+audit-v1.0",
+        "context": "TEST",
+        "error_code": null,
+        "coverage_complete": false,
+        "reason_codes": []
+      },
+      {
+        "source_system": "DEFENSE_REGISTRY",
+        "availability": "PARTIAL",
+        "freshness_state": "HISTORICAL",
+        "read_at": "2026-11-11T07:32:45.231230Z",
+        "data_as_of": null,
+        "observed_at": null,
+        "captured_at": null,
+        "source_ref": "sha256:68ebb23cc8cfc4a6b6b28dc02c7c7fc3527011e8b7dbd045767f1d9f73301780",
+        "generation": "3899ec895adbd2b404683a0ebd6aeca3dded5041f9070d74bec2dfc5577c7383",
+        "source_schema": "n91-defense-source-registry-1",
+        "context": "TEST",
+        "error_code": "CONTENT_REVIEW_REQUIRED",
+        "coverage_complete": false,
+        "reason_codes": []
+      },
+      {
+        "source_system": "PORTAL_BUSINESS",
+        "availability": "UNAVAILABLE",
+        "freshness_state": "UNAVAILABLE",
+        "read_at": "2026-11-11T07:32:45.231230Z",
+        "data_as_of": null,
+        "observed_at": null,
+        "captured_at": null,
+        "source_ref": null,
+        "generation": null,
+        "source_schema": null,
+        "context": null,
+        "error_code": "OBSERVATION_READ_ONLY",
+        "coverage_complete": false,
+        "reason_codes": []
+      },
+      {
+        "source_system": "P17_3",
+        "availability": "UNAVAILABLE",
+        "freshness_state": "UNAVAILABLE",
+        "read_at": "2026-11-11T07:32:45.231230Z",
+        "data_as_of": null,
+        "observed_at": null,
+        "captured_at": null,
+        "source_ref": null,
+        "generation": null,
+        "source_schema": null,
+        "context": null,
+        "error_code": "P17_3_DECISION_NOT_PROVIDED",
+        "coverage_complete": false,
+        "reason_codes": []
+      },
+      {
+        "source_system": "CONTROLLER",
+        "availability": "UNAVAILABLE",
+        "freshness_state": "UNAVAILABLE",
+        "read_at": "2026-11-11T07:32:45.231230Z",
+        "data_as_of": null,
+        "observed_at": null,
+        "captured_at": null,
+        "source_ref": null,
+        "generation": null,
+        "source_schema": null,
+        "context": null,
+        "error_code": "CONTROLLER_SEMANTIC_PROJECTION_NOT_PROVIDED",
+        "coverage_complete": false,
+        "reason_codes": []
+      }
+    ],
+    "missing_fields": [
+      "detection.detector_profile",
+      "decision.evaluation",
+      "response.controller_semantics",
+      "event_members.direct_membership",
+      "canonical.coverage_complete",
+      "analyst_case"
+    ],
+    "limitations": [
+      "Provisional handoff contract; no direct membership authority supplied.",
+      "Legacy candidate window is unpinned; eligible_for_corr is unavailable.",
+      "Registry metadata integrity does not create semantic evidence or response authorization.",
+      "Canonical payload hashes have an unverified upstream basis; no payload equality claim.",
+      "Historical records and current OpenStack observations are independent; no current SG synthesized."
+    ],
+    "coverage_complete": false,
+    "next_cursor": "eyJ2IjoxLCJzY29wZSI6IjMzOGFmYTA3ZWQ5ZDIyMDhhYzBlZjIzMjk4Yzg1ZjM3OWRiYTU0NDFmMDc4ZjY4MWQzMTUwYzQ2ZDkyN2UxMGMiLCJzb3VyY2UiOiIwZTY5MjRhYjFhYTc2ZDUwZGU5ODE1Nzg0YTJkNjg4Yzg3ZjYzZjU2ZGY1Y2MxYjY5OTYwNWNmMzkxMGI4N2JhIiwiYWZ0ZXIiOlsxNzk0MDk2MDAwMDAwLDEsIlRFU1QtZXZlbnQtMCJdLCJleHAiOjE3OTQzODI5NjV9.d1c8cc0925c62354961251e46fde3ae832f348314e9438dcb8a8f98952fc2490"
+  },
+  "error": null
+}

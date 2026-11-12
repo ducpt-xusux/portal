@@ -13,6 +13,7 @@ import time
 from uuid import uuid4
 
 from .config import BusinessConfig
+from .dto import EvidenceExport
 from .models import Principal, Role, SourceRef, READ_ROLES, WRITE_ROLES, EVIDENCE_ROLES
 from .privacy import plain_text
 
@@ -62,8 +63,9 @@ def user_view(row):
 
 
 class BusinessService:
-    def __init__(self, config: BusinessConfig, *, source_resolver=None, clock=time.time):
+    def __init__(self, config: BusinessConfig, *, source_resolver=None, evidence_loader=None, clock=time.time):
         self.config, self.source_resolver, self.clock = config, source_resolver, clock
+        self.evidence_loader = evidence_loader
         self._dummy = password_hash(secrets.token_urlsafe(24))
 
     @contextmanager
@@ -78,7 +80,9 @@ class BusinessService:
             try:
                 db.execute('PRAGMA foreign_keys=ON')
                 marker = dict(db.execute('SELECT key,value FROM business_meta'))
-                if marker != {'owner': 'n91-business-v1', 'context': self.config.context, 'schema': '1'}:
+                if (marker.get('schema') not in {'1', '2'} or
+                        marker != {'owner': 'n91-business-v1', 'context': self.config.context,
+                                   'schema': marker['schema']}):
                     raise BusinessError(503, 'BUSINESS_STORE_CONTEXT_MISMATCH')
                 if write:
                     db.execute('BEGIN IMMEDIATE')
@@ -97,7 +101,7 @@ class BusinessService:
             raise BusinessError(503, 'BUSINESS_STORE_UNAVAILABLE') from None
 
     def initialize(self):
-        """Explicit operator action. Refuses existing foreign databases, even empty schemas."""
+        """Create a dedicated Portal database or validate an existing one."""
         path = self.config.database_path
         if path is None:
             raise BusinessError(503, 'BUSINESS_STORE_UNAVAILABLE')
@@ -115,15 +119,29 @@ class BusinessService:
                 db.executemany('INSERT INTO business_meta VALUES (?,?)', [
                     ('owner', 'n91-business-v1'), ('context', self.config.context), ('schema', '1')])
                 db.execute('INSERT INTO cursor_key VALUES(1,?)', (secrets.token_hex(32),))
+                self._migrate(db)
                 db.commit()
         except sqlite3.Error:
             raise BusinessError(503, 'BUSINESS_STORE_UNAVAILABLE') from None
 
+    def migrate(self):
+        """Upgrade an existing, ownership-checked Portal database in place."""
+        with self.connection(write=True) as db:
+            self._migrate(db)
+
+    @staticmethod
+    def _migrate(db):
+        if db.execute("SELECT value FROM business_meta WHERE key='schema'").fetchone()[0] == '1':
+            db.execute((Path(__file__).parent / 'migrations/002_incident_read_state.sql').read_text())
+            db.execute("UPDATE business_meta SET value='2' WHERE key='schema'")
+
     def _audit(self, db, actor_id, action, target, request_id, before=None, after=None, outcome='SUCCESS'):
+        audit_id = str(uuid4())
         db.execute('INSERT INTO admin_audit(audit_id,actor_id,action,target_ref,outcome,timestamp,request_id,before_json,after_json) '
-                   'VALUES (?,?,?,?,?,?,?,?,?)', (str(uuid4()), actor_id, action, target, outcome,
+                   'VALUES (?,?,?,?,?,?,?,?,?)', (audit_id, actor_id, action, target, outcome,
                    iso(self.clock()), request_id, json.dumps(before) if before is not None else None,
                    json.dumps(after) if after is not None else None))
+        return audit_id
 
     def bootstrap(self, username, password, roles, *, portal_admin=False):
         """Operator-only CLI; API never calls this. First account only, no default identity."""
@@ -295,6 +313,64 @@ class BusinessService:
                 self._audit(db, actor.user_id, 'PORTAL_TRIAGE', ':'.join(self._key(ref)), request_id, before, after)
                 return after
             return self._idempotent(db, actor, key, ['triage', self._key(ref)], payload, mutate)
+
+    def export_evidence(self, actor, incident_id, stream_id, payload, key, request_id):
+        with self.connection(True) as db:
+            self._actor(db, actor, 'evidence')
+
+            def mutate():
+                if self.evidence_loader is None:
+                    raise BusinessError(503, 'EVIDENCE_SOURCE_UNAVAILABLE')
+                projection = self.evidence_loader(incident_id, stream_id)
+                if (projection.incident_id, projection.stream_id) != (incident_id, stream_id):
+                    raise BusinessError(503, 'EVIDENCE_SCOPE_INVALID')
+                export_id = str(uuid4())
+                audit_id = self._audit(db, actor.user_id, 'PORTAL_EVIDENCE_EXPORT',
+                    f'incident:{incident_id}:{stream_id}:{projection.execution_mode}', request_id,
+                    after={'export_id': export_id, 'incident_id': incident_id, 'stream_id': stream_id,
+                           'format': payload['format'], 'scope': payload['scope'],
+                           'exported_event_count': projection.exported_event_count, 'complete': False,
+                           'snapshot_sha256': projection.snapshot_sha256})
+                return EvidenceExport(**projection.model_dump(), **payload, export_id=export_id,
+                    audit_id=audit_id, generated_at=iso(self.clock())).model_dump(mode='json')
+
+            return self._idempotent(db, actor, key, ['evidence-export', incident_id, stream_id], payload, mutate)
+
+    def _read_state(self, db, actor, ref):
+        if db.execute("SELECT value FROM business_meta WHERE key='schema'").fetchone()[0] != '2':
+            raise BusinessError(503, 'BUSINESS_STORE_MIGRATION_REQUIRED')
+        scope = self._key(ref)[1:]
+        row = db.execute('SELECT is_read,version,updated_at FROM incident_read_state '
+                         'WHERE incident_id=? AND stream_id=? AND execution_mode=? AND user_id=?',
+                         (*scope, actor.user_id)).fetchone()
+        state = dict(row) if row else {'is_read': False, 'version': 0, 'updated_at': None}
+        return {**dict(zip(('incident_id', 'stream_id', 'execution_mode'), scope)),
+                **state, 'is_read': bool(state['is_read'])}
+
+    def read_state(self, actor, ref):
+        with self.connection() as db:
+            self._actor(db, actor, 'read')
+            return self._read_state(db, actor, ref)
+
+    def set_read_state(self, actor, ref, payload, key, request_id):
+        with self.connection(write=True) as db:
+            self._actor(db, actor, 'write')
+
+            def mutate():
+                before = self._read_state(db, actor, ref)
+                if before['version'] != payload['version']:
+                    raise BusinessError(409, 'VERSION_CONFLICT')
+                db.execute('INSERT INTO incident_read_state VALUES (?,?,?,?,?,?,?) '
+                           'ON CONFLICT(incident_id,stream_id,execution_mode,user_id) DO UPDATE SET '
+                           'is_read=excluded.is_read,version=excluded.version,updated_at=excluded.updated_at',
+                           (*self._key(ref)[1:], actor.user_id, int(payload['is_read']),
+                            before['version'] + 1, iso(self.clock())))
+                after = self._read_state(db, actor, ref)
+                self._audit(db, actor.user_id, 'INCIDENT_READ_STATE', ':'.join(self._key(ref)),
+                            request_id, before, after)
+                return after
+
+            return self._idempotent(db, actor, key, ['read-state', self._key(ref)], payload, mutate)
 
     def add_note(self, actor, ref, note, key, request_id):
         try:

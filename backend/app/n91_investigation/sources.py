@@ -207,6 +207,8 @@ def inventory_observation_loader(request, cycle):
     """
     try:
         _, ports, meta, _ = request.app.state.openstack_inventory.read_mapping_inventory()
+        if meta.get('freshness_state') == 'STALE':
+            raise SourceError("NEUTRON_CURRENT_STALE")
         if meta.get('freshness_state') != 'FRESH' or meta.get('source_mode') != 'LIVE':
             raise SourceError("NEUTRON_CURRENT_UNAVAILABLE")
         matches = [p for p in ports if p.get('port_id') == cycle.containment.port_id]

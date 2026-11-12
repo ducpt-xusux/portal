@@ -363,6 +363,16 @@
       "write"
     ],
     [
+      "GET",
+      "/api/v1/portal/incidents/{id}/read-state",
+      "read"
+    ],
+    [
+      "PATCH",
+      "/api/v1/portal/incidents/{id}/read-state",
+      "write"
+    ],
+    [
       "PATCH",
       "/api/v1/portal/alerts/{id}/review",
       "write"

@@ -1,32 +1,320 @@
-import { useCallback,useEffect,useRef,useState } from 'react'
+import { uiLabel } from '../../services/uiLanguage.js'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useBusinessSession } from './BusinessSession'
 import { newIntent } from './businessApi'
 
-export function IncidentBusinessPanel({ id,streamId,kind='incidents' }) {
-  const auth=useBusinessSession(),[overlay,setOverlay]=useState(null),[notes,setNotes]=useState([]),[assignees,setAssignees]=useState([])
-  const [draft,setDraft]=useState(null),[note,setNote]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[conflict,setConflict]=useState(false)
-  const intent=useRef(null),noteIntent=useRef(null),generation=useRef(0)
-  const load=useCallback(async()=>{
-    const current=++generation.current
-    if(auth.status!=='authenticated') {setOverlay(null);setNotes([]);return}
+export function IncidentBusinessPanel({
+  id,
+  streamId,
+  kind = 'incidents',
+  readOnly = false,
+}) {
+  const auth = useBusinessSession()
+  if (auth.status !== 'authenticated')
+    return <p role="status">Đăng nhập để xem hồ sơ xử lý.</p>
+  if (!streamId)
+    return (
+      <p role="status">Hồ sơ xử lý cần định danh stream của nguồn dữ liệu.</p>
+    )
+  const scope = JSON.stringify([
+    kind, id, streamId, auth.capabilities?.user_id, auth.session?.username,
+    auth.session?.expires_at, auth.canTriage, auth.canReadNotes, readOnly,
+  ])
+  return (
+    <CasePanel key={scope} auth={auth} id={id} streamId={streamId} kind={kind} readOnly={readOnly} />
+  )
+}
+
+const errors = {
+  BUSINESS_STORE_MIGRATION_REQUIRED: 'Cần cập nhật cơ sở dữ liệu Portal để lưu trạng thái đọc cá nhân.',
+  VALIDATION_ERROR: 'Kiểm tra lại dữ liệu nhập. Ghi chú chỉ nhận văn bản hợp lệ.',
+  ASSIGNEE_NOT_ELIGIBLE: 'Tài khoản được chọn không còn đủ điều kiện nhận phân công.',
+}
+const reviewLabel = (state) => state === 'REVIEWED' ? 'Đã rà soát' : 'Chưa rà soát'
+
+function CasePanel({ auth, id, streamId, kind, readOnly }) {
+  const { client } = auth
+  const isIncident = kind === 'incidents'
+  const canWrite = auth.canTriage && !readOnly
+  const canReadNotes = auth.canReadNotes && isIncident
+  const [overlay, setOverlay] = useState(null)
+  const [readState, setReadState] = useState(null)
+  const [readError, setReadError] = useState('')
+  const [notes, setNotes] = useState([])
+  const [nextCursor, setNextCursor] = useState(null)
+  const [assignees, setAssignees] = useState([])
+  const [draft, setDraft] = useState(null)
+  const [note, setNote] = useState('')
+  const [busy, setBusy] = useState(true)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const [conflict, setConflict] = useState(false)
+  const lifetime = useRef(null)
+  const intents = useRef({})
+
+  const load = useCallback(async (signal) => {
+    setBusy(true)
     setError('')
-    try{
-      const result=await auth.client.overlay(kind,id,streamId)
-      const [n,a]=await Promise.all([auth.canReadNotes&&kind==='incidents'?auth.client.notes(id,streamId):{items:[]},auth.canTriage?auth.client.assignees():{items:[]}])
-      if(current!==generation.current)return
-      setOverlay(result);setDraft(result);setNotes(n.items);setAssignees(a.items)
-    }catch(e){if(current===generation.current){setOverlay(null);setError(e.code || 'BUSINESS_UNAVAILABLE')}}
-  },[auth.status,auth.client,auth.canReadNotes,auth.canTriage,id,streamId,kind])
-  useEffect(()=>{setOverlay(null);setNotes([]);setConflict(false);intent.current=null;noteIntent.current=null;load();return()=>{generation.current++}},[load])
-  async function save(event){
-    event.preventDefault();setBusy(true);setError('')
-    intent.current ||= newIntent()
-    const body={version:overlay.version,review_state:draft.review_state,acknowledged:draft.acknowledged,...(kind==='incidents'?{assignee_id:draft.assignee_id||null,priority:draft.priority}:{})}
-    try{if(kind==='incidents')await auth.client.triage(id,streamId,body,intent.current);else await auth.client.reviewAlert(id,streamId,body,intent.current);intent.current=null;setConflict(false);await load()}
-    catch(e){setError(e.code||'BUSINESS_UNAVAILABLE');if(e.status===409){setConflict(true);intent.current=null}}
-    finally{setBusy(false)}
+    setNotice('')
+    try {
+      const [result, personal, notePage, assigneePage] = await Promise.all([
+        client.overlay(kind, id, streamId, signal),
+        isIncident ? client.readState(id, streamId, signal).catch((e) => e) : null,
+        canReadNotes ? client.notes(id, streamId, undefined, signal) : { items: [] },
+        canWrite && isIncident ? client.assignees(signal) : { items: [] },
+      ])
+      if (signal.aborted) return
+      if (result.object_id !== id || result.stream_id !== streamId ||
+          result.kind !== (isIncident ? 'incident' : 'alert'))
+        throw new Error('SOURCE_REFERENCE_INVALID')
+      const personalMatches = personal?.incident_id === id && personal.stream_id === streamId &&
+        personal.execution_mode === result.execution_mode
+      setOverlay(result)
+      setDraft(result)
+      setReadState(personalMatches ? personal : null)
+      setReadError(isIncident && !personalMatches ? personal?.code || 'SOURCE_REFERENCE_INVALID' : '')
+      setNotes(notePage.items)
+      setNextCursor(notePage.next_cursor || null)
+      setAssignees(assigneePage.items)
+      setConflict(false)
+      intents.current = { note: intents.current.note }
+    } catch (e) {
+      if (!signal.aborted) {
+        setOverlay(null)
+        setError(e.code || 'SOURCE_REFERENCE_INVALID')
+      }
+    } finally {
+      if (!signal.aborted) setBusy(false)
+    }
+  }, [client, id, streamId, kind, isIncident, canReadNotes, canWrite])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    lifetime.current = controller
+    load(controller.signal)
+    return () => controller.abort()
+  }, [load])
+
+  async function write(action, request, apply) {
+    if (!canWrite || busy) return
+    const signal = lifetime.current.signal
+    setBusy(true)
+    setError('')
+    setNotice('')
+    try {
+      intents.current[action] ||= newIntent()
+      const result = await request(intents.current[action], signal)
+      if (signal.aborted) return
+      delete intents.current[action]
+      apply(result)
+    } catch (e) {
+      if (signal.aborted) return
+      if (e.status === 409) {
+        delete intents.current[action]
+        if (e.code === 'VERSION_CONFLICT') setConflict(true)
+      }
+      setError(e.code || 'BUSINESS_UNAVAILABLE')
+    } finally {
+      if (!signal.aborted) setBusy(false)
+    }
   }
-  async function addNote(event){event.preventDefault();setBusy(true);setError('');noteIntent.current ||= newIntent();try{await auth.client.addNote(id,note,noteIntent.current);setNote('');noteIntent.current=null;await load()}catch(e){setError(e.code||'BUSINESS_UNAVAILABLE');if(e.status===409)noteIntent.current=null}finally{setBusy(false)}}
-  if(auth.status!=='authenticated')return <section className="n91-business" role="status">Đăng nhập để xem Portal overlay.</section>
-  return <section className="n91-business"><h2>Portal review</h2><p>Review/ack và phân công chỉ lưu Portal DB. P17 status, delivered và trạng thái mạng giữ nguồn riêng.</p>{error&&<p role="alert">{error}</p>}{!overlay?<button onClick={load}>Tải Portal overlay</button>:<><p><strong>{overlay.review_state}</strong> · Portal ack: {overlay.acknowledged?'Đã ghi nhận':'Chưa ghi nhận'} · v{overlay.version} · {overlay.execution_mode}</p>{auth.canTriage?<form onSubmit={save}><label>Review<select aria-label="Review" value={draft.review_state} onChange={e=>{intent.current=null;setDraft({...draft,review_state:e.target.value})}}><option>UNREAD</option><option>REVIEWED</option></select></label><label className="n91-business-check"><input type="checkbox" checked={draft.acknowledged} onChange={e=>{intent.current=null;setDraft({...draft,acknowledged:e.target.checked})}}/>Portal acknowledge</label>{kind==='incidents'&&<><label>Phân công<select aria-label="Phân công" value={draft.assignee_id||''} onChange={e=>{intent.current=null;setDraft({...draft,assignee_id:e.target.value})}}><option value="">Chưa phân công</option>{assignees.map(a=><option key={a.user_id} value={a.user_id}>{a.username}</option>)}</select></label><label>Ưu tiên<select aria-label="Ưu tiên" value={draft.priority} onChange={e=>{intent.current=null;setDraft({...draft,priority:e.target.value})}}>{['UNSET','LOW','MEDIUM','HIGH','URGENT'].map(p=><option key={p}>{p}</option>)}</select></label></>}<button disabled={busy||conflict}>Lưu review</button>{conflict&&<p role="status">Bản ghi đã thay đổi. <button type="button" onClick={async()=>{await load();setConflict(false)}}>Tải phiên bản mới để review lại</button></p>}</form>:<p>Quyền đọc. Analyst/Operator mới được sửa review.</p>}{auth.canReadNotes&&kind==='incidents'&&<div><h3>Ghi chú Portal</h3>{notes.length===0?<p>Chưa có ghi chú trong trang này.</p>:<ol>{notes.map(n=><li key={n.note_id}><p className="n91-business-note">{n.note}</p><small>{n.actor_id} · {n.created_at}</small></li>)}</ol>}{auth.canTriage&&<form onSubmit={addNote}><label>Ghi chú dạng văn bản (không SQL/raw log/secret)<textarea maxLength={1000} required value={note} onChange={e=>{noteIntent.current=null;setNote(e.target.value)}} /></label><button disabled={busy||!note.trim()}>Thêm ghi chú</button></form>}<small>Tối đa 25 ghi chú/trang; API hỗ trợ phân trang. Không phải toàn bộ lịch sử nguồn.</small></div>}</>}<p><button disabled aria-disabled="true">Thao tác mạng · FEATURE_DISABLED</button></p></section>
+
+  async function save(event) {
+    event.preventDefault()
+    if (conflict) return
+    const body = {
+      version: overlay.version,
+      review_state: draft.review_state,
+      acknowledged: draft.acknowledged,
+      ...(isIncident
+        ? { assignee_id: draft.assignee_id || null, priority: draft.priority }
+        : {}),
+    }
+    const request = isIncident ? client.triage : client.reviewAlert
+    await write('triage', (intent, signal) => request(id, streamId, body, intent, signal), (result) => {
+      setOverlay(result)
+      setDraft(result)
+      setNotice(isIncident ? 'Đã lưu hồ sơ xử lý.' : 'Đã lưu rà soát cảnh báo.')
+    })
+  }
+
+  async function addNote(event) {
+    event.preventDefault()
+    if (!note.trim()) return
+    await write('note', (intent, signal) => client.addNote(id, note, intent, streamId, signal), (result) => {
+      setNotes((previous) => [...previous.filter((item) => item.note_id !== result.note_id), result])
+      setNote('')
+      setNotice('Đã thêm ghi chú.')
+    })
+  }
+
+  async function toggleReadState() {
+    if (conflict) return
+    const payload = { version: readState.version, is_read: !readState.is_read }
+    await write('read-state', (intent, signal) => client.setReadState(id, streamId, payload, intent, signal), (result) => {
+      setReadState(result)
+      setNotice('Đã lưu trạng thái đọc của bạn.')
+    })
+  }
+
+  async function loadMoreNotes() {
+    const signal = lifetime.current.signal
+    setBusy(true)
+    setError('')
+    try {
+      const page = await client.notes(id, streamId, nextCursor, signal)
+      if (signal.aborted) return
+      setNotes((previous) => [...new Map([...previous, ...page.items].map((item) => [item.note_id, item])).values()])
+      setNextCursor(page.next_cursor)
+    } catch (e) {
+      if (!signal.aborted) setError(e.code || 'BUSINESS_UNAVAILABLE')
+    } finally {
+      if (!signal.aborted) setBusy(false)
+    }
+  }
+
+  function updateDraft(key, value) {
+    delete intents.current.triage
+    setDraft({ ...draft, [key]: value })
+  }
+
+  return (
+    <section className="n91-business" aria-busy={busy}>
+      <h2>{isIncident ? 'Hồ sơ xử lý sự cố' : 'Rà soát cảnh báo'}</h2>
+      <p>Các thay đổi trong hồ sơ được lưu vào cơ sở dữ liệu Portal.</p>
+      {error && <p role="alert">{errors[error] || 'Yêu cầu xử lý chưa hoàn tất.'} <code>{error}</code></p>}
+      {notice && <p role="status">{notice}</p>}
+      {conflict && <p role="status">Bản ghi đã thay đổi. Tải phiên bản mới trước khi lưu lại.</p>}
+      <button type="button" disabled={busy} onClick={() => load(lifetime.current.signal)}>
+        {conflict ? 'Tải phiên bản mới để rà soát lại' : 'Tải lại hồ sơ'}
+      </button>
+      {!overlay ? (
+        busy && <p role="status">Đang tải hồ sơ xử lý…</p>
+      ) : (
+        <>
+          <p>
+            <strong>{reviewLabel(overlay.review_state)}</strong> · Tiếp nhận:{' '}
+            {overlay.acknowledged ? 'Đã ghi nhận' : 'Chưa ghi nhận'} · v
+            {overlay.version} · {uiLabel(overlay.execution_mode)}
+          </p>
+          {isIncident && (
+            <div>
+              {readState ? (
+                <>
+                  <p>Trạng thái đọc của bạn · {readState.is_read ? 'Đã đọc' : 'Chưa đọc'}</p>
+                  {canWrite && (
+                    <button type="button" disabled={busy || conflict} onClick={toggleReadState}>
+                      {readState.is_read ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc'}
+                    </button>
+                  )}
+                </>
+              ) : <p role="status">{errors[readError] || 'Trạng thái đọc cá nhân chưa có dữ liệu.'}</p>}
+            </div>
+          )}
+          {canWrite ? (
+            <form onSubmit={save}>
+              <label>
+                Rà soát
+                <select
+                  aria-label="Rà soát"
+                  value={draft.review_state}
+                  disabled={busy}
+                  onChange={(e) => updateDraft('review_state', e.target.value)}
+                >
+                  <option value="UNREAD">{reviewLabel('UNREAD')}</option>
+                  <option value="REVIEWED">{reviewLabel('REVIEWED')}</option>
+                </select>
+              </label>
+              <label className="n91-business-check">
+                <input
+                  type="checkbox"
+                  checked={draft.acknowledged}
+                  disabled={busy}
+                  onChange={(e) => updateDraft('acknowledged', e.target.checked)}
+                />
+                Xác nhận đã tiếp nhận
+              </label>
+              {isIncident && (
+                <>
+                  <label>
+                    Phân công
+                    <select
+                      aria-label="Phân công"
+                      value={draft.assignee_id || ''}
+                      disabled={busy}
+                      onChange={(e) => updateDraft('assignee_id', e.target.value)}
+                    >
+                      <option value="">Chưa phân công</option>
+                      {draft.assignee_id && !assignees.some((a) => a.user_id === draft.assignee_id) && (
+                        <option value={draft.assignee_id}>Phân công hiện tại · {draft.assignee_id}</option>
+                      )}
+                      {assignees.map((a) => (
+                        <option key={a.user_id} value={a.user_id}>
+                          {a.username}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Ưu tiên
+                    <select
+                      aria-label="Ưu tiên"
+                      value={draft.priority}
+                      disabled={busy}
+                      onChange={(e) => updateDraft('priority', e.target.value)}
+                    >
+                      {['UNSET', 'LOW', 'MEDIUM', 'HIGH', 'URGENT'].map((p) => (
+                        <option key={p} value={p}>{uiLabel(p)}</option>
+                      ))}
+                    </select>
+                  </label>
+                </>
+              )}
+              <button disabled={busy || conflict}>Lưu rà soát</button>
+            </form>
+          ) : (
+            <p>Hồ sơ chỉ đọc với quyền truy cập hiện tại.</p>
+          )}
+          {canReadNotes && (
+            <div>
+              <h3>Ghi chú Portal</h3>
+              {notes.length === 0 ? (
+                <p>Chưa có ghi chú trong trang này.</p>
+              ) : (
+                <ol>
+                  {notes.map((n) => (
+                    <li key={n.note_id}>
+                      <p className="n91-business-note">{n.note}</p>
+                      <small>
+                        {n.actor_id} · {n.created_at}
+                      </small>
+                    </li>
+                  ))}
+                </ol>
+              )}
+              {nextCursor && <button type="button" disabled={busy} onClick={loadMoreNotes}>Xem thêm ghi chú</button>}
+              {canWrite && (
+                <form onSubmit={addNote}>
+                  <label>
+                    Ghi chú dạng văn bản (không SQL/raw log/secret)
+                    <textarea
+                      maxLength={1000}
+                      required
+                      value={note}
+                      disabled={busy}
+                      onChange={(e) => {
+                        delete intents.current.note
+                        setNote(e.target.value)
+                      }}
+                    />
+                  </label>
+                  <button disabled={busy || !note.trim()}>Thêm ghi chú</button>
+                </form>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </section>
+  )
 }

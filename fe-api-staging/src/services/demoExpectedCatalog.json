@@ -3,226 +3,160 @@
     "scenario_id": "SC-01",
     "title": "Overview / topology",
     "group": "Operations",
-    "expected_modes": [
-      "LIVE"
-    ],
+    "expected_modes": ["LIVE"],
     "expected_outcome": "Kiểm tra topology, service health và Galera với nguồn và thời điểm quan sát.",
     "portal_section": "System/Health + Workloads",
     "portal_route": "#/system/health",
-    "api_refs": [
-      "/api/v1/system/health"
-    ]
+    "api_refs": ["/api/v1/system/health"]
   },
   {
     "scenario_id": "SC-02",
     "title": "SQL hợp lệ từ App",
     "group": "Policy",
-    "expected_modes": [
-      "LIVE"
-    ],
+    "expected_modes": ["LIVE"],
     "expected_outcome": "APP được ALLOW theo rule; hiển thị backend, risk từ event và trạng thái response.",
     "portal_section": "Events + Dashboard",
     "portal_route": "#/events",
-    "api_refs": [
-      "/api/v1/events"
-    ]
+    "api_refs": ["/api/v1/events"]
   },
   {
     "scenario_id": "SC-03",
     "title": "Clone sai context",
     "group": "Policy",
-    "expected_modes": [
-      "LIVE"
-    ],
+    "expected_modes": ["LIVE"],
     "expected_outcome": "Hiển thị CTX-006 BLOCK và attribution; kiểm chứng App unaffected theo nguồn.",
     "portal_section": "Events compare",
     "portal_route": null,
-    "api_refs": [
-      "/api/v1/events"
-    ]
+    "api_refs": ["/api/v1/events"]
   },
   {
     "scenario_id": "SC-04",
     "title": "SQLi đơn lẻ",
     "group": "Detection",
-    "expected_modes": [
-      "LIVE SAFE"
-    ],
+    "expected_modes": ["LIVE SAFE"],
     "expected_outcome": "Hiển thị matched rule, BLOCK, canonical masked và alert ref nếu nguồn có.",
     "portal_section": "Events/Alert",
     "portal_route": "#/events",
-    "api_refs": [
-      "/api/v1/events",
-      "/api/v1/alerts"
-    ]
+    "api_refs": ["/api/v1/events", "/api/v1/alerts"]
   },
   {
     "scenario_id": "SC-05",
     "title": "SQLi 3 request CORR-002",
     "group": "Detection",
-    "expected_modes": [
-      "LIVE / LAB"
-    ],
+    "expected_modes": ["LIVE / LAB"],
     "expected_outcome": "Kiểm chứng distinct event refs, Incident evidence và confidence từ nguồn.",
     "portal_section": "Incident Detail",
     "portal_route": "#/incidents",
-    "api_refs": [
-      "/api/v1/incidents"
-    ]
+    "api_refs": ["/api/v1/incidents"]
   },
   {
     "scenario_id": "SC-06",
     "title": "Decision eligibility",
     "group": "Decision",
-    "expected_modes": [
-      "LIVE + owner lab"
-    ],
+    "expected_modes": ["LIVE + owner lab"],
     "expected_outcome": "Giữ source_verified/isolation_authorized từ P17; OWNER ARM là context riêng.",
     "portal_section": "Incidents / Decision",
     "portal_route": null,
-    "api_refs": [
-      "/api/v1/incidents"
-    ]
+    "api_refs": ["/api/v1/incidents"]
   },
   {
     "scenario_id": "SC-07",
     "title": "Neutron quarantined",
     "group": "Response",
-    "expected_modes": [
-      "LAB controlled"
-    ],
+    "expected_modes": ["LAB controlled"],
     "expected_outcome": "Đối chiếu SG trước/trong, đúng Clone port, App unchanged và timestamp nguồn.",
     "portal_section": "Workloads SG Lifecycle",
     "portal_route": null,
-    "api_refs": [
-      "/api/v1/workloads"
-    ]
+    "api_refs": ["/api/v1/workloads"]
   },
   {
     "scenario_id": "SC-08",
     "title": "Watchdog restore",
     "group": "Response",
-    "expected_modes": [
-      "LAB controlled"
-    ],
+    "expected_modes": ["LAB controlled"],
     "expected_outcome": "Đối chiếu restore, SG sau bằng SG trước và postchecks từ evidence.",
     "portal_section": "Workloads/Incident timeline",
     "portal_route": null,
-    "api_refs": [
-      "/api/v1/incidents"
-    ]
+    "api_refs": ["/api/v1/incidents"]
   },
   {
     "scenario_id": "SC-09",
     "title": "Policy 40 rule",
     "group": "Rules",
-    "expected_modes": [
-      "OFFLINE+LIVE"
-    ],
+    "expected_modes": ["OFFLINE+LIVE"],
     "expected_outcome": "Catalog 40 rule theo version/hash, mode/enforce/monitor và witness links.",
     "portal_section": "System / Rules",
     "portal_route": "#/system/policies",
-    "api_refs": [
-      "/api/v1/system/policies"
-    ]
+    "api_refs": ["/api/v1/system/policies"]
   },
   {
     "scenario_id": "SC-10",
     "title": "60-case split",
     "group": "Evaluation",
-    "expected_modes": [
-      "MIXED LAB"
-    ],
+    "expected_modes": ["MIXED LAB"],
     "expected_outcome": "Expected 18 live / 32 offline / 3 protocol / 7 P17 API; không đồng nghĩa 60 packet live.",
     "portal_section": "System / Evaluation",
     "portal_route": null,
-    "api_refs": [
-      "/api/v1/evaluations/runs"
-    ]
+    "api_refs": ["/api/v1/evaluations/runs"]
   },
   {
     "scenario_id": "SC-11",
     "title": "13 isolated correlation",
     "group": "Evaluation",
-    "expected_modes": [
-      "HISTORICAL"
-    ],
+    "expected_modes": ["HISTORICAL"],
     "expected_outcome": "So sánh expected/observed cho 13 scenario; không tạo hoặc đếm thành live incident.",
     "portal_section": "System / Evaluations",
     "portal_route": null,
-    "api_refs": [
-      "/api/v1/evaluations/runs"
-    ]
+    "api_refs": ["/api/v1/evaluations/runs"]
   },
   {
     "scenario_id": "SC-12",
     "title": "Privacy/Audit",
     "group": "Privacy",
-    "expected_modes": [
-      "ISOLATED+LIVE"
-    ],
+    "expected_modes": ["ISOLATED+LIVE"],
     "expected_outcome": "Hiển thị masking, canary và journal provenance theo scope nguồn; không lộ raw SQL.",
     "portal_section": "System/Privacy + Events",
     "portal_route": null,
-    "api_refs": [
-      "/api/v1/events"
-    ]
+    "api_refs": ["/api/v1/events"]
   },
   {
     "scenario_id": "SC-13",
     "title": "Galera TLS/HA",
     "group": "Availability",
-    "expected_modes": [
-      "LIVE+ISOLATED"
-    ],
+    "expected_modes": ["LIVE+ISOLATED"],
     "expected_outcome": "Phân biệt health snapshot, TLS sessions và isolated failover; không suy live outage.",
     "portal_section": "System / Galera + TLS",
     "portal_route": "#/system/galera",
-    "api_refs": [
-      "/api/v1/system/galera",
-      "/api/v1/system/tls"
-    ]
+    "api_refs": ["/api/v1/system/galera", "/api/v1/system/tls"]
   },
   {
     "scenario_id": "SC-14",
     "title": "G07 recovery",
     "group": "Recovery",
-    "expected_modes": [
-      "LAB HISTORICAL"
-    ],
+    "expected_modes": ["LAB HISTORICAL"],
     "expected_outcome": "Report checksum, committed/restored/lost marker và metric LAB; production chưa đo.",
     "portal_section": "System / Backup/Restore",
     "portal_route": null,
-    "api_refs": [
-      "/api/v1/system/restore-runs"
-    ]
+    "api_refs": ["/api/v1/system/restore-runs"]
   },
   {
     "scenario_id": "SC-15",
     "title": "Protocol F01/F02",
     "group": "Protocol",
-    "expected_modes": [
-      "STAGING"
-    ],
+    "expected_modes": ["STAGING"],
     "expected_outcome": "Trình bày staging evidence, negative live pending và production OPEN theo nguồn.",
     "portal_section": "System/Resilience / Findings",
     "portal_route": null,
-    "api_refs": [
-      "/api/v1/system/resilience-runs"
-    ]
+    "api_refs": ["/api/v1/system/resilience-runs"]
   },
   {
     "scenario_id": "SC-16",
     "title": "Strict closure",
     "group": "P19",
-    "expected_modes": [
-      "HISTORICAL"
-    ],
+    "expected_modes": ["HISTORICAL"],
     "expected_outcome": "Đọc gate P19 riêng; thiếu nguồn giữ UNKNOWN, không có PASS tổng thể.",
     "portal_section": "System / P19 & Coverage",
     "portal_route": null,
-    "api_refs": [
-      "/api/v1/system/p19-gate"
-    ]
+    "api_refs": ["/api/v1/system/p19-gate"]
   }
 ]

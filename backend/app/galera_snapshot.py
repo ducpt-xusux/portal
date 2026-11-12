@@ -8,7 +8,7 @@ from uuid import UUID
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, StrictBool, model_validator
 
-from .proxy_services import unique_object
+from .proxy_services import observation_metadata, unique_object
 from .schemas import iso
 
 NODES = ("galera-1", "galera-2", "galera-3")
@@ -108,7 +108,8 @@ def read_galera(directory: Path, now: datetime | None = None):
     now = now or datetime.now(timezone.utc)
     nodes = [read_node(directory, name, now) for name in NODES]
     valid = [node for node in nodes if node["read_ok"]]
-    times = [node["observed_at"] for node in valid]
+    observations = observation_metadata(nodes)
+    start, end = observations["observation_from"], observations["observation_to"]
     complete = len(valid) == len(NODES)
     # The observations were collected sequentially: agreement is historical evidence,
     # never proof of simultaneous quorum or current three-node health.
@@ -122,8 +123,11 @@ def read_galera(directory: Path, now: datetime | None = None):
         "expected_nodes": len(NODES), "observed_nodes": len(valid),
         "healthy_node_observations": sum(node["health_at_observation"] == "HEALTHY" for node in nodes),
         "consistency": "MATCHING_AT_OBSERVATIONS" if agreement else "MISMATCH" if complete else "UNKNOWN",
-        "observation_from": min(times) if times else None, "observation_to": max(times) if times else None,
-        "observation_spread_seconds": (max(datetime.fromisoformat(t) for t in times) - min(datetime.fromisoformat(t) for t in times)).total_seconds() if times else None,
+        "observation_from": start, "observation_to": end,
+        "observation_spread_seconds": (
+            datetime.fromisoformat(end.replace("Z", "+00:00")) -
+            datetime.fromisoformat(start.replace("Z", "+00:00"))
+        ).total_seconds() if start else None,
         "simultaneous_verified": False, "current_status": "UNKNOWN",
     }
     file_reads = sum(node["source_read_ok"] for node in nodes)
@@ -136,5 +140,6 @@ def read_galera(directory: Path, now: datetime | None = None):
         "stale_after_seconds": TTL, "data_as_of": summary["observation_to"],
         "source_ref": "sha256:" + hashlib.sha256(json.dumps(refs).encode()).hexdigest() if file_reads else None,
         "last_error_code": "GALERA_NODES_INCOMPLETE" if not complete else None,
+        **observations,
     }
     return {"data": {"nodes": nodes, "summary": summary}, "meta": meta, "error": None}

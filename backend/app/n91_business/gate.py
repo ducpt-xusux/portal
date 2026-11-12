@@ -13,6 +13,12 @@ from .models import READ_ROLES, WRITE_ROLES, EVIDENCE_ROLES
 from .service import BusinessError, iso
 
 
+INCIDENT_WRITE_POLICIES = (
+    ('POST', '/api/v1/incidents/{id}/review', 'write'),
+    ('POST', '/api/v1/incidents/{id}/evidence/exports', 'evidence'),
+)
+
+
 def envelope(request, service, data=None, code=None):
     request_id = getattr(request.state, 'request_id', str(uuid4()))
     return {'data': data, 'meta': {'request_id': request_id, 'read_at': iso(service.clock()),
@@ -39,7 +45,7 @@ class SessionGate:
         self.app, self.service = app, service
         policies = json.loads((Path(__file__).parent/'frozen_policies.json').read_text())['policies']
         # Extra policies require server-side code review; client input cannot alter them.
-        policies += [list(p) for p in extra_policies]
+        policies += [list(p) for p in (*INCIDENT_WRITE_POLICIES, *extra_policies)]
         policies.sort(key=lambda row: (row[1].count('{'), -len(row[1])))
         self.policies = [(method, _pattern(path), permission) for method, path, permission in policies]
 

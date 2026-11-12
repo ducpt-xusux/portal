@@ -11,7 +11,11 @@ from fastapi.routing import APIRoute
 from starlette.concurrency import run_in_threadpool
 
 from ..api import require_key
+from .aggregate import InvestigationAggregate
+from .aggregate_models import (InvestigationErrorMeta, InvestigationErrorResponse,
+    InvestigationResponse, InvestigationSessionErrorResponse)
 from .models import ActionsPage, ActionView, DecisionTrace, PolicyCatalog, PolicyRuleDetail, Response, SgLifecycleView, SourceStamp, TimelineView
+from .response_history import ResponseHistory, read_history
 from .service import InvestigationService, action_dict, dump, freshness
 from .sources import SourceError
 
@@ -50,8 +54,19 @@ def create_investigation_router(service=None, *, access_gate=None, include_repla
     Default excludes four existing handlers: A must replace/delegate them first.
     """
     service = service or InvestigationService()
+    aggregate = InvestigationAggregate(clock=service.clock, service=service)
 
     class SafeRoute(APIRoute):
+        def failure(self, request, status, code):
+            if self.response_model is InvestigationResponse:
+                rid = request_id(request)
+                payload = InvestigationErrorResponse(meta=InvestigationErrorMeta(
+                    request_id=rid, read_at=service.clock()), error={
+                    'code': code, 'message': 'Investigation source or capability unavailable.', 'request_id': rid})
+                return JSONResponse(status_code=status, content=payload.model_dump(mode='json'),
+                    headers={'Cache-Control': 'no-store', 'X-Request-ID': rid})
+            return reply(request, service, status=status, code=code)
+
         def get_route_handler(self):
             original = super().get_route_handler()
 
@@ -62,17 +77,17 @@ def create_investigation_router(service=None, *, access_gate=None, include_repla
                         self.response_model.model_validate_json(result.body)
                     return result
                 except SourceError as exc:
-                    return reply(request, service, status=exc.status, code=exc.code)
+                    return self.failure(request, exc.status, exc.code)
                 except RequestValidationError:
-                    return reply(request, service, status=422, code='INVESTIGATION_INVALID_REQUEST')
+                    return self.failure(request, 422, 'INVESTIGATION_INVALID_REQUEST')
                 except HTTPException as exc:
                     code = exc.detail.get('code') if isinstance(exc.detail, dict) else None
                     if not isinstance(code, str) or not re.fullmatch(r'[A-Z0-9_]{1,80}', code):
                         code = 'INVESTIGATION_ACCESS_DENIED' if exc.status_code in {401, 403} else 'INVESTIGATION_REQUEST_FAILED'
-                    return reply(request, service, status=exc.status_code, code=code)
+                    return self.failure(request, exc.status_code, code)
                 except Exception:
                     # Never echo filesystem exceptions, raw values or stack traces.
-                    return reply(request, service, status=503, code='INVESTIGATION_SOURCE_INVALID')
+                    return self.failure(request, 503, 'INVESTIGATION_SOURCE_INVALID')
             return handler
 
     router = APIRouter(prefix='/api/v1', tags=['Investigation'], route_class=SafeRoute,
@@ -114,6 +129,32 @@ def create_investigation_router(service=None, *, access_gate=None, include_repla
         await authorize(request, 'Analyst')
         data, source = await run_in_threadpool(service.incident_trace, request, incident_id)
         return reply(request, service, dump(data), source)
+
+    @router.get('/portal/incidents/{incident_id}/investigation', response_model=InvestigationResponse,
+                responses={**{status: {'model': InvestigationErrorResponse} for status in (404, 409, 422, 503)},
+                    **{status: {'model': InvestigationErrorResponse | InvestigationSessionErrorResponse}
+                       for status in (401, 403)}},
+                openapi_extra={'x-local-schema-version': 'portal-investigation-1',
+                               'x-role-required': 'Analyst', 'x-readonly': True})
+    async def incident_investigation(request: Request, incident_id: IdPath,
+            stream_id: Annotated[str, Query(min_length=1, max_length=160,
+                pattern=r'^[A-Za-z0-9][A-Za-z0-9_.:-]*$')],
+            events_limit: Annotated[int, Query(ge=1, le=100)] = 25,
+            events_cursor: Annotated[str | None, Query(max_length=2048)] = None):
+        await authorize(request, 'Analyst', ('stream_id', 'events_limit', 'events_cursor'))
+        result = await run_in_threadpool(aggregate.read, request, incident_id, stream_id,
+                                        events_limit, events_cursor)
+        return JSONResponse(result.model_dump(mode='json'), headers={
+            'Cache-Control': 'no-store', 'X-Request-ID': request_id(request),
+            'X-Investigation-Mode': result.meta.execution_mode})
+
+    @router.get('/portal/investigation/response-history', response_model=Response[ResponseHistory],
+                openapi_extra={'x-local-schema-version': 'portal-response-history-1',
+                               'x-role-required': 'Analyst', 'x-readonly': True})
+    async def controller_response_history(request: Request, current: bool = False):
+        await authorize(request, 'Analyst', ('current',))
+        history, source = await run_in_threadpool(read_history, request, service, include_current=current)
+        return reply(request, service, dump(history), source)
 
     async def timeline(request: Request, incident_id: IdPath):
         await authorize(request, 'Viewer')
