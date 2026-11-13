@@ -399,6 +399,15 @@ export function mapWorkload(record) {
     compute_host: string(record.compute_host),
     observed_at: string(record.observed_at),
     network_state: string(record.network_state),
+    network_observed_at: string(record.network_observed_at ?? record.network_observation?.observed_at),
+    network_history: Array.isArray(record.network_history)
+      ? record.network_history.slice(0, 10).map((entry) => ({
+          state: string(entry?.state),
+          previous_state: string(entry?.previous_state),
+          observed_at: string(entry?.observed_at),
+          source: string(entry?.source),
+        }))
+      : [],
     network_observation: record.network_observation
       ? {
           state: string(record.network_observation.state),
@@ -533,6 +542,7 @@ export function mapPort(value) {
       Array.isArray(port.security_group_ids) ||
       Array.isArray(port.security_groups),
     port_security_enabled: boolean(port.port_security_enabled),
+    network_state: string(port.network_state),
     observed_at: string(port.observed_at),
   }
 }
@@ -689,17 +699,20 @@ export function mapSgHistory(value) {
   }))
 }
 
-export function isVerifiedNetwork(observation, meta, failed = false) {
-  if (['SNAPSHOT', 'REMOTE_READONLY'].includes(meta?.source_mode)) return false
+export function workloadNetworkStatus(observation, meta, failed = false, now = Date.now()) {
+  if (['SNAPSHOT', 'REMOTE_READONLY'].includes(meta?.source_mode)) return 'UNKNOWN'
   const observed = Date.parse(observation?.observed_at)
   const ttl = number(meta?.network_stale_after_seconds) ?? 30
-  const age = Date.now() - observed
-  return (
-    freshness(meta, failed) === 'FRESH' &&
-    observation?.verification === 'LIVE_NEUTRON_READ' &&
-    ['NORMAL', 'QUARANTINED'].includes(observation?.state) &&
-    Number.isFinite(observed) &&
-    age >= -1000 &&
-    age <= ttl * 1000
-  )
+  const age = now - observed
+  const sourceFreshness = freshness(meta, failed, now)
+  if (sourceFreshness === 'STALE' || age > ttl * 1000) return 'STALE'
+  if (sourceFreshness !== 'FRESH' ||
+      observation?.verification !== 'LIVE_NEUTRON_READ' ||
+      !Number.isFinite(age) || age < -1000) return 'UNKNOWN'
+  return ['NORMAL', 'QUARANTINED', 'MISMATCH'].includes(observation.state)
+    ? observation.state : 'UNKNOWN'
+}
+
+export function isVerifiedNetwork(observation, meta, failed = false) {
+  return ['NORMAL', 'QUARANTINED'].includes(workloadNetworkStatus(observation, meta, failed))
 }

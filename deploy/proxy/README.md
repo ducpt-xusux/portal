@@ -94,6 +94,8 @@ Kiểm tra checksum gói trong thư mục staging. Khi đóng gói từ commit s
 
 Nút **Cô lập** dùng tài khoản Portal có vai trò `Executor`, session/CSRF và Business DB cho nhật ký. Cấu hình credential ứng dụng riêng có role `member` đúng project ở `OPENSTACK_QUARANTINE_CREDENTIAL_PATH`, theo cùng định dạng JSON như credential inventory. Giới hạn quyền credential ở Neutron và bảo vệ file chỉ cho tài khoản chạy Portal. Security Group ở `OPENSTACK_QUARANTINE_SG_ID` phải thuộc project và không có rule. Neutron cần extension `revision-if-match`. Nhật ký giữ port ID và SG trước thao tác; dùng các giá trị này để đối chiếu và gắn lại SG bằng Controller CLI khi nghiệm thu trên VM lab.
 
+Khi bật inventory và cấu hình UUID SG cô lập, API lấy mẫu nền khoảng 3 giây một lần và lưu tối đa 50 mục lịch sử cho mỗi VM trong SQLite của Portal. Giao diện hiển thị 10 mục gần nhất. Nút Cô lập ghi riêng lần Neutron xác nhận, nên lần đó vẫn có trong lịch sử sau khi Watchdog khôi phục. Với thao tác từ Controller hoặc Watchdog, Portal chỉ ghi những trạng thái bộ thu quan sát được. Một lần cô lập xảy ra hoàn toàn giữa hai mẫu có thể bị bỏ lỡ. Thời điểm trong lịch sử là lúc quan sát, không phải thời điểm Neutron bắt đầu áp dụng luật.
+
 Với P16H, đối chiếu `AUDIT_MODE`, nguồn ghi `AUDIT_PATH` và thời gian sự kiện/nhập trong API. Dùng bộ lọc thời gian, IP và tài khoản trên `/#/events?source=canonical` để đối chiếu từng lệnh SQL mới. Ghi mã yêu cầu nếu nguồn có cấp. P17 projection là nguồn bổ sung khi thiếu bản ghi canonical.
 
 ## Nâng cấp

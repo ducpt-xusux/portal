@@ -11,12 +11,12 @@ import {
 } from 'lucide-react'
 import {
   freshness,
-  isVerifiedNetwork,
   mapWorkload,
   portalRequest,
   readCollection,
+  workloadNetworkStatus,
 } from '../services/portalApi'
-import { useCursor, useV4Resource, NetworkObservation } from './IncidentPages'
+import { useCursor, useV4Resource } from './IncidentPages'
 import { RiskExposure, SecurityGroups } from './InvestigationUI'
 import {
   Badge,
@@ -37,9 +37,38 @@ import WorkloadConsole from './WorkloadConsole'
 import { usePortal } from './PortalContext'
 import './WorkloadConsole.css'
 
-const ACTIVITY_LABELS = {
+const NETWORK_LABELS = {
   NORMAL: 'Bình thường',
   QUARANTINED: 'Đã cô lập',
+  MISMATCH: 'Cô lập không đồng nhất',
+  UNKNOWN: 'Chưa xác minh',
+  STALE: 'Dữ liệu cũ',
+}
+
+function NetworkStatusBadge({ state }) {
+  return <Badge value={state}>{NETWORK_LABELS[state] || NETWORK_LABELS.UNKNOWN}</Badge>
+}
+
+function NetworkHistory({ entries }) {
+  const time = useTime()
+  const changes = entries.filter((entry) => entry.previous_state)
+  const lastIsolation = entries.find((entry) => entry.state === 'QUARANTINED')
+  if (!changes.length && !lastIsolation) return null
+  return (
+    <details>
+      <summary>
+        {lastIsolation ? `Cô lập gần nhất · ${time(lastIsolation.observed_at)}` : 'Lịch sử trạng thái mạng'}
+      </summary>
+      <ul>
+        {entries.map((entry) => (
+          <li key={`${entry.observed_at}:${entry.state}`}>
+            {time(entry.observed_at)} · {entry.previous_state && `${NETWORK_LABELS[entry.previous_state]} → `}
+            {NETWORK_LABELS[entry.state] || NETWORK_LABELS.UNKNOWN}
+          </li>
+        ))}
+      </ul>
+    </details>
+  )
 }
 
 const QUARANTINE_ERRORS = {
@@ -63,9 +92,8 @@ export function WorkloadsPage({ params }) {
   })
   const classificationMissing =
     resource.meta?.network_classification === 'NOT_CONFIGURED'
-  const staleLive =
-    resource.meta?.source_mode === 'LIVE' &&
-    freshness(resource.meta, Boolean(resource.error)) !== 'FRESH'
+  const live = resource.meta?.source_mode === 'LIVE'
+  const staleLive = live && freshness(resource.meta, Boolean(resource.error)) !== 'FRESH'
   const canQuarantine = workloadQuarantineAvailable && auth.csrfToken &&
     auth.user?.roles?.includes('Executor')
 
@@ -73,13 +101,16 @@ export function WorkloadsPage({ params }) {
     setQuarantining(true)
     setQuarantineNotice(null)
     try {
-      await portalRequest(`/workloads/${encodeURIComponent(quarantineTarget.server_id)}/quarantine`, {
+      const { data } = await portalRequest(`/workloads/${encodeURIComponent(quarantineTarget.server_id)}/quarantine`, {
         method: 'POST',
         csrfToken: auth.csrfToken,
         body: { confirm: 'QUARANTINE' },
         timeout: 90000,
       })
-      setQuarantineNotice({ message: `Neutron đã xác nhận cô lập ${quarantineTarget.name || quarantineTarget.server_id}.` })
+      const message = `Neutron đã xác nhận cô lập ${quarantineTarget.name || quarantineTarget.server_id}.`
+      setQuarantineNotice(data?.history_saved === false
+        ? { error: true, message: `${message} Chưa lưu được lịch sử trạng thái.` }
+        : { message })
     } catch (error) {
       setQuarantineNotice({ error: true, message: QUARANTINE_ERRORS[error.code] || error.message })
     } finally {
@@ -99,7 +130,7 @@ export function WorkloadsPage({ params }) {
         <div className="v4-snapshot-notice">
           <strong>
             Nova / Neutron · inventory thật · cập nhật theo chu kỳ{' '}
-            {resource.meta.refresh_seconds || 15} giây khi mở trang
+            {resource.meta.refresh_seconds || 15} giây
           </strong>
           <p>
             Project: {display(resource.meta.project_id)} · Quan sát gần nhất{' '}
@@ -113,6 +144,9 @@ export function WorkloadsPage({ params }) {
           )}
           {classificationMissing && (
             <p>Chưa xác định được Security Group cô lập cho project này.</p>
+          )}
+          {resource.meta.network_history_error && (
+            <p role="status">Lịch sử trạng thái mạng tạm thời không truy cập được.</p>
           )}
         </div>
       )}
@@ -150,17 +184,17 @@ export function WorkloadsPage({ params }) {
           />
         </Filter>
         <SelectFilter
-          label="Trạng thái hoạt động"
+          label="Trạng thái mạng"
           value={draft.network_state}
           onChange={(value) =>
             setDraft((current) => ({ ...current, network_state: value }))
           }
           options={[
             ['', 'Tất cả'],
-            ...Object.entries(ACTIVITY_LABELS).map(([value, label]) => [
+            ...Object.entries(NETWORK_LABELS).filter(([value]) => value !== 'STALE').map(([value, label]) => [
               value,
               label,
-              classificationMissing,
+              value !== 'UNKNOWN' && classificationMissing,
             ]),
           ]}
         />
@@ -199,7 +233,8 @@ export function WorkloadsPage({ params }) {
                 <thead>
                   <tr>
                     <th>MÁY ẢO / PROJECT</th>
-                    <th>STATUS</th>
+                    <th>TRẠNG THÁI NOVA</th>
+                    <th>TRẠNG THÁI MẠNG</th>
                     <th>IP NỘI BỘ / FLOATING IP</th>
                     <th>SECURITY GROUP</th>
                     <th>RỦI RO LIÊN QUAN</th>
@@ -210,7 +245,12 @@ export function WorkloadsPage({ params }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {resource.data.map((vm) => (
+                  {resource.data.map((vm) => {
+                    const state = workloadNetworkStatus(
+                      vm.network_observation, resource.meta, Boolean(resource.error)
+                    )
+                    const nova = live ? vm.nova_status : null
+                    return (
                     <tr key={vm.server_id}>
                       <td>
                         <a
@@ -222,19 +262,13 @@ export function WorkloadsPage({ params }) {
                         <small>{display(vm.project_id)}</small>
                       </td>
                       <td>
-                        {isVerifiedNetwork(
-                          vm.network_observation,
-                          resource.meta,
-                          Boolean(resource.error)
-                        ) ? (
-                          <Badge value={vm.network_observation.state}>
-                            {ACTIVITY_LABELS[vm.network_observation.state]}
-                          </Badge>
-                        ) : (
-                          <Badge value={staleLive ? 'STALE' : vm.network_state === 'MISMATCH' ? 'MISMATCH' : 'UNKNOWN'}>
-                            {staleLive ? 'Dữ liệu cũ' : vm.network_state === 'MISMATCH' ? 'Cô lập một phần' : 'Chưa xác minh'}
-                          </Badge>
-                        )}
+                        <Badge value={staleLive ? 'STALE' : nova || 'UNKNOWN'}>
+                          {staleLive ? 'Dữ liệu cũ' : nova || 'Chưa xác minh'}
+                        </Badge>
+                      </td>
+                      <td>
+                        <NetworkStatusBadge state={state} />
+                        <NetworkHistory entries={vm.network_history} />
                       </td>
                       <td>
                         {vm.ports.length
@@ -261,6 +295,11 @@ export function WorkloadsPage({ params }) {
                             key={port.port_id || index}
                           >
                             <small>Port {port.port_id || 'Chưa có ID'}</small>
+                            <NetworkStatusBadge state={workloadNetworkStatus({
+                              state: port.network_state,
+                              observed_at: port.observed_at,
+                              verification: live ? 'LIVE_NEUTRON_READ' : null,
+                            }, resource.meta, Boolean(resource.error))} />
                             <SecurityGroups
                               groups={port.security_groups}
                               provided={port.security_groups_provided}
@@ -276,15 +315,14 @@ export function WorkloadsPage({ params }) {
                           error={resource.error}
                         />
                       </td>
-                      <td>{time(vm.observed_at)}</td>
+                      <td>{time(vm.network_observed_at)}</td>
                       <td>
                         <button
                           type="button"
                           className="button secondary"
                           aria-label={`Cô lập ${vm.name || vm.server_id}`}
                           disabled={!canQuarantine || Boolean(quarantineTarget) ||
-                            !isVerifiedNetwork(vm.network_observation, resource.meta, Boolean(resource.error)) ||
-                            vm.network_observation.state !== 'NORMAL'}
+                            state !== 'NORMAL'}
                           title={!canQuarantine ? 'Cần phiên Executor và quyền ghi Neutron đã cấu hình' : undefined}
                           onClick={() => { setQuarantineNotice(null); setQuarantineTarget(vm) }}
                         >
@@ -299,7 +337,8 @@ export function WorkloadsPage({ params }) {
                         </a>
                       </td>
                     </tr>
-                  ))}
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -376,6 +415,11 @@ function PortsPanel({ vmId, selectedPort }) {
                     ["IP nội bộ", port.fixed_ips.join(' · ') || '—'],
                     ['Floating IP', port.floating_ips.join(' · ') || '—'],
                     ['Port Security', display(port.port_security_enabled)],
+                    ['Trạng thái mạng', <NetworkStatusBadge state={workloadNetworkStatus({
+                      state: port.network_state,
+                      observed_at: port.observed_at,
+                      verification: resource.meta?.source_mode === 'LIVE' ? 'LIVE_NEUTRON_READ' : null,
+                    }, resource.meta, Boolean(resource.error))} />],
                     ['Quan sát lúc', time(port.observed_at)],
                     [
                       'Subnet / fixed IP',
@@ -547,11 +591,13 @@ export function WorkloadDetail({ id, params = {} }) {
               />
             </Panel>
             <Panel title="Thông tin bảo mật">
-              <NetworkObservation
-                observation={vm.network_observation}
-                meta={resource.meta}
-                error={resource.error}
-              />
+              <FieldGrid rows={[
+                ['Trạng thái mạng', <NetworkStatusBadge state={
+                  workloadNetworkStatus(vm.network_observation, resource.meta, Boolean(resource.error))
+                } />],
+                ['Quan sát Neutron lúc', time(vm.network_observed_at)],
+              ]} />
+              <NetworkHistory entries={vm.network_history} />
               <p className="v4-panel-note">
                 Nova ACTIVE thể hiện trạng thái VM. Trạng thái mạng và cách ly
                 cần được xác minh riêng bằng Neutron.

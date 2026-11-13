@@ -18,7 +18,7 @@ from .schemas import utc_now
 from .store import Store
 from .p17_snapshot import SnapshotReader
 from .p17_api import CursorCodec, evaluation_run_router, observation_auth_router, quarantine_router, require_read_access, router as p17_router, source_status_router
-from .openstack_inventory import InventoryReader
+from .openstack_inventory import InventoryError, InventoryReader
 from .remote_console import ConsoleService
 from .workload_quarantine import WorkloadQuarantine
 from .build_info import load_build_info
@@ -90,6 +90,7 @@ def create_app(settings: Settings | None = None, *, evidence_config: EvidenceCon
             snapshot_reader, config.context, settings.p16h_import_context) if settings.p17_snapshot_path else None)
     store = Store(settings.database_path)
     importer = Importer(settings, store)
+    inventory = InventoryReader(settings, history_store=store)
 
     async def poll():
         while True:
@@ -99,17 +100,31 @@ def create_app(settings: Settings | None = None, *, evidence_config: EvidenceCon
             except sqlite3.Error:
                 logging.getLogger(__name__).error("Audit SQLite synchronization failed")
 
+    async def poll_inventory():
+        while True:
+            started = inventory.monotonic()
+            try:
+                await asyncio.to_thread(inventory.sample)
+            except InventoryError:
+                # Inventory metadata already reports read errors and stale data.
+                pass
+            await asyncio.sleep(max(0.1, inventory.refresh_seconds - (inventory.monotonic() - started)))
+
     @asynccontextmanager
     async def lifespan(app):
         store.initialize()
         await asyncio.to_thread(importer.sync)
-        task = asyncio.create_task(poll())
+        tasks = [asyncio.create_task(poll())]
+        if settings.openstack_enabled and settings.openstack_quarantine_sg_id:
+            tasks.append(asyncio.create_task(poll_inventory()))
         try:
             yield
         finally:
-            task.cancel()
-            with suppress(asyncio.CancelledError):
-                await task
+            for task in tasks:
+                task.cancel()
+            for task in tasks:
+                with suppress(asyncio.CancelledError):
+                    await task
 
     app = FastAPI(
         title="DB Security Portal API", version="0.2.0", lifespan=lifespan,
@@ -121,7 +136,7 @@ def create_app(settings: Settings | None = None, *, evidence_config: EvidenceCon
     app.state.settings, app.state.store, app.state.importer = settings, store, importer
     app.state.p17_reader = snapshot_reader
     app.state.p17_cursors = CursorCodec()
-    app.state.openstack_inventory = InventoryReader(settings)
+    app.state.openstack_inventory = inventory
     app.state.console_service = ConsoleService(settings)
     app.state.workload_quarantine = WorkloadQuarantine(settings)
     app.state.quarantine_audit = business

@@ -128,9 +128,14 @@ def test_endpoint_requires_executor_and_csrf_and_writes_audit(tmp_path, setup):
         assert client.post(url, json=body, headers={"Origin": origin}).status_code == 403
         assert not neutron.writes
         session = client.get("/api/v1/auth/me").json()["data"]
-        assert client.post(url, json=body, headers={
+        response = client.post(url, json=body, headers={
             "Origin": origin, "X-CSRF-Token": session["csrf_token"],
-        }).json()["data"]["status"] == "QUARANTINED"
+        }).json()["data"]
+        assert response["status"] == "QUARANTINED" and response["history_saved"] is True
+    history = app.state.openstack_inventory.network_history([VM])[VM]
+    assert [(row["state"], row["source"]) for row in history] == [
+        ("QUARANTINED", "PORTAL_QUARANTINE_VERIFICATION"),
+    ]
     with audit.connection() as db:
         rows = db.execute("SELECT outcome, before_json FROM admin_audit WHERE action='WORKLOAD_QUARANTINE' ORDER BY seq").fetchall()
         assert [row["outcome"] for row in rows] == ["ATTEMPTED", "SUCCESS"]

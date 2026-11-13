@@ -200,6 +200,7 @@ import {
   isFreshMapping,
   isLocalSnapshotAccess,
   isVerifiedNetwork,
+  workloadNetworkStatus,
   mapEvent,
   mapIncident,
   mapWorkload,
@@ -215,6 +216,25 @@ import {
   mapPort,
   currentMappingState,
 } from './portalApi.js'
+
+test('workload network status exposes fresh mismatch and keeps history separate from current state', () => {
+  const now = Date.parse('2026-11-13T00:00:00Z')
+  const stamp = new Date(now).toISOString()
+  const meta = { source_mode: 'LIVE', freshness_state: 'FRESH', read_at: stamp }
+  const vm = mapWorkload({
+    server_id: 'vm-test',
+    nova_status: 'ACTIVE',
+    network_observation: { state: 'MISMATCH', verification: 'LIVE_NEUTRON_READ', observed_at: stamp },
+    ports: [{ port_id: 'port-test', network_state: 'QUARANTINED' }],
+    network_history: [{ state: 'QUARANTINED', observed_at: stamp }],
+  })
+  assert.equal(vm.nova_status, 'ACTIVE')
+  assert.equal(vm.ports[0].network_state, 'QUARANTINED')
+  assert.equal(vm.network_history[0].state, 'QUARANTINED')
+  assert.equal(workloadNetworkStatus(vm.network_observation, meta, false, now), 'MISMATCH')
+  assert.equal(workloadNetworkStatus(vm.network_observation, meta, false, now + 31000), 'STALE')
+  assert.equal(workloadNetworkStatus(null, meta, false, now), 'UNKNOWN')
+})
 import { parseRoute } from '../hooks/useHashRoute.js'
 import {
   alertEventHref,

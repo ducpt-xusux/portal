@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from ipaddress import ip_address
 import hashlib
 import json
+import sqlite3
 import socket
 from threading import Lock
 import time
@@ -20,6 +21,7 @@ from .proxy_services import unique_object
 from .schemas import iso
 
 REFRESH_SECONDS = 15
+NETWORK_SAMPLE_SECONDS = 3
 TTL = 45
 MAX_BYTES = 4 * 1024 * 1024
 PAGE_SIZE = 200
@@ -103,29 +105,38 @@ def rows(value):
     return value
 
 
-def network_state(ports, quarantine_sg_id):
-    if not quarantine_sg_id or not ports or any(
-        port["port_security_enabled"] is not True or not port["security_group_ids"]
-        for port in ports
-    ):
+def port_network_state(port, quarantine_sg_id):
+    if not quarantine_sg_id or port["port_security_enabled"] is not True or not port["security_group_ids"]:
         return "UNKNOWN"
-    groups = [port["security_group_ids"] for port in ports]
-    if all(ids == [quarantine_sg_id] for ids in groups):
-        return "QUARANTINED"
-    if any(quarantine_sg_id in ids for ids in groups):
+    groups = {group.lower() for group in port["security_group_ids"]}
+    target = quarantine_sg_id.lower()
+    if target not in groups:
+        return "NORMAL"
+    return "QUARANTINED" if groups == {target} else "MISMATCH"
+
+
+def network_state(ports, quarantine_sg_id):
+    states = {port_network_state(port, quarantine_sg_id) for port in ports}
+    if "MISMATCH" in states or {"NORMAL", "QUARANTINED"} <= states:
         return "MISMATCH"
-    return "NORMAL"
+    if len(states) == 1:
+        return states.pop()
+    return "UNKNOWN"
 
 
 class InventoryReader:
     accepted_roles = (frozenset({"reader"}),)
     role_error_code = "OPENSTACK_READER_SCOPE_REQUIRED"
 
-    def __init__(self, settings, transport=None, clock=None, monotonic=None):
+    def __init__(self, settings, transport=None, clock=None, monotonic=None, *, history_store=None):
         self.settings = settings
         self.transport = transport or Transport()
         self.clock = clock or (lambda: datetime.now(timezone.utc))
         self.monotonic = monotonic or time.monotonic
+        self.history_store = history_store
+        self.refresh_seconds = (NETWORK_SAMPLE_SECONDS if history_store and settings.openstack_quarantine_sg_id
+                                else REFRESH_SECONDS)
+        self.history_error = None
         self.lock = Lock()
         self.token = None
         self.token_expiry = None
@@ -240,9 +251,10 @@ class InventoryReader:
         cfg = self.settings
         deadline = self.monotonic() + 25
         servers = self.collection(cfg.openstack_compute_url, "/servers/detail", "servers", deadline=deadline)
-        ports = self.collection(cfg.openstack_network_url, "/v2.0/ports", "ports", project_filter=True, deadline=deadline)
         floating = self.collection(cfg.openstack_network_url, "/v2.0/floatingips", "floatingips", project_filter=True, deadline=deadline)
         groups = self.collection(cfg.openstack_network_url, "/v2.0/security-groups", "security_groups", project_filter=True, deadline=deadline)
+        ports = self.collection(cfg.openstack_network_url, "/v2.0/ports", "ports", project_filter=True, deadline=deadline)
+        self.ports_observed_at = self.clock()
         group_names = {group["id"]: text(group.get("name")) for group in groups}
         quarantine_sg_id = next((
             group["id"] for group in groups
@@ -274,9 +286,11 @@ class InventoryReader:
                     raise InventoryError("OPENSTACK_RESPONSE_INVALID") from None
                 fixed.append({"ip_address": address, "subnet_id": identifier(ip.get("subnet_id"))})
             sg_ids = port.get("security_groups")
-            if not isinstance(sg_ids, list) or len(sg_ids) != len(set(sg_ids)):
+            if not isinstance(sg_ids, list):
                 raise InventoryError("OPENSTACK_RESPONSE_INVALID")
             sg_ids = [identifier(item) for item in sg_ids]
+            if len(sg_ids) != len({item.lower() for item in sg_ids}):
+                raise InventoryError("OPENSTACK_RESPONSE_INVALID")
             security = port.get("port_security_enabled")
             if security is not None and type(security) is not bool:
                 raise InventoryError("OPENSTACK_RESPONSE_INVALID")
@@ -289,6 +303,7 @@ class InventoryReader:
                 "security_groups": [{"id": item, "name": group_names.get(item)} for item in sg_ids],
                 "port_security_enabled": security,
             }
+            mapped["network_state"] = port_network_state(mapped, quarantine_sg_id)
             by_server.setdefault(device_id, []).append(mapped)
         workloads = []
         for server in servers:
@@ -314,6 +329,22 @@ class InventoryReader:
         with self.lock:
             return self._read_locked()
 
+    def sample(self):
+        with self.lock:
+            self._read_locked(copy=False)
+
+    def network_history(self, server_ids):
+        if not self.history_store or not server_ids:
+            return {}
+        return self.history_store.workload_network_history(self.settings.openstack_project_id, server_ids)
+
+    def record_quarantine_verified(self, server_id, observed_at):
+        if self.history_store:
+            self.history_store.record_workload_network(
+                self.settings.openstack_project_id, [(server_id, iso(observed_at), "QUARANTINED")],
+                "PORTAL_QUARANTINE_VERIFICATION",
+            )
+
     def refresh_next_read(self):
         with self.lock:
             self.retry_after = 0
@@ -323,7 +354,7 @@ class InventoryReader:
             items, meta, fingerprint = self._read_locked()
             return items, deepcopy(self.cached_ports), meta, fingerprint
 
-    def _read_locked(self):
+    def _read_locked(self, *, copy=True):
         self.configured()
         tick = self.monotonic()
         if tick >= self.retry_after:
@@ -334,27 +365,42 @@ class InventoryReader:
                 # polls keep cursors valid; membership/state changes invalidate them.
                 fingerprint = hashlib.sha256(json.dumps(data, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
                 observed = self.clock()
+                network_observed_at = iso(self.ports_observed_at)
                 for vm in data:
                     vm["observed_at"] = iso(observed)
+                    vm["network_observed_at"] = network_observed_at
                     if vm["network_state"] != "UNKNOWN":
                         vm["network_observation"] = {
                             "state": vm["network_state"],
                             "verification": "LIVE_NEUTRON_READ",
-                            "observed_at": vm["observed_at"],
+                            "observed_at": network_observed_at,
                         }
                     for port in vm["ports"]:
-                        port["observed_at"] = iso(observed)
+                        port["observed_at"] = network_observed_at
                 self.cached, self.fingerprint = data, fingerprint
                 self.network_classification_configured = classification_configured
                 self.cached_ports = deepcopy(self.collected_ports)
                 self.last_success, self.observation_from, self.last_error = observed, self.last_attempt, None
+                if self.history_store and self.settings.openstack_quarantine_sg_id:
+                    try:
+                        self.history_store.record_workload_network(
+                            self.settings.openstack_project_id,
+                            [(vm["server_id"], network_observed_at, vm["network_state"]) for vm in data],
+                            "NEUTRON_INVENTORY",
+                        )
+                        self.history_error = None
+                    except sqlite3.Error:
+                        self.history_error = "WORKLOAD_NETWORK_HISTORY_UNAVAILABLE"
             except InventoryError as error:
                 self.last_error = error.code
             except (ValueError, TypeError, KeyError, AttributeError, RecursionError):
                 self.last_error = "OPENSTACK_RESPONSE_INVALID"
-            self.retry_after = self.monotonic() + REFRESH_SECONDS
+            self.retry_after = (self.monotonic() + REFRESH_SECONDS if self.last_error else
+                                max(tick + self.refresh_seconds, self.monotonic()))
         if self.cached is None:
             raise InventoryError(self.last_error or "OPENSTACK_INVENTORY_UNAVAILABLE")
+        if not copy:
+            return
         now = self.clock()
         stale = bool(self.last_error) or (now - self.observation_from).total_seconds() > TTL
         meta = {
@@ -365,9 +411,10 @@ class InventoryReader:
             "observed_at": iso(self.last_success), "observation_from": iso(self.observation_from),
             "last_attempt": iso(self.last_attempt), "last_success": iso(self.last_success),
             "last_error_code": self.last_error, "source_ref": "sha256:" + self.fingerprint,
-            "project_id": self.settings.openstack_project_id, "refresh_seconds": REFRESH_SECONDS,
+            "project_id": self.settings.openstack_project_id, "refresh_seconds": self.refresh_seconds,
             "scope": "SINGLE_PROJECT_READONLY",
             "network_classification": "CONFIGURED" if self.network_classification_configured else "NOT_CONFIGURED",
             "network_stale_after_seconds": TTL,
+            "network_history_error": self.history_error,
         }
         return deepcopy(self.cached), meta, self.fingerprint

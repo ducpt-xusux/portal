@@ -9,6 +9,7 @@ import json
 import logging
 import math
 import secrets
+import sqlite3
 import time
 from typing import Annotated, Literal
 
@@ -568,7 +569,9 @@ def workloads(request: Request,
     if network_state and network_state != "UNKNOWN" and meta.get("network_classification") != "CONFIGURED":
         fail(503, "NETWORK_CLASSIFICATION_NOT_CONFIGURED")
     if network_state:
-        items = [item for item in items if item["network_state"] == network_state]
+        items = [item for item in items if (
+            item["network_state"] if meta["freshness_state"] == "FRESH" else "UNKNOWN"
+        ) == network_state]
     if name:
         items = [item for item in items if name.casefold() in (item["name"] or "").casefold()]
     total = len(items)
@@ -579,6 +582,7 @@ def workloads(request: Request,
         after = codec.decode(cursor, scope, fingerprint, (str, str))
         items = [item for item in items if key(item) > after]
     selected, more = items[:limit], len(items) > limit
+    attach_network_history(request, selected, meta)
     next_cursor = codec.encode(scope, fingerprint, key(selected[-1])) if more else None
     return {"data": {"items": selected}, "meta": {"request_id": request.state.request_id, **meta,
             "next_cursor": next_cursor, "has_more": more, "total_count": total}, "error": None}
@@ -591,12 +595,23 @@ def workload_read(request):
         fail(503, error.code)
 
 
+def attach_network_history(request, items, meta):
+    try:
+        history = request.app.state.openstack_inventory.network_history([item["server_id"] for item in items])
+    except sqlite3.Error:
+        meta["network_history_error"] = "WORKLOAD_NETWORK_HISTORY_UNAVAILABLE"
+        return
+    for item in items:
+        item["network_history"] = history.get(item["server_id"], [])
+
+
 @router.get("/workloads/{server_id}")
 def workload_detail(request: Request, server_id: IdPath):
     items, meta, _ = workload_read(request)
     item = next((item for item in items if item["server_id"] == server_id), None)
     if item is None:
         fail(404, "WORKLOAD_NOT_FOUND")
+    attach_network_history(request, [item], meta)
     return {"data": item, "meta": {"request_id": request.state.request_id, **meta}, "error": None}
 
 
@@ -625,12 +640,22 @@ def quarantine_workload(request: Request, server_id: IdPath, body: QuarantineReq
         fail(503, "QUARANTINE_NOT_CONFIGURED")
     request_id = request.state.request_id
     service = request.app.state.workload_quarantine
+    inventory = request.app.state.openstack_inventory
+    history_saved = True
 
     def record_attempt(previous):
         audit.record_quarantine(principal, server_id, request_id, outcome="ATTEMPTED", before=previous)
 
+    def record_verified(observed_at):
+        nonlocal history_saved
+        try:
+            inventory.record_quarantine_verified(server_id, observed_at)
+        except sqlite3.Error:
+            history_saved = False
+            logging.getLogger(__name__).error("Quarantine history unavailable request_id=%s", request_id)
+
     try:
-        status = service.apply(server_id, record_attempt)
+        status = service.apply(server_id, record_attempt, record_verified=record_verified)
     except QuarantineError as error:
         try:
             audit.record_quarantine(principal, server_id, request_id, outcome="FAILED", after={"code": error.code})
@@ -640,13 +665,13 @@ def quarantine_workload(request: Request, server_id: IdPath, body: QuarantineReq
     except BusinessError as error:
         fail(error.status, error.code)
     finally:
-        request.app.state.openstack_inventory.refresh_next_read()
+        inventory.refresh_next_read()
     try:
         audit.record_quarantine(principal, server_id, request_id, outcome="SUCCESS", after={"status": status})
     except BusinessError:
         logging.getLogger(__name__).error("Quarantine result audit unavailable request_id=%s", request_id)
         fail(503, "QUARANTINE_APPLIED_AUDIT_INCOMPLETE")
-    return {"data": {"server_id": server_id, "status": status},
+    return {"data": {"server_id": server_id, "status": status, "history_saved": history_saved},
             "meta": {"request_id": request_id, "read_at": utc_now()}, "error": None}
 
 

@@ -55,6 +55,14 @@ class Store:
                 CREATE TABLE IF NOT EXISTS portal_health_probe (
                     id INTEGER PRIMARY KEY, checked_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS workload_network_history (
+                    id INTEGER PRIMARY KEY,
+                    project_id TEXT NOT NULL, server_id TEXT NOT NULL,
+                    observed_at TEXT NOT NULL, state TEXT NOT NULL, source TEXT NOT NULL,
+                    last_seen_at TEXT NOT NULL, last_seen_source TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_workload_network_history
+                    ON workload_network_history(project_id, server_id, observed_at DESC, id DESC);
                 CREATE TABLE IF NOT EXISTS p16h_events_v1 (
                     stream_id TEXT NOT NULL,
                     event_id TEXT NOT NULL,
@@ -86,6 +94,58 @@ class Store:
                            action_result,query_masked,payload,stream_id,imported_at
                     FROM p16h_events_v1;
             """)
+
+    def record_workload_network(self, project_id, observations, source):
+        insert = ("INSERT INTO workload_network_history(project_id,server_id,observed_at,state,source,last_seen_at,last_seen_source) "
+                  "VALUES(?,?,?,?,?,?,?)")
+        with self.connection() as db:
+            db.execute("BEGIN IMMEDIATE")
+            for server_id, observed_at, state in observations:
+                key = (project_id, server_id)
+                previous = db.execute(
+                    "SELECT id,state,last_seen_at,last_seen_source FROM workload_network_history "
+                    "WHERE project_id=? AND server_id=? AND observed_at<=? "
+                    "ORDER BY observed_at DESC,id DESC LIMIT 1", (*key, observed_at),
+                ).fetchone()
+                if previous and previous["state"] == state:
+                    db.execute("UPDATE workload_network_history SET last_seen_at=?,last_seen_source=? WHERE id=? AND last_seen_at<?",
+                               (observed_at, source, previous["id"], observed_at))
+                    continue
+                following = db.execute(
+                    "SELECT id,state,last_seen_at,last_seen_source FROM workload_network_history "
+                    "WHERE project_id=? AND server_id=? AND observed_at>? "
+                    "ORDER BY observed_at,id LIMIT 1", (*key, observed_at),
+                ).fetchone()
+                last_seen, last_source = observed_at, source
+                if following and following["state"] == state:
+                    last_seen, last_source = following["last_seen_at"], following["last_seen_source"]
+                    db.execute("DELETE FROM workload_network_history WHERE id=?", (following["id"],))
+                db.execute(insert, (*key, observed_at, state, source, last_seen, last_source))
+                if previous and previous["last_seen_at"] > observed_at:
+                    # A delayed quarantine confirmation can fall inside a run of
+                    # normal samples that already included the restored port.
+                    stamp, via = previous["last_seen_at"], previous["last_seen_source"]
+                    db.execute(insert, (*key, stamp, previous["state"], via, stamp, via))
+                    db.execute("UPDATE workload_network_history SET last_seen_at=workload_network_history.observed_at,"
+                               "last_seen_source=workload_network_history.source WHERE id=?", (previous["id"],))
+                db.execute(
+                    "DELETE FROM workload_network_history WHERE id IN (SELECT id FROM workload_network_history "
+                    "WHERE project_id=? AND server_id=? ORDER BY observed_at DESC,id DESC LIMIT -1 OFFSET 50)", key,
+                )
+
+    def workload_network_history(self, project_id, server_ids):
+        with self.connection() as db:
+            result = {}
+            for server_id in server_ids:
+                history = db.execute(
+                    "SELECT state,observed_at,source FROM workload_network_history WHERE project_id=? AND server_id=? "
+                    "ORDER BY observed_at DESC,id DESC LIMIT 11", (project_id, server_id),
+                ).fetchall()
+                result[server_id] = [
+                    {**dict(row), "previous_state": history[index + 1]["state"] if index + 1 < len(history) else None}
+                    for index, row in enumerate(history[:10])
+                ]
+            return result
 
     @staticmethod
     def counts(db, where="", parameters=()):

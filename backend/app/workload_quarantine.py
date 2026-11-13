@@ -30,7 +30,7 @@ class WorkloadQuarantine:
         return bool(self.settings.openstack_enabled and credential and credential != self.settings.openstack_credential_path
                     and self.settings.openstack_quarantine_sg_id)
 
-    def apply(self, server_id, record_attempt):
+    def apply(self, server_id, record_attempt, *, record_verified=None):
         if not self.configured():
             raise QuarantineError(503, "QUARANTINE_NOT_CONFIGURED")
         if not self.lock.acquire(blocking=False):
@@ -38,7 +38,7 @@ class WorkloadQuarantine:
         try:
             self.identity.configured()
             identifier(server_id)
-            return self._apply(server_id, record_attempt)
+            return self._apply(server_id, record_attempt, record_verified)
         except InventoryError as error:
             if error.http_status == 412:
                 raise QuarantineError(409, "QUARANTINE_CONFLICT") from None
@@ -82,7 +82,7 @@ class WorkloadQuarantine:
         attachments = rows(response.get("interfaceAttachments"))
         return {identifier(row.get("port_id")) for row in attachments}
 
-    def _apply(self, server_id, record_attempt):
+    def _apply(self, server_id, record_attempt, record_verified):
         cfg = self.settings
         compute = cfg.openstack_compute_url.rstrip("/")
         network = cfg.openstack_network_url.rstrip("/") + "/v2.0"
@@ -123,6 +123,7 @@ class WorkloadQuarantine:
                         attempted.pop(port_id)
                     raise
             verified = self._ports(network, server_id)
+            observed_at = self.identity.clock()
             if (set(verified) != set(ports) or set(verified) != self._attachments(server_url)
                     or any(port["security_groups"] != target for port in verified.values())):
                 raise QuarantineError(409, "QUARANTINE_VERIFICATION_FAILED")
@@ -130,6 +131,8 @@ class WorkloadQuarantine:
             if not self._restore(network, server_id, attempted, target):
                 raise QuarantineError(503, "QUARANTINE_RESTORE_UNVERIFIED") from None
             raise
+        if record_verified:
+            record_verified(observed_at)
         return "QUARANTINED" if attempted else "ALREADY_QUARANTINED"
 
     def _write(self, url, groups, revision):
