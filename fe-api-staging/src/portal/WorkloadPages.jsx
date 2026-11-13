@@ -77,13 +77,91 @@ const QUARANTINE_ERRORS = {
   QUARANTINE_SG_NOT_EMPTY_OR_OUTSIDE_PROJECT: 'Security Group cô lập phải thuộc project và không có luật cho phép.',
 }
 
-export function WorkloadsPage({ params }) {
+function WorkloadQuarantine({ vm, resource }) {
   const { auth, workloadQuarantineAvailable } = usePortal()
-  const time = useTime()
-  const [draft, setDraft] = useState(params)
-  const [quarantineTarget, setQuarantineTarget] = useState(null)
+  const [confirming, setConfirming] = useState(false)
   const [quarantining, setQuarantining] = useState(false)
   const [quarantineNotice, setQuarantineNotice] = useState(null)
+  const name = vm.name || vm.server_id
+  const networkState = workloadNetworkStatus(vm.network_observation, resource.meta, Boolean(resource.error))
+  const unavailable = vm.protected
+    ? 'Máy ảo này được bảo vệ.'
+    : networkState === 'QUARANTINED'
+      ? 'Máy ảo đã được cô lập.'
+      : !workloadQuarantineAvailable
+        ? 'Portal chưa được cấu hình quyền cô lập.'
+        : !auth.csrfToken || !auth.user?.roles?.includes('Executor')
+          ? 'Cần đăng nhập bằng tài khoản có vai trò Executor.'
+          : networkState !== 'NORMAL'
+            ? 'Cần xác minh trạng thái mạng Bình thường trước khi cô lập.'
+            : null
+
+  async function quarantine() {
+    if (unavailable || quarantining) return
+    setQuarantining(true)
+    setQuarantineNotice(null)
+    try {
+      const { data } = await portalRequest(`/workloads/${encodeURIComponent(vm.server_id)}/quarantine`, {
+        method: 'POST',
+        csrfToken: auth.csrfToken,
+        body: { confirm: 'QUARANTINE' },
+        timeout: 90000,
+      })
+      const message = `Neutron đã xác nhận cô lập ${name}.`
+      setQuarantineNotice(data?.history_saved === false
+        ? { error: true, message: `${message} Chưa lưu được lịch sử trạng thái.` }
+        : { message })
+    } catch (error) {
+      setQuarantineNotice({ error: true, message: QUARANTINE_ERRORS[error.code] || error.message })
+    } finally {
+      setQuarantining(false)
+      setConfirming(false)
+      resource.refresh()
+    }
+  }
+
+  return (
+    <Panel
+      title="Cô lập máy ảo"
+      subtitle="Áp dụng Security Group cô lập cho tất cả cổng mạng của máy ảo."
+      action={!confirming && (
+        <button
+          type="button"
+          className="button secondary"
+          disabled={Boolean(unavailable) || resource.loading}
+          onClick={() => { setQuarantineNotice(null); setConfirming(true) }}
+        >
+          <LockKeyhole size={15} aria-hidden="true" />
+          Cô lập
+        </button>
+      )}
+    >
+      {unavailable && !quarantining && <p className="v4-panel-note">{unavailable}</p>}
+      {quarantineNotice && (
+        <p className="v4-panel-note" role={quarantineNotice.error ? 'alert' : 'status'}>
+          {quarantineNotice.message}
+        </p>
+      )}
+      {confirming && (
+        <div className="v4-inline-warning" role="group" aria-label="Xác nhận cô lập máy ảo">
+          <p><strong>{name}</strong> có thể mất kết nối mạng sau khi cô lập.</p>
+          <div className="v4-workload-quarantine-actions">
+            <button type="button" className="button secondary" disabled={quarantining} onClick={() => setConfirming(false)}>
+              Hủy
+            </button>
+            <button type="button" className="button primary" disabled={Boolean(unavailable) || quarantining || resource.loading} onClick={quarantine}>
+              {quarantining ? 'Đang cô lập…' : 'Xác nhận cô lập'}
+            </button>
+          </div>
+        </div>
+      )}
+    </Panel>
+  )
+}
+
+export function WorkloadsPage({ params }) {
+  const time = useTime()
+  const [draft, setDraft] = useState(params)
   const pager = useCursor()
   const resource = useV4Resource('/workloads', {
     params: { ...params, limit: 25, cursor: pager.cursor },
@@ -94,31 +172,6 @@ export function WorkloadsPage({ params }) {
     resource.meta?.network_classification === 'NOT_CONFIGURED'
   const live = resource.meta?.source_mode === 'LIVE'
   const staleLive = live && freshness(resource.meta, Boolean(resource.error)) !== 'FRESH'
-  const canQuarantine = workloadQuarantineAvailable && auth.csrfToken &&
-    auth.user?.roles?.includes('Executor')
-
-  async function quarantine() {
-    setQuarantining(true)
-    setQuarantineNotice(null)
-    try {
-      const { data } = await portalRequest(`/workloads/${encodeURIComponent(quarantineTarget.server_id)}/quarantine`, {
-        method: 'POST',
-        csrfToken: auth.csrfToken,
-        body: { confirm: 'QUARANTINE' },
-        timeout: 90000,
-      })
-      const message = `Neutron đã xác nhận cô lập ${quarantineTarget.name || quarantineTarget.server_id}.`
-      setQuarantineNotice(data?.history_saved === false
-        ? { error: true, message: `${message} Chưa lưu được lịch sử trạng thái.` }
-        : { message })
-    } catch (error) {
-      setQuarantineNotice({ error: true, message: QUARANTINE_ERRORS[error.code] || error.message })
-    } finally {
-      setQuarantining(false)
-      setQuarantineTarget(null)
-      resource.refresh()
-    }
-  }
   return (
     <>
       <PageHeading
@@ -209,23 +262,6 @@ export function WorkloadsPage({ params }) {
         resource={resource}
       >
         <p className="muted">Nhãn Bình thường cho biết các cổng của VM chưa gắn Security Group cô lập.</p>
-        {quarantineNotice && (
-          <p role={quarantineNotice.error ? 'alert' : 'status'}>{quarantineNotice.message}</p>
-        )}
-        {quarantineTarget && (
-          <div className="v4-inline-warning" role="group" aria-label="Xác nhận cô lập máy ảo">
-            <p>
-              Thay Security Group trên mọi cổng mạng của <strong>{quarantineTarget.name || quarantineTarget.server_id}</strong>{' '}
-              bằng Security Group cô lập. Máy có thể mất kết nối mạng.
-            </p>
-            <button type="button" className="button primary" disabled={quarantining || !canQuarantine} onClick={quarantine}>
-              {quarantining ? 'Đang cô lập…' : 'Xác nhận cô lập'}
-            </button>{' '}
-            <button type="button" className="button secondary" disabled={quarantining} onClick={() => setQuarantineTarget(null)}>
-              Hủy
-            </button>
-          </div>
-        )}
         {resource.data &&
           (resource.data.length ? (
             <div className="table-scroll">
@@ -240,7 +276,7 @@ export function WorkloadsPage({ params }) {
                     <th>RỦI RO LIÊN QUAN</th>
                     <th>QUAN SÁT</th>
                     <th>
-                      Thao tác
+                      <span className="sr-only">Chi tiết</span>
                     </th>
                   </tr>
                 </thead>
@@ -317,17 +353,6 @@ export function WorkloadsPage({ params }) {
                       </td>
                       <td>{time(vm.network_observed_at)}</td>
                       <td>
-                        <button
-                          type="button"
-                          className="button secondary"
-                          aria-label={`Cô lập ${vm.name || vm.server_id}`}
-                          disabled={!canQuarantine || Boolean(quarantineTarget) ||
-                            state !== 'NORMAL'}
-                          title={!canQuarantine ? 'Cần phiên Executor và quyền ghi Neutron đã cấu hình' : undefined}
-                          onClick={() => { setQuarantineNotice(null); setQuarantineTarget(vm) }}
-                        >
-                          Cô lập
-                        </button>{' '}
                         <a
                           className="row-detail"
                           href={`#/workloads/${encodeURIComponent(vm.server_id)}`}
@@ -619,13 +644,6 @@ export function WorkloadDetail({ id, params = {} }) {
                   Chưa có sự cố liên quan được nguồn cung cấp.
                 </p>
               )}
-              <div className="v4-action-boundary">
-                <button className="button secondary" disabled>
-                  <LockKeyhole size={14} />
-                  Cách ly / khôi phục · Chưa bật
-                </button>
-                {vm.protected && <p>Máy ảo được bảo vệ, không được phép cách ly.</p>}
-              </div>
             </Panel>
           </div>
           <Panel
@@ -640,6 +658,7 @@ export function WorkloadDetail({ id, params = {} }) {
           </Panel>
           <PortsPanel vmId={id} selectedPort={params.port_id} />
           <ActionHistory serverId={id} />
+          <WorkloadQuarantine key={vm.server_id} vm={vm} resource={resource} />
         </section>
       )}
     </>

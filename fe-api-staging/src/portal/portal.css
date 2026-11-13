@@ -785,6 +785,12 @@
   padding-top: 18px;
   border-top: 1px solid #edf1f4;
 }
+
+.v4-workload-quarantine-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 .v4-action-boundary p {
   font-size: 10px;
   color: #81929e;
