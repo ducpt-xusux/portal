@@ -17,9 +17,11 @@ from .ingest import Importer
 from .schemas import utc_now
 from .store import Store
 from .p17_snapshot import SnapshotReader
-from .p17_api import CursorCodec, evaluation_run_router, observation_auth_router, require_read_access, router as p17_router, source_status_router
+from .p17_api import CursorCodec, evaluation_run_router, observation_auth_router, quarantine_router, require_read_access, router as p17_router, source_status_router
 from .openstack_inventory import InventoryReader
 from .remote_console import ConsoleService
+from .workload_quarantine import WorkloadQuarantine
+from .build_info import load_build_info
 from .demo_api import create_evidence_router
 from .evidence_registry import EvidenceConfig, EvidenceRegistry
 from .integration_sources import business_evidence_loader, business_snapshot_resolver, evaluation_sources, investigation_sources
@@ -30,6 +32,7 @@ from .n91_investigation.api import assert_no_duplicate_routes, business_session_
 
 
 SESSION_POLICIES = (
+    ('GET', '/api/v1/system/build', 'read'),
     ('GET', '/api/v1/system/demo-coverage/defense-run', 'read'),
     ('GET', '/api/v1/portal/incidents/{incident_id}/investigation', 'evidence'),
     ('GET', '/api/v1/portal/investigation/response-history', 'evidence'),
@@ -37,6 +40,7 @@ SESSION_POLICIES = (
     ('GET', '/api/v1/n91/evaluation-system/catalog', 'read'),
     ('GET', '/api/v1/n91/evaluation-system/runs/{run_id}', 'read'),
     ('GET', '/api/v1/n91/evaluation-system/panels/{kind}', 'read'),
+    ('POST', '/api/v1/workloads/{server_id}/quarantine', 'execute'),
 )
 
 
@@ -48,6 +52,7 @@ def validate_business_database(config, settings, evidence):
         settings.audit_path, settings.database_path, settings.p17_snapshot_path,
         evidence.index_path, settings.evaluation_index_path, settings.proxy_sync_status_path,
         settings.openstack_credential_path, settings.openstack_console_credential_path,
+        settings.openstack_quarantine_credential_path,
         settings.investigation_policy_path, settings.investigation_controller_path,
         settings.investigation_controller_archive_path, settings.investigation_controller_binding_path,
         settings.evaluation_observations_path, settings.system_observations_path,
@@ -111,13 +116,16 @@ def create_app(settings: Settings | None = None, *, evidence_config: EvidenceCon
         description="Read-only P16 audit APIs. Events are imported from the configured JSONL source. "
                     "Snapshot mode serves historical records; live mode follows the Proxy log. "
                     "Portal v4 can read an explicitly configured historical P17 JSON export. "
-                    "P17 remains incident authority; no new correlation or cloud actions are executed.",
+                    "P17 remains incident authority. VM quarantine requires a dedicated credential and an Executor session.",
     )
     app.state.settings, app.state.store, app.state.importer = settings, store, importer
     app.state.p17_reader = snapshot_reader
     app.state.p17_cursors = CursorCodec()
     app.state.openstack_inventory = InventoryReader(settings)
     app.state.console_service = ConsoleService(settings)
+    app.state.workload_quarantine = WorkloadQuarantine(settings)
+    app.state.quarantine_audit = business
+    app.state.build_info = load_build_info(settings.build_manifest_path)
     app.add_middleware(CORSMiddleware, allow_origins=list(settings.cors_origins),
                        allow_methods=["GET"], allow_headers=["X-API-Key", "Content-Type"])
 
@@ -167,7 +175,15 @@ def create_app(settings: Settings | None = None, *, evidence_config: EvidenceCon
         return response(request, {
             'mode': 'SESSION' if session_enabled else 'OBSERVATION',
             'console_proxy_allowed': not session_enabled and settings.openstack_console_enabled,
+            'workload_quarantine_available': bool(
+                business is not None and business.config.context == 'PORTAL'
+                and business.config.database_path and app.state.workload_quarantine.configured()
+            ),
         })
+
+    @app.get("/api/v1/system/build", dependencies=[Depends(require_key), Depends(require_read_access)])
+    def build_status(request: Request):
+        return response(request, request.app.state.build_info)
 
     def observation_investigation_access(request, required):
         require_read_access(request)
@@ -183,12 +199,14 @@ def create_app(settings: Settings | None = None, *, evidence_config: EvidenceCon
     app.include_router(source_status_router)
     if business:
         app.include_router(create_business_router(business), dependencies=[Depends(require_key)])
+        app.include_router(quarantine_router)
     else:
         app.include_router(observation_auth_router)
         def observation_write_denied(request: Request):
             return error(request, 403, {'code': 'OBSERVATION_READ_ONLY',
                                         'message': 'This operation requires Portal session access.'})
-        for method, path, _ in INCIDENT_WRITE_POLICIES:
+        for method, path, _ in (*INCIDENT_WRITE_POLICIES,
+                                ('POST', '/api/v1/workloads/{server_id}/quarantine', 'execute')):
             app.add_api_route(path, observation_write_denied, methods=[method], include_in_schema=False)
     app.include_router(create_evidence_router(
         evidence, trusted_roles if business else evidence_role_resolver,

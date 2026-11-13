@@ -72,7 +72,29 @@ Bộ thu thập ghi thời điểm đo và tám trường wsrep theo schema `por
 
 Đặt `GALERA_SNAPSHOT_DIR` thành đường dẫn tuyệt đối của thư mục trong file môi trường mà tiến trình Portal đang sử dụng. Khởi động lại Portal sau khi thêm hoặc đổi đường dẫn. Mở `/#/system/galera` và kiểm tra đủ ba node, đủ tám trường và thời điểm đo khớp với các file. Portal hiển thị kết quả theo thời điểm đo với nhãn `SNAPSHOT` / `HISTORICAL`.
 
-Để cập nhật định kỳ, chạy `backend/galera_periodic.py collect --key … --nodes … … … --proxy …` trên Controller mỗi 15 giây. Dùng khóa SSH có lệnh cố định để mỗi node chỉ chạy bộ thu thập wsrep và Proxy chỉ chạy `backend/galera_periodic.py receive <GALERA_SNAPSHOT_DIR>` với Python và `PYTHONPATH` của Portal. Controller đọc ba node song song. Proxy thay nội dung ba file hiện tại. Portal đánh giá trạng thái khi cả ba kết quả cùng đợt đều hợp lệ và còn trong 45 giây.
+Controller đọc ba node song song. Timer đợi 15 giây sau khi lượt đo kết thúc rồi chạy lượt tiếp theo. Trên Controller, đặt `backend/galera_periodic.py` tại `/opt/portal-galera/galera_periodic.py` và tạo `/etc/portal-galera/collector.env` với `GALERA_SSH_KEY` là đường dẫn tuyệt đối, `GALERA_1`, `GALERA_2`, `GALERA_3`, `GALERA_PROXY` là các đích `user@host`. Cài `portal-galera.service` và `portal-galera.timer` trong gói trên Controller, rồi chạy `sudo systemctl daemon-reload` và `sudo systemctl enable --now portal-galera.timer`. Nếu đã có timer đang hoạt động, kiểm tra bằng `systemctl cat portal-galera.service portal-galera.timer` và cập nhật script ở đường dẫn hiện tại.
+
+Dùng khóa SSH riêng với `restrict,command="..."` trong `authorized_keys`. Mỗi node chỉ chạy bộ đọc wsrep qua socket; Proxy chỉ chạy `backend/galera_periodic.py receive <GALERA_SNAPSHOT_DIR>` với Python và `PYTHONPATH` của Portal. Kiểm tra và lưu host key trước khi bật timer. Proxy giữ ba file JSON, từ chối batch cũ hoặc phát lại, và khóa thư mục khi ghi. Kiểm tra `journalctl -u portal-galera.service -n 30` và xác nhận Portal nhận hai batch mới liên tiếp. Quá 45 giây, trạng thái cụm trở về chưa xác minh. Hai node cùng báo Primary với kích thước 2 có thể xác nhận cụm suy giảm; lỗi SSH của node thứ ba vẫn hiển thị riêng.
+
+## Proxy chạy `portal-local`
+
+Lab từng dùng Uvicorn `local_app:app` ở `/home/ubuntu/portal-local`, với Python `.venv313/bin/python` và gói `n91-portal-proxy-linux/{backend,web}`. Checkout `~/portal` là nơi lấy mã. Xác nhận lại listener và module trước khi nâng cấp:
+
+```bash
+ss -ltnp 'sport = :5188'
+# Thay PID bằng PID listener đã xác nhận.
+readlink -f /proc/PID/cwd
+tr '\0' '\n' </proc/PID/cmdline
+rg -n '^(from|import) (app|fastapi)|create_app|StaticFiles' ~/portal-local/local_app.py
+```
+
+Nếu launcher nhập `app.main`, giữ nguyên launcher và kiểm tra đường dẫn import trong đúng venv trước khi đổi bản. Xác nhận bằng `/healthz`, `/api/v1/system/build`, `/api/v1/system/galera` và trang **Hệ thống → Nguồn dữ liệu** qua tunnel. Nếu launcher tự khai báo route, đối chiếu route và source của launcher trước khi thay gói. Installer systemd bên dưới dành cho layout riêng.
+
+Kiểm tra checksum gói trong thư mục staging. Khi đóng gói từ commit sạch, manifest ghi SHA commit nguồn và hash thực tế của backend/frontend. Với `portal-local`, trỏ `PORTAL_BUILD_MANIFEST` vào `backend/portal-build.json` trong gói đang chạy. SHA của collector để trống đến khi đối chiếu được bản đang chạy trên Controller. Giữ bản gói trước và sao lưu DB/config theo chính sách của lab; đặt bản đã kiểm checksum vào đúng đường dẫn đang phục vụ rồi khởi động lại bằng lệnh đã xác minh. Nếu receiver tham chiếu `~/portal/backend/galera_periodic.py`, cập nhật API backend có `batch_lock` trước khi chuyển receiver sang mã mới, hoặc chuyển forced command sang bản receiver cùng gói. Khi quay lại, khôi phục backend, web và receiver tương thích với nhau, sau đó kiểm lại build và DB.
+
+Nút **Cô lập** dùng tài khoản Portal có vai trò `Executor`, session/CSRF và Business DB cho nhật ký. Cấu hình credential ứng dụng riêng có role `member` đúng project ở `OPENSTACK_QUARANTINE_CREDENTIAL_PATH`, theo cùng định dạng JSON như credential inventory. Giới hạn quyền credential ở Neutron và bảo vệ file chỉ cho tài khoản chạy Portal. Security Group ở `OPENSTACK_QUARANTINE_SG_ID` phải thuộc project và không có rule. Neutron cần extension `revision-if-match`. Nhật ký giữ port ID và SG trước thao tác; dùng các giá trị này để đối chiếu và gắn lại SG bằng Controller CLI khi nghiệm thu trên VM lab.
+
+Với P16H, đối chiếu `AUDIT_MODE`, nguồn ghi `AUDIT_PATH` và thời gian sự kiện/nhập trong API. Dùng bộ lọc thời gian, IP và tài khoản trên `/#/events?source=canonical` để đối chiếu từng lệnh SQL mới. Ghi mã yêu cầu nếu nguồn có cấp. P17 projection là nguồn bổ sung khi thiếu bản ghi canonical.
 
 ## Nâng cấp
 

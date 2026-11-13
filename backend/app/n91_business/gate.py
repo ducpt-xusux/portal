@@ -113,6 +113,7 @@ class SessionGate:
                     raise BusinessError(403, 'ROUTE_POLICY_UNMAPPED')
                 permitted = (actor.portal_admin if permission == 'admin' else
                     bool(set(actor.roles).intersection({'Auditor'})) or actor.portal_admin if permission == 'audit' else
+                    'Executor' in actor.roles if permission == 'execute' else
                     bool(set(actor.roles).intersection(WRITE_ROLES)) if permission == 'write' else
                     bool(set(actor.roles).intersection(EVIDENCE_ROLES)) if permission == 'evidence' else
                     bool(set(actor.roles).intersection(READ_ROLES)) if permission in {'read', 'session'} else False)

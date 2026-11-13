@@ -6,6 +6,7 @@ import hashlib
 import hmac
 from ipaddress import ip_address
 import json
+import logging
 import math
 import secrets
 import time
@@ -23,6 +24,8 @@ from . import canonical_audit
 from .proxy_services import read_services
 from .galera_snapshot import read_galera
 from .openstack_inventory import InventoryError
+from .n91_business.service import BusinessError
+from .workload_quarantine import QuarantineError
 from .incident_mapping import IncidentMapping
 from .alerts import AlertError, AlertResponse, AlertsResponse, Kind, alert_key, alert_meta, read_alerts
 from .dashboard_funnel import (FunnelResponse, RunsResponse, RunResponse, build_funnel, evaluation_response)
@@ -602,6 +605,49 @@ def workload_ports(request: Request, server_id: IdPath):
     result = workload_detail(request, server_id)
     result["data"] = {"items": result["data"]["ports"]}
     return result
+
+
+class QuarantineRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    confirm: Literal["QUARANTINE"]
+
+
+quarantine_router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_key)])
+
+
+@quarantine_router.post("/workloads/{server_id}/quarantine")
+def quarantine_workload(request: Request, server_id: IdPath, body: QuarantineRequest):
+    principal = getattr(request.state, "business_principal", None)
+    audit = request.app.state.quarantine_audit
+    if principal is None or "Executor" not in principal.roles:
+        fail(403, "QUARANTINE_EXECUTOR_REQUIRED")
+    if audit is None or audit.config.context != "PORTAL":
+        fail(503, "QUARANTINE_NOT_CONFIGURED")
+    request_id = request.state.request_id
+    service = request.app.state.workload_quarantine
+
+    def record_attempt(previous):
+        audit.record_quarantine(principal, server_id, request_id, outcome="ATTEMPTED", before=previous)
+
+    try:
+        status = service.apply(server_id, record_attempt)
+    except QuarantineError as error:
+        try:
+            audit.record_quarantine(principal, server_id, request_id, outcome="FAILED", after={"code": error.code})
+        except BusinessError:
+            logging.getLogger(__name__).error("Quarantine audit unavailable request_id=%s", request_id)
+        fail(error.status, error.code)
+    except BusinessError as error:
+        fail(error.status, error.code)
+    finally:
+        request.app.state.openstack_inventory.refresh_next_read()
+    try:
+        audit.record_quarantine(principal, server_id, request_id, outcome="SUCCESS", after={"status": status})
+    except BusinessError:
+        logging.getLogger(__name__).error("Quarantine result audit unavailable request_id=%s", request_id)
+        fail(503, "QUARANTINE_APPLIED_AUDIT_INCOMPLETE")
+    return {"data": {"server_id": server_id, "status": status},
+            "meta": {"request_id": request_id, "read_at": utc_now()}, "error": None}
 
 
 class ConsoleRequest(BaseModel):

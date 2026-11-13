@@ -79,6 +79,7 @@ function PoliciesPanel() {
 
 function SourcesPanel() {
   const time = useTime()
+  const build = useV4Resource('/system/build')
   const resource = useV4Resource('/system/data-sources', {
     interval: 15000,
     transform: (data) => readCollection(data, 'sources'),
@@ -89,6 +90,12 @@ function SourcesPanel() {
       subtitle="Thời điểm Portal đọc nguồn và thời điểm thu được dữ liệu"
       resource={resource}
     >
+      {build.data && (
+        <p className="v4-proxy-snapshot">
+          Bản Portal {build.data.build_sha?.slice(0, 12) || 'chưa xác minh'}
+          {build.data.build_utc && <> · Build lúc {time(build.data.build_utc)}</>}
+        </p>
+      )}
       {resource.data &&
         (resource.data.length ? (
           <div className="table-scroll">
@@ -113,6 +120,7 @@ function SourcesPanel() {
                     <td>
                       {source.observation_freshness_state ? (
                         <>
+                          {source.collection_mode === 'PERIODIC' && <Badge value={source.freshness_state} />}{' '}
                           <ObservationAgeBadge value={source.observation_freshness_state} />{' '}
                           <Badge value={source.coverage_state} />
                         </>

@@ -33,6 +33,7 @@ export function PortalProvider({ children }) {
   )
   const [auth, setAuth] = useState(() => emptyAuth('checking'))
   const [access, setAccess] = useState('checking')
+  const [workloadQuarantineAvailable, setWorkloadQuarantineAvailable] = useState(false)
   const [accessAttempt, setAccessAttempt] = useState(0)
   const sessionAuthEnabled = access === 'SESSION'
   const [sessionVersion, setSessionVersion] = useState(0)
@@ -75,7 +76,10 @@ export function PortalProvider({ children }) {
       .then(({ data }) => {
         if (!['SESSION', 'OBSERVATION'].includes(data?.mode))
           throw new Error('INVALID_ACCESS_MODE')
-        if (!controller.signal.aborted) setAccess(data.mode)
+        if (!controller.signal.aborted) {
+          setAccess(data.mode)
+          setWorkloadQuarantineAvailable(data.workload_quarantine_available === true)
+        }
       })
       .catch(() => {
         if (!controller.signal.aborted) setAccess('unavailable')
@@ -189,6 +193,7 @@ export function PortalProvider({ children }) {
         access,
         retryAccess,
         sessionAuthEnabled,
+        workloadQuarantineAvailable,
         mode,
         setMode,
         timezone,

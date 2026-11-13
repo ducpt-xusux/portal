@@ -30,6 +30,7 @@ class Settings:
     v4_audit_enabled: bool = False
     proxy_services_path: Path | None = None
     galera_snapshot_dir: Path | None = None
+    build_manifest_path: Path | None = None
     openstack_enabled: bool = False
     openstack_credential_path: Path | None = None
     openstack_auth_url: str = ""
@@ -37,6 +38,7 @@ class Settings:
     openstack_network_url: str = ""
     openstack_project_id: str = ""
     openstack_quarantine_sg_id: str = ""
+    openstack_quarantine_credential_path: Path | None = None
     openstack_console_enabled: bool = False
     openstack_console_origin: str = ""
     openstack_console_credential_path: Path | None = None
@@ -69,6 +71,7 @@ class Settings:
                 self.audit_path, self.database_path, self.p17_snapshot_path,
                 self.evidence_index_path, self.evaluation_index_path, self.business_database_path,
                 self.openstack_credential_path, self.openstack_console_credential_path,
+                self.openstack_quarantine_credential_path,
                 self.proxy_sync_status_path, self.proxy_services_path,
                 self.investigation_policy_path, self.investigation_controller_path,
                 self.investigation_controller_archive_path, self.investigation_controller_binding_path,
@@ -117,6 +120,7 @@ class Settings:
             v4_audit_enabled=os.getenv("V4_AUDIT_ENABLED", "false").lower() == "true",
             proxy_services_path=absolute_path(os.environ["PROXY_SERVICES_PATH"]) if os.getenv("PROXY_SERVICES_PATH") else None,
             galera_snapshot_dir=absolute_path(os.environ["GALERA_SNAPSHOT_DIR"]) if os.getenv("GALERA_SNAPSHOT_DIR") else None,
+            build_manifest_path=optional_path("PORTAL_BUILD_MANIFEST"),
             openstack_enabled=os.getenv("OPENSTACK_INVENTORY_ENABLED", "false").lower() == "true",
             openstack_credential_path=absolute_path(os.environ["OPENSTACK_CREDENTIAL_PATH"]) if os.getenv("OPENSTACK_CREDENTIAL_PATH") else None,
             openstack_auth_url=os.getenv("OPENSTACK_AUTH_URL", ""),
@@ -124,6 +128,7 @@ class Settings:
             openstack_network_url=os.getenv("OPENSTACK_NETWORK_URL", ""),
             openstack_project_id=os.getenv("OPENSTACK_PROJECT_ID", ""),
             openstack_quarantine_sg_id=os.getenv("OPENSTACK_QUARANTINE_SG_ID", "").strip().lower(),
+            openstack_quarantine_credential_path=optional_path("OPENSTACK_QUARANTINE_CREDENTIAL_PATH"),
             openstack_console_enabled=os.getenv("OPENSTACK_CONSOLE_ENABLED", "false").lower() == "true",
             openstack_console_origin=os.getenv("OPENSTACK_CONSOLE_ORIGIN", ""),
             openstack_console_credential_path=absolute_path(os.environ["OPENSTACK_CONSOLE_CREDENTIAL_PATH"]) if os.getenv("OPENSTACK_CONSOLE_CREDENTIAL_PATH") else None,

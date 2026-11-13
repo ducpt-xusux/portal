@@ -27,7 +27,7 @@ def audit_read(request):
     source = read_source(request, canonical=True)
     with request.app.state.store.connection() as db:
         db.execute("BEGIN")
-        stats = db.execute("SELECT COUNT(*), MIN(timestamp), MAX(timestamp), MAX(event_id) FROM p16h_audit_index_v1").fetchone()
+        stats = db.execute("SELECT COUNT(*), MIN(timestamp), MAX(timestamp), MAX(event_id), MAX(imported_at) FROM p16h_audit_index_v1").fetchone()
         canonical_count = db.execute("SELECT COUNT(*) FROM p16h_events_v1").fetchone()[0]
         stored_context = db.execute("SELECT context FROM p16h_store_context_v1 WHERE id=1").fetchone()
         if canonical_count and (not stored_context or stored_context[0] != request.app.state.settings.p16h_import_context):
@@ -39,12 +39,16 @@ def audit_read(request):
             "source_system": "p16-canonical-audit", "source_schema": "audit-v1.0",
             "source_mode": "SNAPSHOT" if historical else "REMOTE_READONLY" if source.get("transport") else "LIVE_READONLY",
             "collection_mode": "FILE_EXPORT" if historical else "FILE_TAIL",
-            "freshness_state": "FRESH" if healthy else "STALE", "stale_after_seconds": 30,
+            "freshness_state": ("HISTORICAL" if historical else "FRESH") if healthy else "STALE",
+            "stale_after_seconds": 30,
             "data_state": "HISTORICAL" if historical else "PARTIAL" if healthy else "STALE",
             "last_error_code": source["error_code"] or ("AUDIT_IMPORT_PENDING" if source["pending_bytes"] else None),
             "canonical_history_complete": False,
             "import_status": {key: source[key] for key in ("invalid_records", "duplicate_records", "conflicting_records", "pending_bytes")},
             "available_records": stats[0], "first_event_at": stats[1], "last_event_at": stats[2],
+            "last_ingest_at": stats[4],
+            "last_sync_at": source["last_sync_at"],
+            "ingest_pending_bytes": source["pending_bytes"],
             "next_cursor": None,
         }
         if canonical_count:

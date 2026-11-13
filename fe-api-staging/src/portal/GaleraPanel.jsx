@@ -3,13 +3,33 @@ import { count } from '../services/portalApi'
 import { useV4Resource } from './IncidentPages'
 import { Badge, Empty, FieldGrid, ObservationAgeBadge, Panel, display, useTime } from './PortalUI'
 
+const NODE_ERRORS = {
+  GALERA_NODE_UNAVAILABLE: 'Chưa nhận được tệp quan sát',
+  GALERA_NODE_INVALID: 'Tệp quan sát không hợp lệ',
+  WSREP_READ_FAILED: 'Không đọc được wsrep qua socket MariaDB',
+  WSREP_TIMEOUT: 'Đọc wsrep quá thời gian',
+  WSREP_SOURCE_UNREACHABLE: 'Controller không kết nối được nguồn qua SSH',
+  WSREP_FIELDS_MISSING: 'Kết quả wsrep thiếu trường',
+  WSREP_CLIENT_UNAVAILABLE: 'Thiếu trình khách MariaDB',
+  WSREP_RESULT_INVALID: 'Phản hồi wsrep không hợp lệ',
+}
+
+const BATCH_MESSAGES = {
+  GALERA_PRIMARY_TWO_NODES: 'Hai node báo cùng một cụm Primary có 2 thành viên.',
+  GALERA_BATCH_STALE: 'Đã quá 45 giây kể từ một hoặc nhiều lần thu thập.',
+  GALERA_BATCH_INCOMPLETE: 'Thiếu kết quả hoặc các node thuộc các lượt đo khác nhau.',
+  GALERA_WSREP_INCONCLUSIVE: 'Kết quả wsrep chưa đủ để xác nhận trạng thái cụm.',
+  GALERA_NODES_INCOMPLETE: 'Thiếu kết quả wsrep từ một hoặc nhiều node.',
+}
+
 export default function GaleraPanel({ compact = false, standalone = false }) {
   const time = useTime()
   const resource = useV4Resource('/system/galera', { interval: 15000 })
   const nodes = Array.isArray(resource.data?.nodes) ? resource.data.nodes : []
   const summary = resource.data?.summary
   const periodic = resource.meta?.collection_mode === 'PERIODIC'
-  const currentStatus = resource.error ? 'UNKNOWN' : summary?.current_status
+  const freshBatch = periodic && resource.meta?.freshness_state === 'FRESH' && !resource.error
+  const currentStatus = freshBatch ? summary?.current_status || 'UNKNOWN' : 'UNKNOWN'
   const historical =
     resource.meta?.source_mode === 'SNAPSHOT' &&
     resource.meta?.scope === 'LOCAL_SOCKET_WSREP'
@@ -53,7 +73,9 @@ export default function GaleraPanel({ compact = false, standalone = false }) {
       {!standalone && historical && (
         <>
           <div className="v4-proxy-snapshot">
-            <Badge value="HISTORICAL">{periodic ? 'Tự cập nhật mỗi 15 giây' : 'Bản chụp'}</Badge>
+            <Badge value={freshBatch ? 'FRESH' : 'HISTORICAL'}>
+              {freshBatch ? 'Thu thập định kỳ' : periodic ? 'Bản chụp định kỳ' : 'Bản chụp thủ công'}
+            </Badge>
             {resource.meta?.coverage_state && <Badge value={resource.meta.coverage_state} />}
             <span>
               Quan sát {time(summary?.observation_from)} →{' '}
@@ -96,9 +118,18 @@ export default function GaleraPanel({ compact = false, standalone = false }) {
               </div>
             </div>
           )}
-          {resource.meta?.last_error_code && (
+          {standalone && periodic && (
+            <p className="v4-proxy-snapshot">
+              <Badge value={currentStatus} />
+              <span>{summary?.observed_nodes ?? 0}/{summary?.expected_nodes ?? 3} node trong bản chụp</span>
+              <span>Đo thành công gần nhất {time(resource.meta?.last_successful_sample_at)}</span>
+            </p>
+          )}
+          {(resource.meta?.last_error_code || currentStatus === 'DEGRADED') && (
             <p className="v4-inline-warning" role="status">
-              Thiếu kết quả wsrep từ một hoặc nhiều node.
+              {BATCH_MESSAGES[summary?.current_reason] ||
+                BATCH_MESSAGES[resource.meta?.last_error_code] ||
+                'Thiếu kết quả wsrep từ một hoặc nhiều node.'}
             </p>
           )}
           {!compact &&
@@ -125,7 +156,7 @@ export default function GaleraPanel({ compact = false, standalone = false }) {
                               {display(node.name || node.node_id)}
                             </strong>
                             <small>
-                              {node.last_error_code ||
+                              {NODE_ERRORS[node.last_error_code] || node.last_error_code ||
                                 (valid(node)
                                   ? 'Kết quả lúc chụp'
                                   : 'Chưa có kết quả hợp lệ')}
@@ -165,13 +196,19 @@ export default function GaleraPanel({ compact = false, standalone = false }) {
                               ? `${display(node.wsrep_ready)} / ${display(node.wsrep_connected)}`
                               : '—'}
                           </td>
-                          <td>{time(node.observed_at)}</td>
+                          <td>
+                            {node.observed_at
+                              ? time(node.observed_at)
+                              : node.attempted_at
+                                ? `Lần thử ${time(node.attempted_at)}`
+                                : '—'}
+                          </td>
                           <td>
                             <ObservationAgeBadge
                               value={
                                 valid(node)
                                   ? node.observation_freshness_state
-                                  : 'UNKNOWN'
+                                  : node.collection_freshness_state || 'UNKNOWN'
                               }
                             />
                           </td>

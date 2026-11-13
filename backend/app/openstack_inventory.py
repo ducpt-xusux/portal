@@ -42,12 +42,14 @@ class Transport:
     def __init__(self):
         self.opener = build_opener(ProxyHandler({}), NoRedirect())
 
-    def send(self, method, url, *, body=None, token=None, nova_version=None):
+    def send(self, method, url, *, body=None, token=None, nova_version=None, revision=None):
         headers = {"Accept": "application/json"}
         if nova_version:
             headers["OpenStack-API-Version"] = "compute " + nova_version
         if token:
             headers["X-Auth-Token"] = token
+        if revision is not None:
+            headers["If-Match"] = f"revision_number={revision}"
         if body is not None:
             headers["Content-Type"] = "application/json"
         request = Request(url, data=json.dumps(body).encode() if body is not None else None,
@@ -311,6 +313,10 @@ class InventoryReader:
     def read(self):
         with self.lock:
             return self._read_locked()
+
+    def refresh_next_read(self):
+        with self.lock:
+            self.retry_after = 0
 
     def read_mapping_inventory(self):
         with self.lock:

@@ -1,0 +1,14 @@
+[Unit]
+Description=Collect Galera WSREP snapshots for Portal
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=controller
+EnvironmentFile=/etc/portal-galera/collector.env
+ExecStart=/usr/bin/python3 /opt/portal-galera/galera_periodic.py collect --key ${GALERA_SSH_KEY} --nodes ${GALERA_1} ${GALERA_2} ${GALERA_3} --proxy ${GALERA_PROXY}
+TimeoutStartSec=25s
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true

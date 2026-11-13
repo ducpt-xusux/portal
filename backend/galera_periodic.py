@@ -1,7 +1,7 @@
 """Collect one Galera batch on Controller or receive it on Proxy."""
 import argparse
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 import subprocess
@@ -26,19 +26,25 @@ def ssh(target, key, timeout, payload=None):
 def read_node(node, target, key):
     started = datetime.now(timezone.utc).isoformat()
     try:
-        snapshot = json.loads(ssh(target, key, timeout=12))
-        if snapshot["source_host"] != node or snapshot["schema"] != "portal-galera-node-1":
-            raise ValueError("Unexpected node response")
-        return snapshot
-    except (OSError, subprocess.SubprocessError, ValueError, KeyError, TypeError):
-        print(f"{node}: no valid WSREP response", file=sys.stderr)
-        return {
-            "schema": "portal-galera-node-1", "source_host": node,
-            "mode": "SNAPSHOT", "scope": "LOCAL_SOCKET_WSREP",
-            "attempted_at": started, "collected_at": datetime.now(timezone.utc).isoformat(),
-            "observed_at": None, "read_ok": False, "metrics": {},
-            "error_code": "WSREP_SOURCE_UNREACHABLE",
-        }
+        response = ssh(target, key, timeout=12)
+    except (OSError, subprocess.SubprocessError):
+        code = "WSREP_SOURCE_UNREACHABLE"
+    else:
+        try:
+            snapshot = json.loads(response)
+            if (snapshot["source_host"] != node or snapshot["schema"] != "portal-galera-node-1"
+                    or type(snapshot["read_ok"]) is not bool):
+                raise ValueError("Unexpected node response")
+            return snapshot
+        except (ValueError, KeyError, TypeError, RecursionError):
+            code = "WSREP_RESULT_INVALID"
+    print(f"{node}: {code}", file=sys.stderr)
+    return {
+        "schema": "portal-galera-node-1", "source_host": node,
+        "mode": "SNAPSHOT", "scope": "LOCAL_SOCKET_WSREP",
+        "attempted_at": started, "collected_at": datetime.now(timezone.utc).isoformat(),
+        "observed_at": None, "read_ok": False, "metrics": {}, "error_code": code,
+    }
 
 
 def collect(key, targets, proxy):
@@ -54,41 +60,46 @@ def collect(key, targets, proxy):
 
 
 def receive(directory):
-    import fcntl
-    import os
-    from app.galera_snapshot import MAX_BYTES, NodeExport
+    from app.galera_snapshot import MAX_BYTES, TTL, NodeExport, batch_lock
+    from app.proxy_services import unique_object
 
     raw = sys.stdin.buffer.read(MAX_BYTES + 1)
     if len(raw) > MAX_BYTES:
         raise ValueError("Oversized Galera batch")
-    payload = json.loads(raw)
+    payload = json.loads(raw, object_pairs_hook=unique_object)
     if not isinstance(payload, list) or len(payload) != len(NODES):
         raise ValueError("Expected three Galera observations")
     snapshots = [NodeExport.model_validate(item) for item in payload]
     batch_ids = {item.batch_id for item in snapshots}
-    latest_allowed = datetime.now(timezone.utc) + timedelta(seconds=5)
+    now = datetime.now(timezone.utc)
     if ({item.source_host for item in snapshots} != set(NODES)
             or len(batch_ids) != 1 or None in batch_ids
-            or any(item.collected_at > latest_allowed for item in snapshots)):
+            or any(not -5 <= (now - item.collected_at).total_seconds() <= TTL for item in snapshots)):
         raise ValueError("Invalid Galera batch")
 
     directory.mkdir(mode=0o700, parents=True, exist_ok=True)
-    # Lock the directory so overlapping deliveries cannot interleave their files.
-    descriptor = os.open(directory, os.O_RDONLY | os.O_DIRECTORY)
-    try:
-        fcntl.flock(descriptor, fcntl.LOCK_EX)
+    with batch_lock(directory, exclusive=True):
         for item in snapshots:
             destination = directory / f"{item.source_host}.json"
-            with NamedTemporaryFile(dir=directory, delete=False) as stream:
-                temporary = Path(stream.name)
-                try:
+            try:
+                with destination.open("rb") as stream:
+                    previous = NodeExport.model_validate_json(stream.read(MAX_BYTES + 1))
+            except (FileNotFoundError, ValueError):
+                continue
+            if previous.batch_id and (
+                    item.batch_id == previous.batch_id or item.collected_at <= previous.collected_at):
+                raise ValueError("Replayed or out-of-order Galera batch")
+        for item in snapshots:
+            destination = directory / f"{item.source_host}.json"
+            temporary = None
+            try:
+                with NamedTemporaryFile(dir=directory, delete=False) as stream:
+                    temporary = Path(stream.name)
                     stream.write(item.model_dump_json(by_alias=True).encode() + b"\n")
-                    stream.flush()
-                    temporary.replace(destination)
-                finally:
+                temporary.replace(destination)
+            finally:
+                if temporary is not None:
                     temporary.unlink(missing_ok=True)
-    finally:
-        os.close(descriptor)
 
 
 def main():

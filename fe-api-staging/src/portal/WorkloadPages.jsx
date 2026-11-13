@@ -13,6 +13,7 @@ import {
   freshness,
   isVerifiedNetwork,
   mapWorkload,
+  portalRequest,
   readCollection,
 } from '../services/portalApi'
 import { useCursor, useV4Resource, NetworkObservation } from './IncidentPages'
@@ -38,12 +39,22 @@ import './WorkloadConsole.css'
 
 const ACTIVITY_LABELS = {
   NORMAL: 'Bình thường',
-  QUARANTINED: 'Bị cô lập',
+  QUARANTINED: 'Đã cô lập',
+}
+
+const QUARANTINE_ERRORS = {
+  QUARANTINE_RESTORE_UNVERIFIED: 'Chưa xác minh được khôi phục nhóm bảo mật cũ. Kiểm tra các cổng trong Neutron trước khi thử lại.',
+  QUARANTINE_APPLIED_AUDIT_INCOMPLETE: 'Neutron đã xác nhận cô lập. Chưa ghi được kết quả vào nhật ký Portal.',
+  QUARANTINE_SG_NOT_EMPTY_OR_OUTSIDE_PROJECT: 'Security Group cô lập phải thuộc project và không có luật cho phép.',
 }
 
 export function WorkloadsPage({ params }) {
+  const { auth, workloadQuarantineAvailable } = usePortal()
   const time = useTime()
   const [draft, setDraft] = useState(params)
+  const [quarantineTarget, setQuarantineTarget] = useState(null)
+  const [quarantining, setQuarantining] = useState(false)
+  const [quarantineNotice, setQuarantineNotice] = useState(null)
   const pager = useCursor()
   const resource = useV4Resource('/workloads', {
     params: { ...params, limit: 25, cursor: pager.cursor },
@@ -55,6 +66,28 @@ export function WorkloadsPage({ params }) {
   const staleLive =
     resource.meta?.source_mode === 'LIVE' &&
     freshness(resource.meta, Boolean(resource.error)) !== 'FRESH'
+  const canQuarantine = workloadQuarantineAvailable && auth.csrfToken &&
+    auth.user?.roles?.includes('Executor')
+
+  async function quarantine() {
+    setQuarantining(true)
+    setQuarantineNotice(null)
+    try {
+      await portalRequest(`/workloads/${encodeURIComponent(quarantineTarget.server_id)}/quarantine`, {
+        method: 'POST',
+        csrfToken: auth.csrfToken,
+        body: { confirm: 'QUARANTINE' },
+        timeout: 90000,
+      })
+      setQuarantineNotice({ message: `Neutron đã xác nhận cô lập ${quarantineTarget.name || quarantineTarget.server_id}.` })
+    } catch (error) {
+      setQuarantineNotice({ error: true, message: QUARANTINE_ERRORS[error.code] || error.message })
+    } finally {
+      setQuarantining(false)
+      setQuarantineTarget(null)
+      resource.refresh()
+    }
+  }
   return (
     <>
       <PageHeading
@@ -141,6 +174,24 @@ export function WorkloadsPage({ params }) {
         subtitle="Số VM và port được đọc động từ OpenStack"
         resource={resource}
       >
+        <p className="muted">Nhãn Bình thường cho biết các cổng của VM chưa gắn Security Group cô lập.</p>
+        {quarantineNotice && (
+          <p role={quarantineNotice.error ? 'alert' : 'status'}>{quarantineNotice.message}</p>
+        )}
+        {quarantineTarget && (
+          <div className="v4-inline-warning" role="group" aria-label="Xác nhận cô lập máy ảo">
+            <p>
+              Thay Security Group trên mọi cổng mạng của <strong>{quarantineTarget.name || quarantineTarget.server_id}</strong>{' '}
+              bằng Security Group cô lập. Máy có thể mất kết nối mạng.
+            </p>
+            <button type="button" className="button primary" disabled={quarantining || !canQuarantine} onClick={quarantine}>
+              {quarantining ? 'Đang cô lập…' : 'Xác nhận cô lập'}
+            </button>{' '}
+            <button type="button" className="button secondary" disabled={quarantining} onClick={() => setQuarantineTarget(null)}>
+              Hủy
+            </button>
+          </div>
+        )}
         {resource.data &&
           (resource.data.length ? (
             <div className="table-scroll">
@@ -148,13 +199,13 @@ export function WorkloadsPage({ params }) {
                 <thead>
                   <tr>
                     <th>MÁY ẢO / PROJECT</th>
-                    <th>TRẠNG THÁI HOẠT ĐỘNG</th>
+                    <th>STATUS</th>
                     <th>IP NỘI BỘ / FLOATING IP</th>
                     <th>SECURITY GROUP</th>
                     <th>RỦI RO LIÊN QUAN</th>
                     <th>QUAN SÁT</th>
                     <th>
-                      <span className="sr-only">Chi tiết</span>
+                      Thao tác
                     </th>
                   </tr>
                 </thead>
@@ -180,10 +231,9 @@ export function WorkloadsPage({ params }) {
                             {ACTIVITY_LABELS[vm.network_observation.state]}
                           </Badge>
                         ) : (
-                          <span title="Chưa đủ dữ liệu xác nhận">
-                            <span aria-hidden="true">—</span>
-                            <span className="sr-only">Chưa đủ dữ liệu xác nhận</span>
-                          </span>
+                          <Badge value={staleLive ? 'STALE' : vm.network_state === 'MISMATCH' ? 'MISMATCH' : 'UNKNOWN'}>
+                            {staleLive ? 'Dữ liệu cũ' : vm.network_state === 'MISMATCH' ? 'Cô lập một phần' : 'Chưa xác minh'}
+                          </Badge>
                         )}
                       </td>
                       <td>
@@ -228,6 +278,18 @@ export function WorkloadsPage({ params }) {
                       </td>
                       <td>{time(vm.observed_at)}</td>
                       <td>
+                        <button
+                          type="button"
+                          className="button secondary"
+                          aria-label={`Cô lập ${vm.name || vm.server_id}`}
+                          disabled={!canQuarantine || Boolean(quarantineTarget) ||
+                            !isVerifiedNetwork(vm.network_observation, resource.meta, Boolean(resource.error)) ||
+                            vm.network_observation.state !== 'NORMAL'}
+                          title={!canQuarantine ? 'Cần phiên Executor và quyền ghi Neutron đã cấu hình' : undefined}
+                          onClick={() => { setQuarantineNotice(null); setQuarantineTarget(vm) }}
+                        >
+                          Cô lập
+                        </button>{' '}
                         <a
                           className="row-detail"
                           href={`#/workloads/${encodeURIComponent(vm.server_id)}`}

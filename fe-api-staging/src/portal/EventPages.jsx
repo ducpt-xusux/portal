@@ -26,6 +26,9 @@ import {
 } from './PortalUI'
 import { usePortal } from './PortalContext'
 
+const riskStatusLabel = (status) =>
+  status === 'OK' ? 'Tính điểm thành công' : uiLabel(status)
+
 export function EventTable({ events, compact = false }) {
   const time = useTime()
   return (
@@ -66,7 +69,7 @@ export function EventTable({ events, compact = false }) {
               </td>
               <td>
                 <strong>{event.risk.score ?? 'N/A'}</strong>
-                <small>{uiLabel(event.risk.status)}</small>
+                <small>{riskStatusLabel(event.risk.status)}</small>
               </td>
               <td>
                 <span className="v4-rule-list">
@@ -264,7 +267,7 @@ export function EventsPage({ params }) {
           onChange={update('risk_status')}
           options={[
             ['', 'Tất cả'],
-            ['OK', 'OK'],
+            ['OK', 'Tính điểm thành công'],
             ['ERROR', 'ERROR'],
           ]}
         />
@@ -414,7 +417,7 @@ function LegacyEventDetail({ id, params }) {
             </div>
             <div>
               <span>RISK STATUS</span>
-              <Badge value={event.risk.status} />
+              <Badge value={event.risk.status}>{riskStatusLabel(event.risk.status)}</Badge>
             </div>
             <div>
               <span>CLASS TẠI LÚC XỬ LÝ</span>
@@ -490,7 +493,7 @@ function LegacyEventDetail({ id, params }) {
                 )}
                 <p className="v4-panel-note">
                   {event.view_kind === 'P17_EVENT_PROJECTION'
-                    ? "Quyết định ở đây dựa trên cờ blocked của ; chưa có kiểm toán chuẩn decision."
+                    ? 'Quyết định được suy ra từ cờ blocked của P17. Chưa có quyết định kiểm toán chuẩn P16H.'
                     : "Hành động áp dụng và hành động result phản ánh thực thi. Monitor match không tự chứng minh đã chặn."}{' '}
                   Trạng thái cách ly VM cần bằng chứng hành động và quan sát
                   Neutron riêng.
@@ -501,7 +504,7 @@ function LegacyEventDetail({ id, params }) {
                   rows={[
                     ["Điểm gốc", display(event.raw_score)],
                     ['Điểm sau giới hạn', event.risk.score ?? 'N/A'],
-                    ["Trạng thái rủi ro", uiLabel(event.risk.status)],
+                    ["Trạng thái rủi ro", riskStatusLabel(event.risk.status)],
                   ]}
                 />
                 {event.score_breakdown?.length ? (

@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh Portal Galera snapshots every 15 seconds
+
+[Timer]
+OnBootSec=15s
+OnUnitInactiveSec=15s
+AccuracySec=1s
+Unit=portal-galera.service
+
+[Install]
+WantedBy=timers.target

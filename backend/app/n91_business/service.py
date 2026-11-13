@@ -143,6 +143,13 @@ class BusinessService:
                    json.dumps(after) if after is not None else None))
         return audit_id
 
+    def record_quarantine(self, actor, server_id, request_id, *, outcome, before=None, after=None):
+        if 'Executor' not in actor.roles:
+            raise BusinessError(403, 'ROLE_REQUIRED')
+        with self.connection(write=True) as db:
+            return self._audit(db, actor.user_id, 'WORKLOAD_QUARANTINE', server_id, request_id,
+                               before=before, after=after, outcome=outcome)
+
     def bootstrap(self, username, password, roles, *, portal_admin=False):
         """Operator-only CLI; API never calls this. First account only, no default identity."""
         if not re.fullmatch(r'[a-z][a-z0-9_.-]{2,63}', username):

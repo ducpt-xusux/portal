@@ -1,0 +1,92 @@
+{
+  "schema_version": "portal-p16h-import-1",
+  "context": "TEST",
+  "source": {
+    "artifact_id": "TEST-EVALUATION-canonical-fixture",
+    "source_host": "TEST-host",
+    "source_run_id": "TEST-N91-P1",
+    "collected_at": "2026-11-08T08:00:10+07:00"
+  },
+  "delivery": {
+    "delivery_version": "p16h-local-1",
+    "stream_id": "TEST-stream-a",
+    "stream_sequence": 7,
+    "event_role": "TEST-AUDIT",
+    "journal_stream_id": "TEST-journal",
+    "journal_sequence": 17,
+    "segment_index": 1,
+    "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "storage_recorded_at": "2026-11-08T08:00:01+07:00",
+    "envelope": {
+      "record": {
+        "event_id": "TEST-EVENT-001",
+        "timestamp": "2026-11-08T01:00:00Z",
+        "event_type": "AUDIT_EVENT",
+        "client_ip": "10.0.0.30",
+        "client_port": 45302,
+        "db_user": "app_reader",
+        "session_database": "doan_db",
+        "mysql_command": "COM_QUERY",
+        "query_mask_status": "MASKED",
+        "query_masked": "select @@version_comment limit ?",
+        "query_mask_error": null,
+        "policy_id": "db-firewall-main",
+        "policy_version": "1.4.0",
+        "runtime_mode": "enforce",
+        "policy_decision": "ALLOW",
+        "effective_action": "ALLOW",
+        "would_block": false,
+        "defaulted": false,
+        "matched_rules": [
+          "ALLOW-HEALTH-001"
+        ],
+        "blocking_rules": [],
+        "monitor_rules": [],
+        "allow_rules": [
+          "ALLOW-HEALTH-001"
+        ],
+        "reasons": [
+          "Approved health/bootstrap query"
+        ],
+        "risk_status": "OK",
+        "risk_error": null,
+        "risk_id": "db-firewall-risk",
+        "risk_version": "1.0.1-G03-RC6",
+        "raw_score": 0,
+        "risk_score": 0,
+        "severity": "LOW",
+        "score_breakdown": [
+          {
+            "source": "matched_rule",
+            "rule_id": "ALLOW-HEALTH-001",
+            "score": 0,
+            "category": "allow",
+            "reason": "Approved health query"
+          }
+        ],
+        "dominant_rule": null,
+        "recommended_action": "AUDIT",
+        "default_deny_applied": false,
+        "matched_rule_count": 1,
+        "score_component_count": 0,
+        "action": "ALLOW",
+        "action_result": "FORWARDED",
+        "action_error": null
+      },
+      "metadata": {
+        "request_id": "TEST-request-1",
+        "request_sequence": 9,
+        "request_received_at": "2026-11-08T08:00:00+07:00",
+        "received_time_basis": "TEST_PRODUCER_CLOCK",
+        "producer_id": "TEST-producer",
+        "producer_boot_id": "TEST-boot",
+        "session_id": "TEST-session",
+        "policy_config_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "risk_config_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "config_hash_basis": "TEST_UNVERIFIED",
+        "backend": "UNAVAILABLE",
+        "privacy": "UNAVAILABLE"
+      }
+    }
+  }
+}
