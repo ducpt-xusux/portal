@@ -2,6 +2,7 @@ from dataclasses import replace
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
+from urllib.parse import urlsplit
 
 import pytest
 from fastapi.testclient import TestClient
@@ -9,7 +10,7 @@ from fastapi.testclient import TestClient
 from app.config import Settings
 from app.main import create_app
 from app.n91_business import BusinessConfig
-from app.openstack_inventory import InventoryError
+from app.openstack_inventory import InventoryError, port_network_state
 from app.workload_quarantine import QuarantineError, WorkloadQuarantine
 
 
@@ -30,6 +31,7 @@ class FakeNeutron:
         self.writes = []
         self.fail = None
         self.port_links = []
+        self.server_project = VM
 
     def send(self, method, url, *, body=None, token=None, revision=None):
         if method == "PUT":
@@ -43,7 +45,7 @@ class FakeNeutron:
         if url.endswith("/os-interface"):
             return {"interfaceAttachments": [{"port_id": port_id} for port_id in self.attachments]}, None
         if "/servers/" in url:
-            return {"server": {"id": VM, "project_id": VM}}, None
+            return {"server": {"id": urlsplit(url).path.rsplit("/", 1)[1], "project_id": self.server_project}}, None
         if "/extensions/" in url:
             return {"extension": {"alias": "revision-if-match"}}, None
         if "/security-groups/" in url:
@@ -98,6 +100,44 @@ def test_accepts_neutron_previous_page_link(setup):
 
     assert service.apply(VM, lambda _: None) == "QUARANTINED"
     assert len(neutron.writes) == len(PORTS)
+
+
+@pytest.mark.parametrize('second_port_groups', [[OLD_2], []])
+def test_project_scope_restores_exact_original_groups_per_port(tmp_path, setup, second_port_groups):
+    from app.n91_business.service import BusinessService
+    from app.quarantine_recovery import QuarantineRecovery
+    from app.store import Store
+
+    neutron, cloud, _ = setup
+    new_vm = VM.replace('abc', 'def')
+    cloud.settings = replace(cloud.settings, quarantine_project_wide=True, quarantine_allowed_server_ids=())
+    original_groups = {PORTS[0]: [OLD, OLD_2], PORTS[1]: second_port_groups}
+    for port_id, groups in original_groups.items():
+        neutron.ports[port_id].update(device_id=new_vm, security_groups=groups.copy())
+        assert port_network_state({'port_security_enabled': True, 'security_group_ids': groups}, SG) == 'NORMAL'
+    audit = BusinessService(BusinessConfig(database_path=tmp_path / 'business.db'))
+    audit.initialize()
+    store = Store(tmp_path / 'events.db')
+    store.initialize()
+    recovery = QuarantineRecovery(cloud, audit, store)
+    actor = SimpleNamespace(user_id='executor', roles=['Executor'])
+
+    assert recovery.status(new_vm) == {'allowed': True, 'state': 'IDLE'}
+    neutron.server_project = new_vm
+    with pytest.raises(QuarantineError, match='QUARANTINE_TARGET_NOT_ALLOWED'):
+        recovery.quarantine(new_vm, actor, 'denied-request')
+    assert not neutron.writes
+    neutron.server_project = VM
+    operation = recovery.quarantine(new_vm, actor, 'quarantine-request')
+    assert all(port['security_groups'] == [SG] for port in neutron.ports.values())
+
+    restored = recovery.restore(new_vm, actor, 'restore-request', operation['operation_id'])
+    assert restored['state'] == 'RESTORED'
+    assert restored['restore_trigger'] == 'MANUAL'
+    assert {port_id: port['security_groups'] for port_id, port in neutron.ports.items()} == original_groups
+    assert [record['state'] for record in store.workload_network_history(VM, [new_vm])[new_vm]] == [
+        'NORMAL', 'QUARANTINED', 'NORMAL',
+    ]
 
 
 @pytest.mark.parametrize("links", [[{"rel": "next"}], [{}], {"rel": "previous"}])

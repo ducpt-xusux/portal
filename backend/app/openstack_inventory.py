@@ -106,7 +106,7 @@ def rows(value):
 
 
 def port_network_state(port, quarantine_sg_id):
-    if not quarantine_sg_id or port["port_security_enabled"] is not True or not port["security_group_ids"]:
+    if not quarantine_sg_id or port["port_security_enabled"] is not True:
         return "UNKNOWN"
     groups = {group.lower() for group in port["security_group_ids"]}
     target = quarantine_sg_id.lower()

@@ -41,6 +41,7 @@ class Settings:
     openstack_quarantine_sg_id: str = ""
     openstack_quarantine_credential_path: Path | None = None
     quarantine_allowed_server_ids: tuple[str, ...] = ()
+    quarantine_project_wide: bool = False
     quarantine_ttl_seconds: int = 90
     openstack_console_enabled: bool = False
     openstack_console_origin: str = ""
@@ -140,6 +141,7 @@ class Settings:
                 part.strip() for part in os.getenv("PORTAL_QUARANTINE_ALLOWED_SERVER_IDS", "").split(",")
                 if part.strip()
             ),
+            quarantine_project_wide=os.getenv("PORTAL_QUARANTINE_PROJECT_WIDE", "false").lower() == "true",
             quarantine_ttl_seconds=int(os.getenv("PORTAL_QUARANTINE_TTL_SECONDS", "90")),
             openstack_console_enabled=os.getenv("OPENSTACK_CONSOLE_ENABLED", "false").lower() == "true",
             openstack_console_origin=os.getenv("OPENSTACK_CONSOLE_ORIGIN", ""),

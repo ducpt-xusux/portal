@@ -650,15 +650,16 @@ def change_quarantine(request, server_id, operation, *args):
     principal = getattr(request.state, "business_principal", None)
     if principal is None or "Executor" not in principal.roles:
         fail(403, "QUARANTINE_EXECUTOR_REQUIRED")
+    cloud = request.app.state.quarantine_recovery.cloud
     try:
-        request.app.state.quarantine_recovery.cloud.require_allowed(server_id)
+        cloud.require_allowed(server_id)
         if not request.app.state.quarantine_ready:
             fail(503, "QUARANTINE_NOT_CONFIGURED")
         data = operation(server_id, principal, request.state.request_id, *args)
     except (QuarantineError, BusinessError) as error:
         fail(error.status, error.code)
     finally:
-        if server_id in request.app.state.settings.quarantine_allowed_server_ids:
+        if cloud.allows_target(server_id):
             request.app.state.openstack_inventory.refresh_next_read()
     return {"data": data, "meta": {"request_id": request.state.request_id, "read_at": utc_now()}, "error": None}
 

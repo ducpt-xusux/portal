@@ -2,6 +2,7 @@
 from dataclasses import replace
 from threading import Lock
 from urllib.parse import urlencode
+from uuid import UUID
 
 from .openstack_inventory import InventoryError, InventoryReader, identifier, rows
 
@@ -28,10 +29,19 @@ class WorkloadQuarantine:
     def configured(self):
         credential = self.settings.openstack_quarantine_credential_path
         return bool(self.settings.openstack_enabled and credential and credential != self.settings.openstack_credential_path
-                    and self.settings.openstack_quarantine_sg_id and self.settings.quarantine_allowed_server_ids)
+                    and self.settings.openstack_quarantine_sg_id
+                    and (self.settings.quarantine_project_wide or self.settings.quarantine_allowed_server_ids))
+
+    def allows_target(self, server_id):
+        if not self.settings.quarantine_project_wide:
+            return server_id in self.settings.quarantine_allowed_server_ids
+        try:
+            return str(UUID(server_id)) == server_id
+        except ValueError:
+            return False
 
     def require_allowed(self, server_id):
-        if server_id not in self.settings.quarantine_allowed_server_ids:
+        if not self.allows_target(server_id):
             raise QuarantineError(403, "QUARANTINE_TARGET_NOT_ALLOWED")
 
     def apply(self, server_id, record_attempt, *, record_verified=None, record_write=None, record_intent=None):
@@ -80,7 +90,7 @@ class WorkloadQuarantine:
                 or not str(port.get("device_owner", "")).startswith("compute:")
                 or port.get("port_security_enabled") is not True
                 or type(port.get("revision_number")) is not int or port["revision_number"] < 0
-                or not isinstance(port.get("security_groups"), list) or not port["security_groups"]):
+                or not isinstance(port.get("security_groups"), list)):
             raise QuarantineError(409, "QUARANTINE_PORT_SCOPE_UNVERIFIED")
         for group in port["security_groups"]:
             identifier(group)
@@ -90,16 +100,20 @@ class WorkloadQuarantine:
         attachments = rows(response.get("interfaceAttachments"))
         return {identifier(row.get("port_id")) for row in attachments}
 
+    def _verify_server(self, server_url, server_id):
+        server = self.identity.get(server_url).get("server")
+        if not isinstance(server, dict) or server.get("id") != server_id:
+            raise QuarantineError(404, "QUARANTINE_TARGET_UNAVAILABLE")
+        if server.get("project_id", server.get("tenant_id")) != self.settings.openstack_project_id:
+            raise QuarantineError(403, "QUARANTINE_TARGET_NOT_ALLOWED")
+
     def _apply(self, server_id, record_attempt, record_verified, record_write, record_intent):
         cfg = self.settings
         compute = cfg.openstack_compute_url.rstrip("/")
         network = cfg.openstack_network_url.rstrip("/") + "/v2.0"
         target = [identifier(cfg.openstack_quarantine_sg_id)]
         server_url = f"{compute}/servers/{server_id}"
-        server = self.identity.get(server_url).get("server")
-        if not isinstance(server, dict) or server.get("id") != server_id:
-            raise QuarantineError(404, "QUARANTINE_TARGET_UNAVAILABLE")
-        self.identity.same_project(server)
+        self._verify_server(server_url, server_id)
         extension = self.identity.get(network + "/extensions/revision-if-match").get("extension")
         if not isinstance(extension, dict) or extension.get("alias") != "revision-if-match":
             raise QuarantineError(409, "QUARANTINE_REVISION_UNAVAILABLE")
@@ -170,6 +184,7 @@ class WorkloadQuarantine:
         self.identity.configured()
         network = cfg.openstack_network_url.rstrip("/") + "/v2.0"
         server_url = cfg.openstack_compute_url.rstrip("/") + "/servers/" + server_id
+        self._verify_server(server_url, server_id)
         extension = self.identity.get(network + "/extensions/revision-if-match").get("extension")
         if not isinstance(extension, dict) or extension.get("alias") != "revision-if-match":
             raise QuarantineError(409, "QUARANTINE_REVISION_UNAVAILABLE")

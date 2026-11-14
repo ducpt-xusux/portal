@@ -50,7 +50,7 @@ class QuarantineRecovery:
                           (server_id,)).fetchone()
 
     def status(self, server_id):
-        if server_id not in self.settings.quarantine_allowed_server_ids or not self.configured():
+        if not self.cloud.allows_target(server_id) or not self.configured():
             return {"allowed": False}
         with self.audit.connection() as db:
             row = self._latest(db, server_id)
