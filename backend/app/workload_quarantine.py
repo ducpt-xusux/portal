@@ -60,7 +60,10 @@ class WorkloadQuarantine:
                            "limit": 9})
         response = self.identity.get(network + "/ports?" + query)
         ports = rows(response.get("ports"))
-        if not 1 <= len(ports) <= 8 or response.get("ports_links"):
+        # This query starts at the first page. Neutron may still emit a previous link.
+        links = response.get("ports_links", [])
+        if (not 1 <= len(ports) <= 8 or not isinstance(links, list)
+                or any(not isinstance(link, dict) or link.get("rel") != "previous" for link in links)):
             raise QuarantineError(409, "QUARANTINE_PORT_SCOPE_UNVERIFIED")
         by_id = {}
         for port in ports:

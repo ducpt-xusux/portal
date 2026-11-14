@@ -29,6 +29,7 @@ class FakeNeutron:
         self.attachments = list(PORTS)
         self.writes = []
         self.fail = None
+        self.port_links = []
 
     def send(self, method, url, *, body=None, token=None, revision=None):
         if method == "PUT":
@@ -48,7 +49,7 @@ class FakeNeutron:
         if "/security-groups/" in url:
             return {"security_group": {"id": SG, "project_id": VM, "security_group_rules": self.rules}}, None
         if "/ports?" in url:
-            return {"ports": [port.copy() for port in self.ports.values()]}, None
+            return {"ports": [port.copy() for port in self.ports.values()], "ports_links": self.port_links}, None
         return {"port": self.ports[url.rsplit("/", 1)[1]].copy()}, None
 
 
@@ -89,6 +90,24 @@ def test_revision_conflict_restores_preceding_port(setup):
         service.apply(VM, lambda _: None)
     assert all(port["security_groups"] == [OLD] for port in neutron.ports.values())
     assert neutron.writes[-1] == (PORTS[0], 2, [OLD])
+
+
+def test_accepts_neutron_previous_page_link(setup):
+    neutron, service, _ = setup
+    neutron.port_links = [{"rel": "previous", "href": "https://neutron/v2.0/ports"}]
+
+    assert service.apply(VM, lambda _: None) == "QUARANTINED"
+    assert len(neutron.writes) == len(PORTS)
+
+
+@pytest.mark.parametrize("links", [[{"rel": "next"}], [{}], {"rel": "previous"}])
+def test_blocks_incomplete_or_invalid_port_pagination(setup, links):
+    neutron, service, _ = setup
+    neutron.port_links = links
+
+    with pytest.raises(QuarantineError, match="QUARANTINE_PORT_SCOPE_UNVERIFIED"):
+        service.apply(VM, lambda _: None)
+    assert not neutron.writes
 
 
 @pytest.mark.parametrize("unsafe", ["foreign_port", "unlisted_port", "nonempty_sg", "audit_unavailable"])
