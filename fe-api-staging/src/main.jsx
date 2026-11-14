@@ -16,3 +16,4 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 
 import './auditApi.css'
 import './portal/portal.css'
+import './portal/portal-polish.css'
