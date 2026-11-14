@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager, suppress
 import logging
 import sqlite3
 from ipaddress import ip_address
+from pathlib import Path
 from uuid import uuid4
 
 from fastapi import Depends, FastAPI, Request
@@ -72,7 +73,7 @@ def validate_business_database(config, settings, evidence):
 def create_app(settings: Settings | None = None, *, evidence_config: EvidenceConfig | None = None,
                evidence_role_resolver=None, session_auth_enabled: bool | None = None,
                business_config: BusinessConfig | None = None, business_source_resolver=None,
-               investigation_service=None, evaluation_system_service=None):
+               investigation_service=None, evaluation_system_service=None, session_web_dir: Path | None = None):
     settings = settings or Settings.from_env()
     session_enabled = settings.session_auth_enabled if session_auth_enabled is None else session_auth_enabled
     evidence = evidence_config if evidence_config is not None else EvidenceConfig(
@@ -267,7 +268,9 @@ def create_app(settings: Settings | None = None, *, evidence_config: EvidenceCon
     ))
     assert_no_duplicate_routes(app)
     if business:
-        app.add_middleware(SessionGate, service=business, extra_policies=SESSION_POLICIES)
+        # Bundled Uvicorn deployments serve the sign-in UI from the adjacent web directory.
+        web = session_web_dir or Path(__file__).resolve().parents[2] / 'web'
+        app.add_middleware(SessionGate, service=business, extra_policies=SESSION_POLICIES, web_dir=web)
     return app
 
 

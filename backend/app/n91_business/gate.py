@@ -8,7 +8,7 @@ from pathlib import Path
 import re
 from uuid import uuid4
 from starlette.requests import Request
-from starlette.responses import JSONResponse
+from starlette.responses import FileResponse, JSONResponse, Response
 from .models import READ_ROLES, WRITE_ROLES, EVIDENCE_ROLES
 from .service import BusinessError, iso
 
@@ -17,6 +17,7 @@ INCIDENT_WRITE_POLICIES = (
     ('POST', '/api/v1/incidents/{id}/review', 'write'),
     ('POST', '/api/v1/incidents/{id}/evidence/exports', 'evidence'),
 )
+WEB_ASSET = re.compile(r'/assets/[A-Za-z0-9_-]+\.(?:js|css|woff2)')
 
 
 def envelope(request, service, data=None, code=None):
@@ -41,8 +42,9 @@ def _pattern(path):
 
 
 class SessionGate:
-    def __init__(self, app, service, *, extra_policies=()):
+    def __init__(self, app, service, *, extra_policies=(), web_dir=None):
         self.app, self.service = app, service
+        self.web_dir = web_dir if web_dir is not None and (web_dir / 'index.html').is_file() else None
         policies = json.loads((Path(__file__).parent/'frozen_policies.json').read_text())['policies']
         # Extra policies require server-side code review; client input cannot alter them.
         policies += [list(p) for p in (*INCIDENT_WRITE_POLICIES, *extra_policies)]
@@ -98,6 +100,12 @@ class SessionGate:
                 peer = scope.get('client', ('', 0))[0]
                 if not config.allow_insecure_loopback or peer not in {'127.0.0.1', '::1'}:
                     raise BusinessError(403, 'HTTPS_REQUIRED')
+            if self.web_dir is not None and method in {'GET', 'HEAD'} and (
+                    path in {'/', '/index.html', '/favicon.svg'} or WEB_ASSET.fullmatch(path)):
+                asset = self.web_dir / ('index.html' if path == '/' else path[1:])
+                if asset.is_file() and asset.resolve().is_relative_to(self.web_dir.resolve()):
+                    return await FileResponse(asset)(scope, receive, guarded_send)
+                return await Response(status_code=404)(scope, receive, guarded_send)
             login = method == 'POST' and path == '/api/v1/auth/login'
             actor = None if login else self.service.authenticate(request.cookies.get(config.cookie_name))
             if actor:
