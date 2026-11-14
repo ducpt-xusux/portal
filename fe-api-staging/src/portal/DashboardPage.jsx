@@ -271,6 +271,10 @@ function LiveDashboard({ params }) {
     params: { window },
     interval: 10000,
   })
+  const quarantine = useV4Resource('/workloads', {
+    params: { network_state: 'QUARANTINED', limit: 1 },
+    interval: 15000,
+  })
   const series = useV4Resource('/dashboard/event-series', {
     params: {
       window,
@@ -309,7 +313,7 @@ function LiveDashboard({ params }) {
   }
   const refresh = () => {
     setAnchor(new Date().toISOString())
-    ;[summary, series, incidents, events].forEach((resource) =>
+    ;[summary, series, incidents, events, quarantine].forEach((resource) =>
       resource.refresh()
     )
   }
@@ -443,15 +447,16 @@ function LiveDashboard({ params }) {
         <Metric
           label="Đang cách ly"
           value={
-            freshness(data?.sources?.neutron, Boolean(summary.error)) ===
-            'FRESH'
-              ? data?.quarantined_workloads
+            quarantine.meta?.source_mode === 'LIVE' &&
+            quarantine.meta.network_classification === 'CONFIGURED' &&
+            freshness(quarantine.meta, Boolean(quarantine.error)) === 'FRESH'
+              ? quarantine.meta.total_count
               : null
           }
           icon={Layers}
           tone="purple"
           href="#/workloads?network_state=QUARANTINED"
-          resource={{ meta: data?.sources?.neutron, error: summary.error }}
+          resource={quarantine}
         />
       </section>
       <div className="v4-dashboard-grid">

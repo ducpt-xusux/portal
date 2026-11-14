@@ -3,6 +3,7 @@ import http from 'node:http'
 import { randomUUID } from 'node:crypto'
 if (process.env.DBSEC_QA !== '1') throw new Error('Set DBSEC_QA=1 explicitly to start the test-only fixture API.')
 const state = { mode: 'healthy', role: 'Analyst', authenticated: true, notes: [], requests: [], reviewState: 'UNREVIEWED', reviewRevision: 1, annotations: [], exports: [], capabilitiesEnabled: true, filterSupportEnabled: true, idempotency: new Map() }
+let quarantineState = 'QUARANTINED'
 const date = (offset = 0) => new Date(Date.now() + offset).toISOString()
 const meta = () => ({ request_id: `qa-${randomUUID()}`, read_at: date(), data_as_of: date(-1000), source_system: 'QA FIXTURE ONLY', source_schema: 'portal-v4-proposed', freshness_state: state.mode === 'stale' ? 'STALE' : 'FRESH', stale_after_seconds: 30, next_cursor: null })
 const event = index => ({ stream_id: 'QA-STREAM', event_id: `evt-qa-${index}`, request_id: `req-qa-${index}`, occurred_at: date(-index * 3000), ingested_at: date(-index * 3000 + 100), source_ip: '192.0.2.204', db_user: 'qa_reader', database_name: 'qa_database', mysql_command: 'COM_QUERY', decision: index === 4 ? 'ALLOW' : 'BLOCK', matched_rules: index === 4 ? [] : ['INJ-001', 'CTX-006', 'OBJ-003', 'OBJ-004'], blocking_rules: index === 4 ? [] : ['INJ-001'], risk: { score: index === 4 ? 0 : index === 5 ? null : 100, status: index === 5 ? 'ERROR' : 'OK', severity: index === 4 ? 'LOW' : 'CRITICAL' }, masked_query: index === 1 ? null : 'SELECT [MASKED] FROM [MASKED]', policy_id: 'qa-policy-readonly', policy_version: 'QA-v1.4', monitor_rules: ['CTX-006'], reasons: ['QA: injection blocked before forwarding', 'QA: sensitive object policy'], raw_score: index === 4 ? 0 : index === 5 ? null : 130, score_breakdown: index === 5 ? null : index === 4 ? [] : [{ source: 'matched_rule', rule_id: 'INJ-001', score: 40, category: 'injection', reason: 'QA tautology pattern' }, { source: 'matched_rule', rule_id: 'OBJ-004', score: 50, category: 'sensitive_data', reason: 'QA sensitive object access' }, { source: 'default_deny', rule_id: null, score: 40, category: 'default_deny', reason: 'QA no matching allow rule' }], raw_sql: 'PRIVATE_QA_RAW', token: 'PRIVATE_QA_TOKEN', p17_event_class: 'LIVE', stream_sequence: index, incident_refs: index <= 3 ? ['INC-QA-002'] : [], source_provenance: { source_system: 'QA FIXTURE ONLY', source_ref: `qa:event:${index}` } })
@@ -23,19 +24,22 @@ const server = http.createServer(async (request, response) => {
   const url = new URL(request.url, 'http://127.0.0.1')
   const chunks = []; for await (const chunk of request) chunks.push(chunk)
   let body = {}; try { body = JSON.parse(Buffer.concat(chunks).toString() || '{}') } catch { /* Invalid JSON handled as no input. */ }
-  const send = (data, status = 200, code = null) => { response.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); response.end(JSON.stringify({ data, meta: meta(), error: code ? { code, message: code } : null })) }
+  const send = (data, status = 200, code = null, sourceMeta = {}) => { response.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); response.end(JSON.stringify({ data, meta: { ...meta(), ...sourceMeta }, error: code ? { code, message: code } : null })) }
   if (url.pathname === '/__qa/state') {
+    if (request.method === 'POST' && ['QUARANTINED', 'NORMAL', 'STALE', 'UNAVAILABLE'].includes(body.quarantineState)) quarantineState = body.quarantineState
     if (request.method === 'POST') { if (body.mode) state.mode = body.mode; if (body.role) state.role = body.role; if (typeof body.authenticated === 'boolean') state.authenticated = body.authenticated; if (typeof body.capabilitiesEnabled === 'boolean') state.capabilitiesEnabled = body.capabilitiesEnabled; if (typeof body.filterSupportEnabled === 'boolean') state.filterSupportEnabled = body.filterSupportEnabled }
     return send({ ...state, notes: state.notes.length, idempotency: undefined, requests: state.requests.slice(-30) })
   }
   const path = url.pathname.replace(/^\/api\/v1/, '')
   state.requests.push(`${request.method} ${url.pathname}${url.search}`)
+  if (path === '/portal/access-mode') return send({ mode: 'SESSION' })
   if (path === '/auth/login' && request.method === 'POST') { state.authenticated = true; return send({ authenticated: true }) }
   if (path === '/auth/logout' && request.method === 'POST') { state.authenticated = false; return send({ authenticated: false }) }
   if (!state.authenticated) return send(null, 401, 'UNAUTHENTICATED')
-  if (path === '/auth/me') return send({ user: { user_id: 'qa-user', login: 'qa-analyst', role: state.role, project_name: 'QA fixture · Dữ liệu kiểm thử, không phải lab live' }, csrf_token: 'qa-test-only-csrf', incident_filters: { review_state: state.filterSupportEnabled, response_states: state.filterSupportEnabled ? ['NONE', 'QUARANTINED', 'RESTORED', 'UNKNOWN'] : ['UNKNOWN'] }, write_enabled: state.role !== 'Viewer', capabilities: state.capabilitiesEnabled ? ['incidents:review', 'evidence:export'] : [] })
+  if (path === '/portal/session/capabilities') return send({ user_id: 'qa-user' })
+  if (path === '/auth/me') return send({ username: 'qa-analyst', roles: [state.role], expires_at: date(3600000), user: { user_id: 'qa-user', login: 'qa-analyst', role: state.role, project_name: 'QA fixture · Dữ liệu kiểm thử, không phải lab live' }, csrf_token: 'qa-test-only-csrf', incident_filters: { review_state: state.filterSupportEnabled, response_states: state.filterSupportEnabled ? ['NONE', 'QUARANTINED', 'RESTORED', 'UNKNOWN'] : ['UNKNOWN'] }, write_enabled: state.role !== 'Viewer', capabilities: state.capabilitiesEnabled ? ['incidents:review', 'evidence:export'] : [] })
   if (state.mode === 'outage') return send(null, 503, 'UPSTREAM_UNAVAILABLE')
-  if (path === '/dashboard/summary') return send({ event_counts: { allow: 84, block: 12, unknown: 0, risk_errors: 1 }, incident_counts: { review_required: 2, critical: 0 }, quarantined_workloads: 0, sources: { neutron: meta() }, protection_path: ['Application', 'DB Firewall', 'Galera Cluster'].map(name => ({ name, status: 'HEALTHY', observed_at: date() })) })
+  if (path === '/dashboard/summary') return send({ event_counts: { allow: 84, block: 12, unknown: 0, risk_errors: 1 }, incident_counts: { review_required: 2, critical: 0 }, quarantined_workloads: null, sources: { neutron: { freshness_state: 'UNKNOWN' } }, protection_path: ['Application', 'DB Firewall', 'Galera Cluster'].map(name => ({ name, status: 'HEALTHY', observed_at: date() })) })
   if (path === '/dashboard/event-series') return send({ points: Array.from({ length: 15 }, (_, i) => ({ occurred_at: date(-(14 - i) * 60000), allow: [3, 5, 4, 6, 7, 4, 8, 6, 9, 6, 5, 7, 9, 8, 6][i], block: [0, 0, 1, 0, 0, 2, 1, 3, 0, 1, 0, 1, 2, 0, 1][i] })) })
   if (path === '/incidents') {
     if (!state.filterSupportEnabled && (url.searchParams.get('review_state') || (url.searchParams.get('response_state') && url.searchParams.get('response_state') !== 'UNKNOWN'))) return send(null, 503, 'FILTER_NOT_CONFIGURED')
@@ -92,7 +96,19 @@ const server = http.createServer(async (request, response) => {
     response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); return response.end(JSON.stringify(envelope))
   }
   if (/^\/events\/[^/]+$/.test(path)) return send(event(Number(path.split('-').at(-1)) || 1))
-  if (path === '/workloads') return send({ items: Array.from({ length: 6 }, (_, i) => workload(i)) })
+  if (path === '/workloads') {
+    if (url.searchParams.get('network_state') !== 'QUARANTINED')
+      return send({ items: Array.from({ length: 6 }, (_, i) => workload(i)) })
+    if (quarantineState === 'UNAVAILABLE') return send(null, 503, 'NETWORK_CLASSIFICATION_NOT_CONFIGURED')
+    const matches = quarantineState === 'NORMAL' ? [] : [4, 5].map((i) => ({
+      ...workload(i), network_state: 'QUARANTINED',
+      network_observation: { ...network(), state: 'QUARANTINED' },
+    }))
+    return send({ items: matches.slice(0, Number(url.searchParams.get('limit') || 25)) }, 200, null, {
+      source_mode: 'LIVE', network_classification: 'CONFIGURED', total_count: matches.length,
+      ...(quarantineState === 'STALE' ? { freshness_state: 'STALE' } : {}),
+    })
+  }
   if (path.endsWith('/ports')) return send({ items: [port(5), port(6)] })
   if (/^\/workloads\/[^/]+$/.test(path)) return send(workload(5))
   if (path === '/actions') return send({ items: [action()] })
