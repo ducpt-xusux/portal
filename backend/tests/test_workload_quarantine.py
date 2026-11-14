@@ -1,5 +1,7 @@
 from dataclasses import replace
 from pathlib import Path
+from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
@@ -14,6 +16,7 @@ from app.workload_quarantine import QuarantineError, WorkloadQuarantine
 VM = "12345678-1234-4321-8321-123456789abc"
 SG = "20000000-0000-4000-8000-000000000001"
 OLD = "20000000-0000-4000-8000-000000000002"
+OLD_2 = "20000000-0000-4000-8000-000000000003"
 PORTS = ("30000000-0000-4000-8000-000000000001", "30000000-0000-4000-8000-000000000002")
 
 
@@ -53,6 +56,7 @@ class FakeNeutron:
 def setup(monkeypatch):
     settings = replace(Settings(Path("audit.jsonl"), Path("cache.db")),
                        openstack_enabled=True,
+                       quarantine_allowed_server_ids=(VM,),
                        openstack_project_id=VM, openstack_quarantine_sg_id=SG,
                        openstack_compute_url="https://nova/v2.1", openstack_network_url="https://neutron",
                        openstack_quarantine_credential_path=Path("writer.json"))
@@ -118,6 +122,7 @@ def test_endpoint_requires_executor_and_csrf_and_writes_audit(tmp_path, setup):
     password = "test-only-long-password"
     audit.bootstrap("executor", password, ["Executor"], portal_admin=True)
     app.state.workload_quarantine = service
+    app.state.quarantine_recovery.cloud = service
     url = f"/api/v1/workloads/{VM}/quarantine"
     body = {"confirm": "QUARANTINE"}
     with TestClient(app, base_url=origin) as client:
@@ -128,15 +133,93 @@ def test_endpoint_requires_executor_and_csrf_and_writes_audit(tmp_path, setup):
         assert client.post(url, json=body, headers={"Origin": origin}).status_code == 403
         assert not neutron.writes
         session = client.get("/api/v1/auth/me").json()["data"]
+        headers = {"Origin": origin, "X-CSRF-Token": session["csrf_token"]}
+        other = VM.replace("abc", "def")
+        denied = client.post(f"/api/v1/workloads/{other}/quarantine", json=body, headers=headers)
+        assert denied.status_code == 403 and denied.json()["error"]["code"] == "QUARANTINE_TARGET_NOT_ALLOWED"
+        assert not neutron.writes
+        viewer = client.post("/api/v1/portal/admin/users", json={
+            "username": "viewer", "password": password, "roles": ["Viewer"],
+        }, headers={**headers, "Idempotency-Key": "create-viewer-test"})
+        assert viewer.status_code in (200, 201), viewer.json()
         response = client.post(url, json=body, headers={
             "Origin": origin, "X-CSRF-Token": session["csrf_token"],
         }).json()["data"]
         assert response["status"] == "QUARANTINED" and response["history_saved"] is True
+        with TestClient(app, base_url=origin) as viewer_client:
+            login = viewer_client.post("/api/v1/auth/login", json={"username": "viewer", "password": password},
+                                       headers={"Origin": origin})
+            assert login.status_code == 200
+            viewer_csrf = viewer_client.get("/api/v1/auth/me").json()["data"]["csrf_token"]
+            viewer_headers = {"Origin": origin, "X-CSRF-Token": viewer_csrf}
+            assert viewer_client.post(url, json=body, headers=viewer_headers).status_code == 403
+            restore_url = f"/api/v1/workloads/{VM}/restore"
+            restore_body = {"confirm": "RESTORE", "operation_id": response["operation_id"]}
+            assert viewer_client.post(restore_url, json=restore_body, headers=viewer_headers).status_code == 403
+        restored = client.post(restore_url, json=restore_body, headers=headers)
+        assert restored.status_code == 200 and restored.json()["data"]["state"] == "RESTORED"
+        assert all(port["security_groups"] == [OLD] for port in neutron.ports.values())
     history = app.state.openstack_inventory.network_history([VM])[VM]
     assert [(row["state"], row["source"]) for row in history] == [
+        ("NORMAL", "PORTAL_RESTORE_VERIFICATION"),
         ("QUARANTINED", "PORTAL_QUARANTINE_VERIFICATION"),
+        ("NORMAL", "PORTAL_QUARANTINE_BASELINE"),
     ]
     with audit.connection() as db:
         rows = db.execute("SELECT outcome, before_json FROM admin_audit WHERE action='WORKLOAD_QUARANTINE' ORDER BY seq").fetchall()
         assert [row["outcome"] for row in rows] == ["ATTEMPTED", "SUCCESS"]
         assert OLD in rows[0]["before_json"]
+        assert db.execute("SELECT count(*) FROM admin_audit WHERE action='WORKLOAD_RESTORE' AND outcome='SUCCESS'").fetchone()[0] == 1
+
+
+@pytest.mark.parametrize("scenario", ["ttl", "revision_conflict", "interrupted_write"])
+def test_expired_operation_survives_service_recreation(tmp_path, setup, monkeypatch, scenario):
+    from app.quarantine_recovery import QuarantineRecovery
+    from app.store import Store
+
+    neutron, cloud, _ = setup
+    neutron.ports[PORTS[0]]["security_groups"] = [OLD, OLD_2]
+    now = datetime.now(timezone.utc)
+    cloud.identity.clock = lambda: now
+    config = BusinessConfig(database_path=tmp_path / "business.db")
+    from app.n91_business.service import BusinessService
+    audit = BusinessService(config)
+    audit.initialize()
+    store = Store(tmp_path / "events.db")
+    store.initialize()
+    actor = SimpleNamespace(user_id="executor", roles=["Executor"])
+    recovery = QuarantineRecovery(cloud, audit, store)
+    if scenario == "interrupted_write":
+        send = neutron.send
+
+        def interrupted_send(method, url, **kwargs):
+            result = send(method, url, **kwargs)
+            if method == "PUT":
+                raise SystemExit("simulated process death before acknowledgement")
+            return result
+
+        with monkeypatch.context() as patch:
+            patch.setattr(neutron, "send", interrupted_send)
+            with pytest.raises(SystemExit):
+                recovery.quarantine(VM, actor, "quarantine-request")
+        assert recovery.status(VM)["state"] == "APPLYING"
+        assert neutron.ports[PORTS[0]]["security_groups"] == [SG]
+    else:
+        recovery.quarantine(VM, actor, "quarantine-request")
+        assert all(port["security_groups"] == [SG] for port in neutron.ports.values())
+        now += timedelta(seconds=91)
+    if scenario == "revision_conflict":
+        neutron.ports[PORTS[0]]["revision_number"] += 1
+    restarted = QuarantineRecovery(cloud, BusinessService(config), store)
+    restarted.restore_due()
+    if scenario == "revision_conflict":
+        assert len(neutron.writes) == 2
+        assert restarted.status(VM)["error_code"] == "RESTORE_PORT_CHANGED"
+        return
+    assert neutron.ports[PORTS[0]]["security_groups"] == [OLD, OLD_2]
+    assert neutron.ports[PORTS[1]]["security_groups"] == [OLD]
+    assert restarted.status(VM)["state"] == "RESTORED"
+    if scenario == "ttl":
+        assert [row["state"] for row in store.workload_network_history(VM, [VM])[VM]] == [
+            "NORMAL", "QUARANTINED", "NORMAL",
+        ]

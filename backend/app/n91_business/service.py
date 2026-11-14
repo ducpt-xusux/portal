@@ -129,11 +129,20 @@ class BusinessService:
         with self.connection(write=True) as db:
             self._migrate(db)
 
+    def initialize_quarantine(self):
+        # Additive tables keep the existing business schema marker readable by
+        # the previous release during a rollback.
+        with self.connection(write=True) as db:
+            self._migrate(db)
+
     @staticmethod
     def _migrate(db):
         if db.execute("SELECT value FROM business_meta WHERE key='schema'").fetchone()[0] == '1':
             db.execute((Path(__file__).parent / 'migrations/002_incident_read_state.sql').read_text())
             db.execute("UPDATE business_meta SET value='2' WHERE key='schema'")
+        for statement in (Path(__file__).parent / 'migrations/003_workload_quarantine.sql').read_text().split(';'):
+            if statement.strip():
+                db.execute(statement)
 
     def _audit(self, db, actor_id, action, target, request_id, before=None, after=None, outcome='SUCCESS'):
         audit_id = str(uuid4())

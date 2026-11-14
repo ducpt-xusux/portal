@@ -92,7 +92,35 @@ Nếu launcher nhập `app.main`, giữ nguyên launcher và kiểm tra đườn
 
 Kiểm tra checksum gói trong thư mục staging. Khi đóng gói từ commit sạch, manifest ghi SHA commit nguồn và hash thực tế của backend/frontend. Với `portal-local`, trỏ `PORTAL_BUILD_MANIFEST` vào `backend/portal-build.json` trong gói đang chạy. SHA của collector để trống đến khi đối chiếu được bản đang chạy trên Controller. Giữ bản gói trước và sao lưu DB/config theo chính sách của lab; đặt bản đã kiểm checksum vào đúng đường dẫn đang phục vụ rồi khởi động lại bằng lệnh đã xác minh. Nếu receiver tham chiếu `~/portal/backend/galera_periodic.py`, cập nhật API backend có `batch_lock` trước khi chuyển receiver sang mã mới, hoặc chuyển forced command sang bản receiver cùng gói. Khi quay lại, khôi phục backend, web và receiver tương thích với nhau, sau đó kiểm lại build và DB.
 
-Nút **Cô lập** dùng tài khoản Portal có vai trò `Executor`, session/CSRF và Business DB cho nhật ký. Cấu hình credential ứng dụng riêng có role `member` đúng project ở `OPENSTACK_QUARANTINE_CREDENTIAL_PATH`, theo cùng định dạng JSON như credential inventory. Giới hạn quyền credential ở Neutron và bảo vệ file chỉ cho tài khoản chạy Portal. Security Group ở `OPENSTACK_QUARANTINE_SG_ID` phải thuộc project và không có rule. Neutron cần extension `revision-if-match`. Nhật ký giữ port ID và SG trước thao tác; dùng các giá trị này để đối chiếu và gắn lại SG bằng Controller CLI khi nghiệm thu trên VM lab.
+Nút **Cô lập** và **Khôi phục** dùng session có vai trò `Executor` và CSRF. Tài khoản `Viewer` xem trạng thái và lịch sử. Trên demo, allowlist chỉ chứa UUID của `p17-lab-clone` và mặc định để trống ở môi trường khác. Dùng application credential riêng có role `member` trong đúng project, lưu JSON với các trường `id`, `secret`, `project_id` và quyền `0600`. Security Group cô lập phải thuộc project và không có rule. Neutron cần extension `revision-if-match`.
+
+Trên `portal-local`, tạo Business DB riêng và tài khoản quản trị đầu tiên nếu DB chưa tồn tại:
+
+```bash
+cd /home/ubuntu/portal-local/n91-portal-proxy-linux/backend
+/home/ubuntu/portal-local/.venv313/bin/python -m app.n91_business.bootstrap \
+  --database /home/ubuntu/portal-local/business.sqlite3 --context PORTAL \
+  --username portal-admin --role Analyst --portal-admin
+```
+
+Tạo tài khoản `Executor` và `Viewer` trong **Quản trị Portal** bằng phiên quản trị. Giữ các biến đọc hiện có và bổ sung vào `openstack.env`:
+
+```dotenv
+PORTAL_SESSION_AUTH=true
+PORTAL_SESSION_LOCAL_HTTP=true
+PORTAL_BUSINESS_DATABASE=/home/ubuntu/portal-local/business.sqlite3
+CORS_ORIGINS=http://127.0.0.1:5188
+OPENSTACK_QUARANTINE_CREDENTIAL_PATH=/home/ubuntu/portal-local/openstack-quarantine-member.json
+OPENSTACK_QUARANTINE_SG_ID=6e72bfd2-0b73-47e8-9fe9-7f3b83337892
+PORTAL_QUARANTINE_ALLOWED_SERVER_IDS=fa34f3e8-50ff-467e-a7db-a5cd92613682
+PORTAL_QUARANTINE_TTL_SECONDS=90
+```
+
+Sao lưu release và file môi trường, đồng thời dùng SQLite backup API để sao lưu DB audit và Business DB trước khi thay bản. Kiểm checksum gói CI, restart đúng launcher đang dùng với lifespan Uvicorn bật, rồi xác minh `SESSION`, `workload_quarantine_available=true` và SHA qua `/api/v1/system/build` sau đăng nhập. Chạy lại Events, Incidents, Galera và Workloads với phiên đăng nhập.
+
+Portal lưu SG gốc theo từng port trước khi ghi Neutron. Tác vụ nền đọc các lượt quá hạn mỗi 2 giây và tiếp tục từ Business DB sau restart. Khi Portal dừng quá TTL, tác vụ chạy lại khi Portal lên. Kiểm tra cả khôi phục thủ công và một lượt khôi phục theo TTL sau khi restart, kèm đối chiếu SG trực tiếp trong Neutron, lịch sử `NORMAL → QUARANTINED → NORMAL` và audit `WORKLOAD_QUARANTINE` / `WORKLOAD_RESTORE`. Nếu port hoặc revision thay đổi ngoài lượt thử, Portal giữ trạng thái lỗi và thông tin SG gốc để người vận hành đối chiếu.
+
+Trước khi rollback, khôi phục và xác minh hết các lượt còn mở. Nếu Portal không hoạt động, dùng bản ghi SG gốc trong Business DB hoặc audit để gắn lại bằng Neutron CLI với phiên vận hành đã được cấp quyền. Đối chiếu port, project, SG và revision hiện tại trước khi ghi. Sau đó mới quay lại bundle và cấu hình trước đó. Giữ Business DB và audit của lượt mới để đối chiếu.
 
 Khi bật inventory và cấu hình UUID SG cô lập, API lấy mẫu nền khoảng 3 giây một lần và lưu tối đa 50 mục lịch sử cho mỗi VM trong SQLite của Portal. Giao diện hiển thị 10 mục gần nhất. Nút Cô lập ghi riêng lần Neutron xác nhận, nên lần đó vẫn có trong lịch sử sau khi Watchdog khôi phục. Với thao tác từ Controller hoặc Watchdog, Portal chỉ ghi những trạng thái bộ thu quan sát được. Một lần cô lập xảy ra hoàn toàn giữa hai mẫu có thể bị bỏ lỡ. Thời điểm trong lịch sử là lúc quan sát, không phải thời điểm Neutron bắt đầu áp dụng luật.
 

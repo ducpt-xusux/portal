@@ -20,7 +20,9 @@ from .p17_snapshot import SnapshotReader
 from .p17_api import CursorCodec, evaluation_run_router, observation_auth_router, quarantine_router, require_read_access, router as p17_router, source_status_router
 from .openstack_inventory import InventoryError, InventoryReader
 from .remote_console import ConsoleService
-from .workload_quarantine import WorkloadQuarantine
+from .workload_quarantine import QuarantineError, WorkloadQuarantine
+from .quarantine_recovery import QuarantineRecovery
+from .n91_business.service import BusinessError
 from .build_info import load_build_info
 from .demo_api import create_evidence_router
 from .evidence_registry import EvidenceConfig, EvidenceRegistry
@@ -41,6 +43,8 @@ SESSION_POLICIES = (
     ('GET', '/api/v1/n91/evaluation-system/runs/{run_id}', 'read'),
     ('GET', '/api/v1/n91/evaluation-system/panels/{kind}', 'read'),
     ('POST', '/api/v1/workloads/{server_id}/quarantine', 'execute'),
+    ('GET', '/api/v1/workloads/{server_id}/quarantine', 'read'),
+    ('POST', '/api/v1/workloads/{server_id}/restore', 'execute'),
 )
 
 
@@ -91,6 +95,7 @@ def create_app(settings: Settings | None = None, *, evidence_config: EvidenceCon
     store = Store(settings.database_path)
     importer = Importer(settings, store)
     inventory = InventoryReader(settings, history_store=store)
+    recovery = QuarantineRecovery(WorkloadQuarantine(settings), business, store)
 
     async def poll():
         while True:
@@ -110,13 +115,34 @@ def create_app(settings: Settings | None = None, *, evidence_config: EvidenceCon
                 pass
             await asyncio.sleep(max(0.1, inventory.refresh_seconds - (inventory.monotonic() - started)))
 
+    async def poll_restore():
+        while True:
+            try:
+                if await asyncio.to_thread(app.state.quarantine_recovery.restore_due):
+                    await asyncio.to_thread(inventory.refresh_next_read)
+            except QuarantineError as error:
+                if error.code != "QUARANTINE_BUSY":
+                    logging.getLogger(__name__).error("Quarantine recovery: %s", error.code)
+            except (BusinessError, OSError):
+                logging.getLogger(__name__).exception("Quarantine recovery store unavailable")
+            await asyncio.sleep(2)
+
     @asynccontextmanager
     async def lifespan(app):
+        app.state.quarantine_ready = False
         store.initialize()
         await asyncio.to_thread(importer.sync)
+        if recovery.configured():
+            try:
+                await asyncio.to_thread(business.initialize_quarantine)
+                app.state.quarantine_ready = True
+            except BusinessError:
+                logging.getLogger(__name__).exception("Quarantine recovery database is not ready")
         tasks = [asyncio.create_task(poll())]
         if settings.openstack_enabled and settings.openstack_quarantine_sg_id:
             tasks.append(asyncio.create_task(poll_inventory()))
+        if app.state.quarantine_ready:
+            tasks.append(asyncio.create_task(poll_restore()))
         try:
             yield
         finally:
@@ -138,7 +164,9 @@ def create_app(settings: Settings | None = None, *, evidence_config: EvidenceCon
     app.state.p17_cursors = CursorCodec()
     app.state.openstack_inventory = inventory
     app.state.console_service = ConsoleService(settings)
-    app.state.workload_quarantine = WorkloadQuarantine(settings)
+    app.state.workload_quarantine = recovery.cloud
+    app.state.quarantine_recovery = recovery
+    app.state.quarantine_ready = False
     app.state.quarantine_audit = business
     app.state.build_info = load_build_info(settings.build_manifest_path)
     app.add_middleware(CORSMiddleware, allow_origins=list(settings.cors_origins),
@@ -191,8 +219,7 @@ def create_app(settings: Settings | None = None, *, evidence_config: EvidenceCon
             'mode': 'SESSION' if session_enabled else 'OBSERVATION',
             'console_proxy_allowed': not session_enabled and settings.openstack_console_enabled,
             'workload_quarantine_available': bool(
-                business is not None and business.config.context == 'PORTAL'
-                and business.config.database_path and app.state.workload_quarantine.configured()
+                app.state.quarantine_ready
             ),
         })
 
@@ -221,7 +248,8 @@ def create_app(settings: Settings | None = None, *, evidence_config: EvidenceCon
             return error(request, 403, {'code': 'OBSERVATION_READ_ONLY',
                                         'message': 'This operation requires Portal session access.'})
         for method, path, _ in (*INCIDENT_WRITE_POLICIES,
-                                ('POST', '/api/v1/workloads/{server_id}/quarantine', 'execute')):
+                                ('POST', '/api/v1/workloads/{server_id}/quarantine', 'execute'),
+                                ('POST', '/api/v1/workloads/{server_id}/restore', 'execute')):
             app.add_api_route(path, observation_write_denied, methods=[method], include_in_schema=False)
     app.include_router(create_evidence_router(
         evidence, trusted_roles if business else evidence_role_resolver,

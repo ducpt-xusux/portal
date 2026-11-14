@@ -28,3 +28,12 @@ jobs:
           tar -xzf /tmp/n91-portal-proxy-linux.tar.gz -C /tmp
           cd /tmp/n91-portal-proxy-linux
           sha256sum -c SHA256SUMS
+          cd /tmp
+          sha256sum n91-portal-proxy-linux.tar.gz > n91-portal-proxy-linux.tar.gz.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: n91-portal-proxy-linux-${{ github.sha }}
+          path: |
+            /tmp/n91-portal-proxy-linux.tar.gz
+            /tmp/n91-portal-proxy-linux.tar.gz.sha256
+          if-no-files-found: error

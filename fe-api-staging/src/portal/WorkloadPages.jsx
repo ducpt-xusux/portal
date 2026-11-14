@@ -72,6 +72,11 @@ function NetworkHistory({ entries }) {
 }
 
 const QUARANTINE_ERRORS = {
+  RESTORE_PORT_CHANGED: 'Cấu hình cổng đã thay đổi. Kiểm tra trực tiếp trong Neutron trước khi khôi phục.',
+  RESTORE_PORT_SCOPE_CHANGED: 'Danh sách cổng mạng đã thay đổi. Kiểm tra trực tiếp trong Neutron.',
+  RESTORE_CONFIGURATION_CHANGED: 'Project hoặc Security Group cô lập đã thay đổi.',
+  RESTORE_OPERATION_CHANGED: 'Lượt cô lập đã thay đổi. Hãy kiểm tra lại trạng thái.',
+  RESTORE_HISTORY_UNAVAILABLE: 'Đã khôi phục SG, nhưng chưa lưu đủ lịch sử.',
   QUARANTINE_RESTORE_UNVERIFIED: 'Chưa xác minh được khôi phục nhóm bảo mật cũ. Kiểm tra các cổng trong Neutron trước khi thử lại.',
   QUARANTINE_APPLIED_AUDIT_INCOMPLETE: 'Neutron đã xác nhận cô lập. Chưa ghi được kết quả vào nhật ký Portal.',
   QUARANTINE_SG_NOT_EMPTY_OR_OUTSIDE_PROJECT: 'Security Group cô lập phải thuộc project và không có luật cho phép.',
@@ -79,44 +84,56 @@ const QUARANTINE_ERRORS = {
 
 function WorkloadQuarantine({ vm, resource }) {
   const { auth, workloadQuarantineAvailable } = usePortal()
+  const time = useTime()
   const [confirming, setConfirming] = useState(false)
-  const [quarantining, setQuarantining] = useState(false)
-  const [quarantineNotice, setQuarantineNotice] = useState(null)
+  const [pending, setPending] = useState(false)
+  const [notice, setNotice] = useState(null)
   const name = vm.name || vm.server_id
+  const path = `/workloads/${encodeURIComponent(vm.server_id)}`
+  const status = useV4Resource(`${path}/quarantine`, {
+    enabled: workloadQuarantineAvailable,
+    interval: 3000,
+  })
+  const operation = status.data
+  const state = operation?.state
+  const restoring = state === 'RESTORING' || state === 'APPLYING'
+  const canRestore = state === 'QUARANTINED' || state === 'RESTORE_FAILED'
   const networkState = workloadNetworkStatus(vm.network_observation, resource.meta, Boolean(resource.error))
-  const unavailable = vm.protected
-    ? 'Máy ảo này được bảo vệ.'
-    : networkState === 'QUARANTINED'
-      ? 'Máy ảo đã được cô lập.'
-      : !workloadQuarantineAvailable
-        ? 'Portal chưa được cấu hình quyền cô lập.'
-        : !auth.csrfToken || !auth.user?.roles?.includes('Executor')
+  const allowed = workloadQuarantineAvailable && operation?.allowed && !status.error
+  const executor = auth.csrfToken && auth.user?.roles?.includes('Executor')
+  const unavailable = !workloadQuarantineAvailable
+    ? 'Portal chưa được cấu hình quyền cô lập.'
+    : status.error
+      ? 'Chưa đọc được trạng thái cô lập.'
+      : operation && !operation.allowed
+        ? 'Máy ảo này nằm ngoài danh sách được phép cô lập.'
+        : !executor
           ? 'Cần đăng nhập bằng tài khoản có vai trò Executor.'
-          : networkState !== 'NORMAL'
-            ? 'Cần xác minh trạng thái mạng Bình thường trước khi cô lập.'
+          : !canRestore && (vm.protected || networkState !== 'NORMAL')
+            ? 'Cần xác minh máy ảo đủ điều kiện cô lập và mạng đang Bình thường.'
             : null
 
-  async function quarantine() {
-    if (unavailable || quarantining) return
-    setQuarantining(true)
-    setQuarantineNotice(null)
+  async function change(restore = false) {
+    if (!allowed || unavailable || pending || restoring) return
+    setPending(true)
+    setNotice(null)
     try {
-      const { data } = await portalRequest(`/workloads/${encodeURIComponent(vm.server_id)}/quarantine`, {
+      const { data } = await portalRequest(`${path}/${restore ? 'restore' : 'quarantine'}`, {
         method: 'POST',
         csrfToken: auth.csrfToken,
-        body: { confirm: 'QUARANTINE' },
+        body: restore ? { confirm: 'RESTORE', operation_id: operation.operation_id } : { confirm: 'QUARANTINE' },
         timeout: 90000,
       })
-      const message = `Neutron đã xác nhận cô lập ${name}.`
-      setQuarantineNotice(data?.history_saved === false
+      const message = restore ? `Neutron đã xác nhận khôi phục SG của ${name}.` : `Neutron đã xác nhận cô lập ${name}.`
+      setNotice(data?.history_saved === false
         ? { error: true, message: `${message} Chưa lưu được lịch sử trạng thái.` }
         : { message })
     } catch (error) {
-      setQuarantineNotice({ error: true, message: QUARANTINE_ERRORS[error.code] || error.message })
+      setNotice({ error: true, message: QUARANTINE_ERRORS[error.code] || error.message })
     } finally {
-      setQuarantining(false)
       setConfirming(false)
-      resource.refresh()
+      await Promise.allSettled([status.refresh(), resource.refresh()])
+      setPending(false)
     }
   }
 
@@ -125,32 +142,31 @@ function WorkloadQuarantine({ vm, resource }) {
       title="Cô lập máy ảo"
       subtitle="Áp dụng Security Group cô lập cho tất cả cổng mạng của máy ảo."
       action={!confirming && (
-        <button
-          type="button"
-          className="button secondary"
-          disabled={Boolean(unavailable) || resource.loading}
-          onClick={() => { setQuarantineNotice(null); setConfirming(true) }}
-        >
+        <button type="button" className="button secondary"
+          disabled={!allowed || Boolean(unavailable) || pending || restoring}
+          onClick={() => canRestore ? change(true) : setConfirming(true)}>
           <LockKeyhole size={15} aria-hidden="true" />
-          Cô lập
+          {canRestore ? 'Khôi phục' : 'Cô lập'}
         </button>
       )}
     >
-      {unavailable && !quarantining && <p className="v4-panel-note">{unavailable}</p>}
-      {quarantineNotice && (
-        <p className="v4-panel-note" role={quarantineNotice.error ? 'alert' : 'status'}>
-          {quarantineNotice.message}
-        </p>
-      )}
+      {unavailable && !pending && <p className="v4-panel-note">{unavailable}</p>}
+      {state === 'QUARANTINED' && <p role="status">Khôi phục tự động lúc {time(operation.restore_at)}.</p>}
+      {restoring && <p role="status">Đang xử lý thay đổi Security Group.</p>}
+      {state === 'RESTORED' && <p role="status">SG đã được khôi phục lúc {time(operation.restored_at)}.</p>}
+      {operation?.error_code && <p role="alert">{QUARANTINE_ERRORS[operation.error_code] || operation.error_code}</p>}
+      {notice && <p role={notice.error ? 'alert' : 'status'}>{notice.message}</p>}
       {confirming && (
         <div className="v4-inline-warning" role="group" aria-label="Xác nhận cô lập máy ảo">
           <p><strong>{name}</strong> có thể mất kết nối mạng sau khi cô lập.</p>
           <div className="v4-workload-quarantine-actions">
-            <button type="button" className="button secondary" disabled={quarantining} onClick={() => setConfirming(false)}>
+            <button type="button" className="button secondary" disabled={pending} onClick={() => setConfirming(false)}>
               Hủy
             </button>
-            <button type="button" className="button primary" disabled={Boolean(unavailable) || quarantining || resource.loading} onClick={quarantine}>
-              {quarantining ? 'Đang cô lập…' : 'Xác nhận cô lập'}
+            <button type="button" className="button primary"
+              disabled={!allowed || Boolean(unavailable) || pending || restoring || canRestore}
+              onClick={() => change()}>
+              {pending ? 'Đang cô lập…' : 'Xác nhận cô lập'}
             </button>
           </div>
         </div>

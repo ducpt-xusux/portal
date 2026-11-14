@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 import os
+from uuid import UUID
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -39,6 +40,8 @@ class Settings:
     openstack_project_id: str = ""
     openstack_quarantine_sg_id: str = ""
     openstack_quarantine_credential_path: Path | None = None
+    quarantine_allowed_server_ids: tuple[str, ...] = ()
+    quarantine_ttl_seconds: int = 90
     openstack_console_enabled: bool = False
     openstack_console_origin: str = ""
     openstack_console_credential_path: Path | None = None
@@ -66,6 +69,10 @@ class Settings:
     investigation_controller_binding_sha256: str = ""
 
     def __post_init__(self):
+        if any(str(UUID(server_id)) != server_id for server_id in self.quarantine_allowed_server_ids):
+            raise ValueError("Quarantine allowlist requires canonical VM UUIDs")
+        if not 15 <= self.quarantine_ttl_seconds <= 600:
+            raise ValueError("PORTAL_QUARANTINE_TTL_SECONDS must be between 15 and 600")
         if self.defense_source_registry_path is not None:
             protected_paths = (
                 self.audit_path, self.database_path, self.p17_snapshot_path,
@@ -129,6 +136,11 @@ class Settings:
             openstack_project_id=os.getenv("OPENSTACK_PROJECT_ID", ""),
             openstack_quarantine_sg_id=os.getenv("OPENSTACK_QUARANTINE_SG_ID", "").strip().lower(),
             openstack_quarantine_credential_path=optional_path("OPENSTACK_QUARANTINE_CREDENTIAL_PATH"),
+            quarantine_allowed_server_ids=tuple(
+                part.strip() for part in os.getenv("PORTAL_QUARANTINE_ALLOWED_SERVER_IDS", "").split(",")
+                if part.strip()
+            ),
+            quarantine_ttl_seconds=int(os.getenv("PORTAL_QUARANTINE_TTL_SECONDS", "90")),
             openstack_console_enabled=os.getenv("OPENSTACK_CONSOLE_ENABLED", "false").lower() == "true",
             openstack_console_origin=os.getenv("OPENSTACK_CONSOLE_ORIGIN", ""),
             openstack_console_credential_path=absolute_path(os.environ["OPENSTACK_CONSOLE_CREDENTIAL_PATH"]) if os.getenv("OPENSTACK_CONSOLE_CREDENTIAL_PATH") else None,

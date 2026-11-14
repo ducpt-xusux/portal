@@ -6,10 +6,10 @@ import hashlib
 import hmac
 from ipaddress import ip_address
 import json
-import logging
 import math
 import secrets
 import sqlite3
+from uuid import UUID
 import time
 from typing import Annotated, Literal
 
@@ -630,49 +630,47 @@ class QuarantineRequest(BaseModel):
 quarantine_router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_key)])
 
 
-@quarantine_router.post("/workloads/{server_id}/quarantine")
-def quarantine_workload(request: Request, server_id: IdPath, body: QuarantineRequest):
-    principal = getattr(request.state, "business_principal", None)
-    audit = request.app.state.quarantine_audit
-    if principal is None or "Executor" not in principal.roles:
-        fail(403, "QUARANTINE_EXECUTOR_REQUIRED")
-    if audit is None or audit.config.context != "PORTAL":
-        fail(503, "QUARANTINE_NOT_CONFIGURED")
-    request_id = request.state.request_id
-    service = request.app.state.workload_quarantine
-    inventory = request.app.state.openstack_inventory
-    history_saved = True
+class RestoreRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    confirm: Literal["RESTORE"]
+    operation_id: UUID
 
-    def record_attempt(previous):
-        audit.record_quarantine(principal, server_id, request_id, outcome="ATTEMPTED", before=previous)
 
-    def record_verified(observed_at):
-        nonlocal history_saved
-        try:
-            inventory.record_quarantine_verified(server_id, observed_at)
-        except sqlite3.Error:
-            history_saved = False
-            logging.getLogger(__name__).error("Quarantine history unavailable request_id=%s", request_id)
-
+@quarantine_router.get("/workloads/{server_id}/quarantine")
+def quarantine_status(request: Request, server_id: IdPath):
     try:
-        status = service.apply(server_id, record_attempt, record_verified=record_verified)
-    except QuarantineError as error:
-        try:
-            audit.record_quarantine(principal, server_id, request_id, outcome="FAILED", after={"code": error.code})
-        except BusinessError:
-            logging.getLogger(__name__).error("Quarantine audit unavailable request_id=%s", request_id)
-        fail(error.status, error.code)
+        data = (request.app.state.quarantine_recovery.status(server_id)
+                if request.app.state.quarantine_ready else {"allowed": False})
     except BusinessError as error:
         fail(error.status, error.code)
-    finally:
-        inventory.refresh_next_read()
+    return {"data": data, "meta": {"request_id": request.state.request_id, "read_at": utc_now()}, "error": None}
+
+
+def change_quarantine(request, server_id, operation, *args):
+    principal = getattr(request.state, "business_principal", None)
+    if principal is None or "Executor" not in principal.roles:
+        fail(403, "QUARANTINE_EXECUTOR_REQUIRED")
     try:
-        audit.record_quarantine(principal, server_id, request_id, outcome="SUCCESS", after={"status": status})
-    except BusinessError:
-        logging.getLogger(__name__).error("Quarantine result audit unavailable request_id=%s", request_id)
-        fail(503, "QUARANTINE_APPLIED_AUDIT_INCOMPLETE")
-    return {"data": {"server_id": server_id, "status": status, "history_saved": history_saved},
-            "meta": {"request_id": request_id, "read_at": utc_now()}, "error": None}
+        request.app.state.quarantine_recovery.cloud.require_allowed(server_id)
+        if not request.app.state.quarantine_ready:
+            fail(503, "QUARANTINE_NOT_CONFIGURED")
+        data = operation(server_id, principal, request.state.request_id, *args)
+    except (QuarantineError, BusinessError) as error:
+        fail(error.status, error.code)
+    finally:
+        if server_id in request.app.state.settings.quarantine_allowed_server_ids:
+            request.app.state.openstack_inventory.refresh_next_read()
+    return {"data": data, "meta": {"request_id": request.state.request_id, "read_at": utc_now()}, "error": None}
+
+
+@quarantine_router.post("/workloads/{server_id}/quarantine")
+def quarantine_workload(request: Request, server_id: IdPath, body: QuarantineRequest):
+    return change_quarantine(request, server_id, request.app.state.quarantine_recovery.quarantine)
+
+
+@quarantine_router.post("/workloads/{server_id}/restore")
+def restore_workload(request: Request, server_id: IdPath, body: RestoreRequest):
+    return change_quarantine(request, server_id, request.app.state.quarantine_recovery.restore, str(body.operation_id))
 
 
 class ConsoleRequest(BaseModel):
