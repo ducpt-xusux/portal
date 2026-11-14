@@ -191,12 +191,14 @@ def test_endpoint_requires_executor_and_csrf_and_writes_audit(tmp_path, setup):
         assert db.execute("SELECT count(*) FROM admin_audit WHERE action='WORKLOAD_RESTORE' AND outcome='SUCCESS'").fetchone()[0] == 1
 
 
-@pytest.mark.parametrize("scenario", ["ttl", "revision_conflict", "interrupted_write"])
+@pytest.mark.parametrize("scenario", ["ttl", "revision_conflict", "interrupted_write", "manual_only", "disabled_pending"])
 def test_expired_operation_survives_service_recreation(tmp_path, setup, monkeypatch, scenario):
     from app.quarantine_recovery import QuarantineRecovery
     from app.store import Store
 
     neutron, cloud, _ = setup
+    if scenario == "manual_only":
+        cloud.settings = replace(cloud.settings, quarantine_ttl_seconds=0)
     neutron.ports[PORTS[0]]["security_groups"] = [OLD, OLD_2]
     now = datetime.now(timezone.utc)
     cloud.identity.clock = lambda: now
@@ -229,8 +231,16 @@ def test_expired_operation_survives_service_recreation(tmp_path, setup, monkeypa
         now += timedelta(seconds=91)
     if scenario == "revision_conflict":
         neutron.ports[PORTS[0]]["revision_number"] += 1
+    if scenario == "disabled_pending":
+        cloud.settings = replace(cloud.settings, quarantine_ttl_seconds=0)
     restarted = QuarantineRecovery(cloud, BusinessService(config), store)
     restarted.restore_due()
+    if scenario in ("manual_only", "disabled_pending"):
+        status = restarted.status(VM)
+        assert status["state"] == "QUARANTINED" and status["restore_at"] is None
+        assert all(port["security_groups"] == [SG] for port in neutron.ports.values())
+        restored = restarted.restore(VM, actor, "restore-request", status["operation_id"])
+        assert restored["restore_trigger"] == "MANUAL"
     if scenario == "revision_conflict":
         assert len(neutron.writes) == 2
         assert restarted.status(VM)["error_code"] == "RESTORE_PORT_CHANGED"

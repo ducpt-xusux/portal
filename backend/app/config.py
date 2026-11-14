@@ -71,8 +71,8 @@ class Settings:
     def __post_init__(self):
         if any(str(UUID(server_id)) != server_id for server_id in self.quarantine_allowed_server_ids):
             raise ValueError("Quarantine allowlist requires canonical VM UUIDs")
-        if not 15 <= self.quarantine_ttl_seconds <= 600:
-            raise ValueError("PORTAL_QUARANTINE_TTL_SECONDS must be between 15 and 600")
+        if self.quarantine_ttl_seconds != 0 and not 15 <= self.quarantine_ttl_seconds <= 600:
+            raise ValueError("PORTAL_QUARANTINE_TTL_SECONDS must be 0 (disabled) or between 15 and 600")
         if self.defense_source_registry_path is not None:
             protected_paths = (
                 self.audit_path, self.database_path, self.p17_snapshot_path,

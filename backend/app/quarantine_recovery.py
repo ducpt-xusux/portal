@@ -57,9 +57,9 @@ class QuarantineRecovery:
             if not row:
                 return {"allowed": True, "state": "IDLE"}
             return {"allowed": True, **{key: row[key] for key in (
-                "operation_id", "state", "quarantined_at", "restore_at", "restored_at",
+                "operation_id", "state", "quarantined_at", "restored_at",
                 "restore_trigger", "error_code",
-            )}}
+            )}, "restore_at": (row["restore_at"] or None) if self.settings.quarantine_ttl_seconds else None}
 
     def _history(self, server_id, stamp, state, source):
         try:
@@ -97,7 +97,7 @@ class QuarantineRecovery:
                     "INSERT INTO workload_quarantine(operation_id,server_id,project_id,quarantine_sg,request_id,"
                     "actor_id,ports_json,state,started_at,restore_at) VALUES(?,?,?,?,?,?,?,'APPLYING',?,?)",
                     (operation, server_id, self.settings.openstack_project_id, self.settings.openstack_quarantine_sg_id,
-                     request_id, actor.user_id, json.dumps(ports), iso(started), iso(started)),
+                     request_id, actor.user_id, json.dumps(ports), iso(started), ""),
                 )
                 self.audit._audit(db, actor.user_id, "WORKLOAD_QUARANTINE", server_id, request_id,
                                   before=ports, after={"operation_id": operation}, outcome="ATTEMPTED")
@@ -115,13 +115,14 @@ class QuarantineRecovery:
         def verified(observed_at):
             nonlocal history_saved
             stamp = iso(observed_at)
-            expiry = iso(observed_at + timedelta(seconds=self.settings.quarantine_ttl_seconds))
+            ttl = self.settings.quarantine_ttl_seconds
+            expiry = iso(observed_at + timedelta(seconds=ttl)) if ttl else None
             with self.audit.connection(write=True) as db:
                 row = self._latest(db, server_id)
                 ports = [{"port_id": port["port_id"], "security_group_ids": [row["quarantine_sg"]],
                           "revision_number": port["quarantine_revision"]} for port in json.loads(row["ports_json"])]
                 db.execute("UPDATE workload_quarantine SET state='QUARANTINED',quarantined_at=?,restore_at=? "
-                           "WHERE operation_id=?", (stamp, expiry, operation))
+                           "WHERE operation_id=?", (stamp, expiry or "", operation))
                 self.audit._audit(db, actor.user_id, "WORKLOAD_QUARANTINE", server_id, request_id,
                                   after={"operation_id": operation, "ports": ports, "restore_at": expiry})
             history_saved = self._history(server_id, stamp, "QUARANTINED",
@@ -219,8 +220,9 @@ class QuarantineRecovery:
             with self.audit.connection() as db:
                 due = db.execute(
                     "SELECT server_id,state FROM workload_quarantine WHERE state IN ('APPLYING','RESTORING') "
-                    "OR (state='QUARANTINED' AND restore_at<=?) OR (state='RESTORE_FAILED' AND next_attempt_at<=?)",
-                    (stamp, stamp),
+                    "OR (state='QUARANTINED' AND ? AND restore_at<>'' AND restore_at<=?) "
+                    "OR (state='RESTORE_FAILED' AND next_attempt_at<=?)",
+                    (bool(self.settings.quarantine_ttl_seconds), stamp, stamp),
                 ).fetchall()
             for row in due:
                 trigger = "RECOVERY" if row["state"] == "APPLYING" else "TTL"

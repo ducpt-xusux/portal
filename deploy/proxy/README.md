@@ -116,6 +116,8 @@ PORTAL_QUARANTINE_ALLOWED_SERVER_IDS=fa34f3e8-50ff-467e-a7db-a5cd92613682
 PORTAL_QUARANTINE_TTL_SECONDS=90
 ```
 
+Đặt `PORTAL_QUARANTINE_TTL_SECONDS=0` và khởi động lại Portal để tắt lịch tự khôi phục. Executor dùng nút **Khôi phục** để gắn lại SG gốc. Cơ chế phục hồi thao tác đang dở vẫn chạy khi Portal khởi động lại.
+
 Sao lưu release và file môi trường, đồng thời dùng SQLite backup API để sao lưu DB audit và Business DB trước khi thay bản. Kiểm checksum gói CI, restart đúng launcher đang dùng với lifespan Uvicorn bật, rồi xác minh `SESSION`, `workload_quarantine_available=true` và SHA qua `/api/v1/system/build` sau đăng nhập. Chạy lại Events, Incidents, Galera và Workloads với phiên đăng nhập.
 
 Portal lưu SG gốc theo từng port trước khi ghi Neutron. Tác vụ nền đọc các lượt quá hạn mỗi 2 giây và tiếp tục từ Business DB sau restart. Khi Portal dừng quá TTL, tác vụ chạy lại khi Portal lên. Kiểm tra cả khôi phục thủ công và một lượt khôi phục theo TTL sau khi restart, kèm đối chiếu SG trực tiếp trong Neutron, lịch sử `NORMAL → QUARANTINED → NORMAL` và audit `WORKLOAD_QUARANTINE` / `WORKLOAD_RESTORE`. Nếu port hoặc revision thay đổi ngoài lượt thử, Portal giữ trạng thái lỗi và thông tin SG gốc để người vận hành đối chiếu.

@@ -151,7 +151,9 @@ function WorkloadQuarantine({ vm, resource }) {
       )}
     >
       {unavailable && !pending && <p className="v4-panel-note">{unavailable}</p>}
-      {state === 'QUARANTINED' && <p role="status">Khôi phục tự động lúc {time(operation.restore_at)}.</p>}
+      {state === 'QUARANTINED' && <p role="status">{operation.restore_at
+        ? `Khôi phục tự động lúc ${time(operation.restore_at)}.`
+        : 'Máy ảo sẽ giữ trạng thái cô lập cho đến khi bạn bấm Khôi phục.'}</p>}
       {restoring && <p role="status">Đang xử lý thay đổi Security Group.</p>}
       {state === 'RESTORED' && <p role="status">SG đã được khôi phục lúc {time(operation.restored_at)}.</p>}
       {operation?.error_code && <p role="alert">{QUARANTINE_ERRORS[operation.error_code] || operation.error_code}</p>}
