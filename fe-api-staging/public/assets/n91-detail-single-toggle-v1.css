@@ -1,0 +1,10 @@
+/* Hide ONLY the duplicate fixed switch from Event/Incident Demo overlays.
+   Keep the title-bar action (including keyboard focus and accessibility). */
+#n91-detail-demo-switch-v1,
+#n91-detail-demo-switch-v2,
+#n91-detail-demo-switch-v3,
+.n91-detail-demo-switch-v1,
+.n91-detail-demo-switch-v2,
+.n91-detail-demo-switch-v3 {
+  display: none !important;
+}

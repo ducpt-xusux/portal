@@ -5,3 +5,6 @@
 *.conf text eol=lf
 *.sha256 text eol=lf
 *.tar.gz binary
+
+# Preserve captured classic-script/static CSS bytes and their manifest hashes.
+fe-api-staging/public/assets/n91-* -text

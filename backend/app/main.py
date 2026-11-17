@@ -18,6 +18,7 @@ from .ingest import Importer
 from .schemas import utc_now
 from .store import Store
 from .p17_snapshot import SnapshotReader
+from .p17_vnext_api import router as p17_vnext_router
 from .p17_api import CursorCodec, evaluation_run_router, observation_auth_router, quarantine_router, require_read_access, router as p17_router, source_status_router
 from .openstack_inventory import InventoryError, InventoryReader
 from .remote_console import ConsoleService
@@ -35,6 +36,11 @@ from .n91_investigation.api import assert_no_duplicate_routes, business_session_
 
 
 SESSION_POLICIES = (
+    ('GET', '/api/v1/p17-vnext/status', 'read'),
+    ('GET', '/api/v1/p17-vnext/cases', 'read'),
+    ('GET', '/api/v1/p17-vnext/cases/{case_id}', 'read'),
+    ('GET', '/api/v1/p17-vnext/events', 'read'),
+    ('GET', '/api/v1/p17-vnext/events/{event_id}', 'read'),
     ('GET', '/api/v1/system/build', 'read'),
     ('GET', '/api/v1/system/demo-coverage/defense-run', 'read'),
     ('GET', '/api/v1/portal/incidents/{incident_id}/investigation', 'evidence'),
@@ -238,6 +244,7 @@ def create_app(settings: Settings | None = None, *, evidence_config: EvidenceCon
 
     app.include_router(router)
     app.include_router(p17_router)
+    app.include_router(p17_vnext_router, dependencies=[Depends(require_key), Depends(require_read_access)])
     app.include_router(evaluation_run_router)
     app.include_router(source_status_router)
     if business:

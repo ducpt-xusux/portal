@@ -11,10 +11,10 @@ jobs:
           python-version: '3.13'
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
-      - run: python -m pip install -r backend/requirements.txt pytest httpx
+          node-version: '22.23.5'
+      - run: python -m pip install -r backend/requirements-runtime.lock -r backend/requirements-test.txt
       - run: python -m compileall -q backend/app
-      - run: python -m pytest backend/tests
+      - run: python -m pytest backend/tests components/p17-worker/tests
         env:
           PYTHONPATH: backend
       - run: npm ci
@@ -23,6 +23,7 @@ jobs:
         working-directory: fe-api-staging
       - run: npm run build -- --outDir ../deploy/.proxy-web-build
         working-directory: fe-api-staging
+      - run: python deploy/portal-local/verify_import.py --web deploy/.proxy-web-build
       - run: |
           python deploy/build_proxy_bundle.py --output /tmp/n91-portal-proxy-linux.tar.gz
           tar -xzf /tmp/n91-portal-proxy-linux.tar.gz -C /tmp

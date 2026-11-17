@@ -1,0 +1,125 @@
+{
+  "schema": "portal-live-extensions-1",
+  "tags": [
+    {
+      "url": "/assets/n91-clean-ui.css",
+      "tag": "<link rel=\"stylesheet\" href=\"/assets/n91-clean-ui.css\">",
+      "path": "fe-api-staging/public/assets/n91-clean-ui.css",
+      "sha256": "1009627172c39f7ae8606e06d7c29b04efd873cbd932b249788354ef9a9feced"
+    },
+    {
+      "url": "/assets/n91-clean-preload.js",
+      "tag": "<script src=\"/assets/n91-clean-preload.js\"></script>",
+      "path": "fe-api-staging/public/assets/n91-clean-preload.js",
+      "sha256": "7a38cb987cb35bf5881fc5ef1d909d5dde9e3405ca350f284ea7d5524657fdb1"
+    },
+    {
+      "url": "/assets/n91-clean-ui.js",
+      "tag": "<script defer src=\"/assets/n91-clean-ui.js\"></script>",
+      "path": "fe-api-staging/public/assets/n91-clean-ui.js",
+      "sha256": "76dff0c00cf2c03b8ad1c684a0e737740f2fe7a380e47edb98ad035b6d2ba70a"
+    },
+    {
+      "url": "/assets/n91-unified-workbench.css",
+      "tag": "<link rel=\"stylesheet\" href=\"/assets/n91-unified-workbench.css\">",
+      "path": "fe-api-staging/public/assets/n91-unified-workbench.css",
+      "sha256": "38ed800e5c453191a0913e91359954f3c075ed1199fc6c1dc655b291056cbd7b"
+    },
+    {
+      "url": "/assets/n91-unified-workbench.js",
+      "tag": "<script defer src=\"/assets/n91-unified-workbench.js\"></script>",
+      "path": "fe-api-staging/public/assets/n91-unified-workbench.js",
+      "sha256": "7add175680b71df2ab8015b95db6d099fcc409f2f76b7829bf9fc872c629e623"
+    },
+    {
+      "url": "/assets/n91-brand-one-line.css?v=1",
+      "tag": "<link rel=\"stylesheet\" href=\"/assets/n91-brand-one-line.css?v=1\">",
+      "path": "fe-api-staging/public/assets/n91-brand-one-line.css",
+      "sha256": "4afb597b4193a5e297f4dbf63985c6bebc992bf20e71d271248dc7a04a47d59d"
+    },
+    {
+      "url": "/assets/n91-demo-clean-v4.css?v=4.0.0",
+      "tag": "<link rel=\"stylesheet\" href=\"/assets/n91-demo-clean-v4.css?v=4.0.0\">",
+      "path": "fe-api-staging/public/assets/n91-demo-clean-v4.css",
+      "sha256": "fc0386fd6cb38bbf89d8c441ae58863a7cd22a66d3eb4fddc14a783c9764ebaf"
+    },
+    {
+      "url": "/assets/n91-demo-clean-v4.js?v=4.0.0",
+      "tag": "<script defer src=\"/assets/n91-demo-clean-v4.js?v=4.0.0\"></script>",
+      "path": "fe-api-staging/public/assets/n91-demo-clean-v4.js",
+      "sha256": "cc092fcaaf1e3440c028b4d243488dc5791312a829f1c64b771c4d17ae56bc04"
+    },
+    {
+      "url": "/assets/n91-detail-demo-v2.css",
+      "tag": "<link rel=\"stylesheet\" href=\"/assets/n91-detail-demo-v2.css\">",
+      "path": "fe-api-staging/public/assets/n91-detail-demo-v2.css",
+      "sha256": "dd0e9489b7d9e5cccd12055a98f7694bfb8d398b8c30cce3eaa110da6f57370b"
+    },
+    {
+      "url": "/assets/n91-detail-demo-v2.js",
+      "tag": "<script defer src=\"/assets/n91-detail-demo-v2.js\"></script>",
+      "path": "fe-api-staging/public/assets/n91-detail-demo-v2.js",
+      "sha256": "af73226ab20f4e2a79d878e01335e207bb6228a0c2c0109d3ffbc36c6ed0c84e"
+    },
+    {
+      "url": "/assets/n91-workload-empty-risk-v1.css",
+      "tag": "<link rel=\"stylesheet\" href=\"/assets/n91-workload-empty-risk-v1.css\">",
+      "path": "fe-api-staging/public/assets/n91-workload-empty-risk-v1.css",
+      "sha256": "babd34cc80d71cc9c21cdda1353c844444b6d1109d47b37c702daa08c8fff8b2"
+    },
+    {
+      "url": "/assets/n91-workload-empty-risk-v1.js",
+      "tag": "<script defer src=\"/assets/n91-workload-empty-risk-v1.js\"></script>",
+      "path": "fe-api-staging/public/assets/n91-workload-empty-risk-v1.js",
+      "sha256": "aa5fdb777bc454f538cc3929f5ed78a20de2f805098c469280012fc20d91a6ce"
+    },
+    {
+      "url": "/assets/n91-data-gaps-ui-v1.css",
+      "tag": "<link rel=\"stylesheet\" href=\"/assets/n91-data-gaps-ui-v1.css\">",
+      "path": "fe-api-staging/public/assets/n91-data-gaps-ui-v1.css",
+      "sha256": "57f73214df833ba710e370edb5040ccf40a1f76ac32f4cd53c151e50351cc863"
+    },
+    {
+      "url": "/assets/n91-data-gaps-ui-v1.js",
+      "tag": "<script defer src=\"/assets/n91-data-gaps-ui-v1.js\"></script>",
+      "path": "fe-api-staging/public/assets/n91-data-gaps-ui-v1.js",
+      "sha256": "35b416e9d39a312e7f45a1853b6dccde67c9b8ed79877f482ae7b647e0b92673"
+    },
+    {
+      "url": "/assets/n91-incident-list-clean-v1.css",
+      "tag": "<link rel=\"stylesheet\" href=\"/assets/n91-incident-list-clean-v1.css\">",
+      "path": "fe-api-staging/public/assets/n91-incident-list-clean-v1.css",
+      "sha256": "d26f8477161e63e8c396bc65104c676e454275a625a54fb32aea48dc3398514f"
+    },
+    {
+      "url": "/assets/n91-incident-list-clean-v1.js",
+      "tag": "<script defer src=\"/assets/n91-incident-list-clean-v1.js\"></script>",
+      "path": "fe-api-staging/public/assets/n91-incident-list-clean-v1.js",
+      "sha256": "daeb7f135bddd0224885aa7a47fee7c5b076f15f659aa7f15701997c25ba0d70"
+    },
+    {
+      "url": "/assets/n91-incident-source-v2.css",
+      "tag": "<link rel=\"stylesheet\" href=\"/assets/n91-incident-source-v2.css\">",
+      "path": "fe-api-staging/public/assets/n91-incident-source-v2.css",
+      "sha256": "f3b3a7eaaac7b5d0ac8fede1715941032a7f13118b76cdcae3a0f087722f1682"
+    },
+    {
+      "url": "/assets/n91-incident-source-v2.js",
+      "tag": "<script defer src=\"/assets/n91-incident-source-v2.js\"></script>",
+      "path": "fe-api-staging/public/assets/n91-incident-source-v2.js",
+      "sha256": "7ff4e60df6502c2a6af5e865957c3584599057c13e7149d81bab98b20ea34fa8"
+    },
+    {
+      "url": "/assets/n91-detail-single-toggle-v1.css",
+      "tag": "<link rel=\"stylesheet\" href=\"/assets/n91-detail-single-toggle-v1.css\">",
+      "path": "fe-api-staging/public/assets/n91-detail-single-toggle-v1.css",
+      "sha256": "8407dae52646efb361e7961b5cf044a7688eef3fb1a97dbaecd9e631b59e0877"
+    },
+    {
+      "url": "/assets/n91-detail-single-toggle-v1.js",
+      "tag": "<script defer src=\"/assets/n91-detail-single-toggle-v1.js\"></script>",
+      "path": "fe-api-staging/public/assets/n91-detail-single-toggle-v1.js",
+      "sha256": "135b214eb81a4154a5ce0fb5bb832d110ecf06e6f5e7296dbffb081a8050903f"
+    }
+  ]
+}

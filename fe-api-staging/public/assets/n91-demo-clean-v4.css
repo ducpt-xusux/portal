@@ -1,0 +1,37 @@
+/* DBSEC 5188 V4 demo presentation: CSS-only visibility, no data mutation. */
+.v4-app .sidebar .n91-demo-brand,
+.v4-app aside .n91-demo-brand,
+.n91-demo-brand {
+  white-space: nowrap !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  max-width: none !important;
+  overflow: visible !important;
+}
+/* Redundant P17 VNext counters, historical text and explanatory filler. */
+#n91-unified-workbench .n91u-source,
+#n91-unified-workbench .n91u-metrics,
+#n91-unified-workbench .n91u-hint {
+  display: none !important;
+}
+#n91-unified-workbench .n91u-head:not(.n91u-headtop) { margin-bottom: 12px; }
+#n91-unified-workbench .n91u-card-title > .n91u-chip.neutral { display:none !important; }
+/* Legacy event detail: full fidelity remains available through the toggle. */
+body.n91-demo-event-detail:not(.n91-demo-show-all) .n91-demo-advanced-only { display: none !important; }
+body.n91-demo-event-detail:not(.n91-demo-show-all) .v4-detail-statuses {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+body.n91-demo-event-detail:not(.n91-demo-show-all) .v4-detail-grid {
+  align-items: start !important;
+}
+body.n91-demo-event-detail:not(.n91-demo-show-all) .v4-detail-grid > .v4-panel,
+body.n91-demo-event-detail:not(.n91-demo-show-all) .v4-detail-grid > .v4-stack > .v4-panel {
+  min-height: 0 !important;
+}
+.n91-demo-expand { white-space:nowrap; font-weight: 700 !important; }
+.n91-demo-event-detail .v4-fields > div { min-width:0; }
+@media (max-width: 820px) {
+  body.n91-demo-event-detail:not(.n91-demo-show-all) .v4-detail-statuses {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}

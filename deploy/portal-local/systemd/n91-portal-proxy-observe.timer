@@ -1,0 +1,9 @@
+[Unit]
+Description=N91 refresh Proxy systemd status for Portal
+[Timer]
+Unit=n91-portal-proxy-observe.service
+OnActiveSec=3s
+OnUnitInactiveSec=12s
+AccuracySec=1s
+[Install]
+WantedBy=timers.target

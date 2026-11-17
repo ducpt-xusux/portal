@@ -1,0 +1,904 @@
+/* N91 dashboard visual refinement — static, GET-only UI. No third-party fonts/assets. */
+.v4-app {
+  font-family: Inter, 'Segoe UI', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.v4-app h1,.v4-app .v4-page-heading h1{font-size:clamp(24px,2vw,30px);line-height:1.2;font-weight:750;letter-spacing:-.025em}
+.v4-app h2,.v4-app .panel-heading h2{font-size:17px;line-height:1.35;font-weight:700;letter-spacing:-.01em}
+.v4-app h3,.v4-app .v4-subheading{font-size:15px;font-weight:700}
+.v4-app p,.v4-app td,.v4-app dd,.v4-app li,.v4-app a{font-style:normal}
+.v4-app button,.v4-app input,.v4-app select,.v4-app textarea{font-family:inherit;font-size:13px}
+.v4-app .v4-table th,.v4-app .v4-fields dt,.v4-app .eyebrow,.v4-app .v4-source-status,.v4-app .v4-caption,.v4-app small{font-size:12px}
+.v4-app .v4-table td{font-size:13px}
+/* Two workspaces and dead-end tabs are removed from the visible navigation only. */
+.v4-app .v4-top-select.v4-source-select,
+.v4-app .v4-source-mode-notice,
+.v4-app .v4-topbar select[aria-label="Chế độ Trang chủ"],
+.v4-app .v4-system-tabs a[href*="/policies"],
+.v4-app .v4-system-tabs a[href*="/evaluation"],
+.v4-app .v4-system-tabs a[href*="/demo-coverage"]{display:none!important}
+
+#n91-compact-overview{display:none}
+body.n91-clean-on .v4-main{
+  overflow:auto!important;
+  min-height:0!important;
+  height:calc(100dvh - 70px);
+  padding:0 21px 8px!important;
+  scrollbar-width:thin;
+}
+body.n91-clean-on .v4-main>:not(#n91-compact-overview){display:none!important}
+body.n91-clean-on #n91-compact-overview{
+  display:flex;
+  flex-direction:column;
+  width:100%;
+  max-width:1540px;
+  min-height:0;
+  margin:0 auto;
+  padding:22px 0 12px;
+  gap:17px;
+  color:#15364a;
+}
+#n91-compact-overview,#n91-compact-overview *{box-sizing:border-box}
+#n91-compact-overview a{text-decoration:none;color:inherit}
+#n91-compact-overview button:focus-visible,
+#n91-compact-overview a:focus-visible{outline:3px solid #1b9aa7;outline-offset:3px}
+
+/* Clean command-center header. */
+.n91-hero{display:flex;justify-content:space-between;align-items:center;gap:24px;min-height:83px;padding:1px 2px}
+.n91-hero-main{display:flex;flex-direction:column;gap:2px;min-width:0}
+.n91-kicker{display:inline-flex;align-items:center;gap:8px;color:#087987;font-size:11px;line-height:1.3;font-weight:800;letter-spacing:.105em}
+.n91-kicker-dot{width:7px;height:7px;background:#0e8f93;border-radius:50%;box-shadow:0 0 0 4px #def4f1}
+#n91-compact-overview .n91-hero h1{margin:4px 0 1px;font-size:clamp(26px,2.1vw,33px);font-weight:760;letter-spacing:-.038em;line-height:1.14;color:#102e44}
+.n91-hero p{margin:2px 0 0;color:#6f8799;font-size:13px;line-height:1.4}
+.n91-hero-actions{display:flex;align-items:center;gap:12px;flex:none}
+.n91-data-indicator{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid #dce8ee;border-radius:999px;background:#fff;color:#46697a;font-weight:700;font-size:12px;white-space:nowrap}
+.n91-indicator-dot{width:7px;height:7px;background:#899ba6;border-radius:50%}
+.n91-data-ok .n91-indicator-dot{background:#1c9e7b;box-shadow:0 0 0 3px #e1f7ed}
+.n91-data-unavailable .n91-indicator-dot{background:#ce5553;box-shadow:0 0 0 3px #fbe9e8}
+#n91-dash-refresh{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:40px;padding:9px 15px;border-radius:10px;border:1px solid #cddde5;background:#fff;color:#174357;font-size:13px;font-weight:730;white-space:nowrap;cursor:pointer;box-shadow:0 2px 4px rgba(9,42,59,.025);transition:background .15s,border-color .15s,transform .15s}
+#n91-dash-refresh:hover{background:#effafa;border-color:#7abac1;transform:translateY(-1px)}
+
+/* Summary strip: consistent vertical rhythm; colored icons instead of thick top borders. */
+.n91-metric-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+#n91-compact-overview .n91-metric{display:flex;flex-direction:column;gap:8px;min-width:0;min-height:131px;padding:17px 18px 16px;border:1px solid #dce7ee;border-radius:15px;background:#fff;box-shadow:0 3px 13px rgba(22,64,81,.035);transition:transform .14s,border-color .14s,box-shadow .14s}
+#n91-compact-overview .n91-metric:hover{transform:translateY(-2px);border-color:#89bdc8;box-shadow:0 8px 24px rgba(18,72,90,.075)}
+.n91-metric-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.n91-metric-label{min-width:0;color:#536f83;font-weight:720;font-size:12px;letter-spacing:.005em}
+.n91-metric-icon{height:34px;width:34px;flex:none;display:flex;align-items:center;justify-content:center;color:#247a89;background:#edf7f8;border-radius:10px}
+.n91-metric-danger .n91-metric-icon{color:#bd4b4d;background:#fff0ef}
+.n91-metric-warn .n91-metric-icon{color:#b17d29;background:#fff5e4}
+.n91-metric-source .n91-metric-icon{color:#407aa7;background:#eff5fb}
+#n91-compact-overview .n91-metric-value{font-size:clamp(27px,2.5vw,35px);font-weight:770;line-height:1.04;letter-spacing:-.045em;color:#10354b;margin:0}
+#n91-compact-overview .n91-metric-source .n91-metric-value{font-size:clamp(17px,1.65vw,23px);letter-spacing:-.02em;line-height:1.25;white-space:normal;overflow-wrap:anywhere;min-height:34px;display:flex;align-items:center}
+.n91-metric-foot{display:block;color:#7a91a0;font-size:11px;font-weight:500;line-height:1.35}
+
+/* Natural-height list panels: NO giant dead area when only four records exist. */
+.n91-clean-columns{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:14px;align-items:start}
+.n91-clean-section{min-width:0;display:flex;flex-direction:column;padding:0 20px 6px;background:#fff;border:1px solid #dce7ee;border-radius:15px;overflow:hidden;box-shadow:0 3px 14px rgba(22,64,81,.03)}
+.n91-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:77px;padding:14px 0 12px;border-bottom:1px solid #e8eef2}
+.n91-section-eyebrow{display:block;color:#8399a6;font-size:10px;font-weight:790;letter-spacing:.095em;margin-bottom:4px}
+#n91-compact-overview .n91-section-head h2{font-size:17px;font-weight:760;letter-spacing:-.02em;color:#16394f;margin:0;line-height:1.22}
+#n91-compact-overview .n91-section-action{display:inline-flex;align-items:center;gap:7px;color:#087b89;font-weight:750;font-size:12px;white-space:nowrap;padding:7px 0}
+#n91-compact-overview .n91-section-action:hover{color:#06586a}
+.n91-section-action svg{transition:transform .15s}
+.n91-section-action:hover svg{transform:translateX(3px)}
+.n91-rows{display:flex;flex-direction:column;min-width:0}
+#n91-compact-overview .n91-item{display:flex;align-items:center;gap:11px;min-height:73px;padding:11px 0;border-bottom:1px solid #edf2f5;transition:background .13s}
+#n91-compact-overview .n91-item:last-child{border-bottom:none}
+#n91-compact-overview .n91-item:hover{background:#f6fbfd;margin:0 -12px;padding-left:12px;padding-right:12px;border-radius:8px}
+.n91-item-symbol{display:flex;flex:none;align-items:center;justify-content:center;width:34px;height:34px;border-radius:11px;font-weight:850;font-size:15px}
+.n91-symbol-block{color:#c85055;background:#fdf0ee}
+.n91-symbol-allow{color:#158966;background:#e8f6ed}
+.n91-symbol-incident{color:#af792d;background:#fff6e8}
+.n91-item-content{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0}
+.n91-item-content strong{display:block;color:#153c51;font-weight:750;font-size:14px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.n91-item-content small{display:block;color:#728b9c;font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.n91-item-action{display:inline-flex;flex:none;align-items:center;justify-content:flex-end;gap:8px;min-width:90px}
+.n91-status{display:inline-flex;align-items:center;justify-content:center;padding:5px 9px;min-height:25px;border-radius:7px;font-size:11px;font-weight:760;white-space:nowrap;line-height:1}
+.n91-status-danger{color:#b7434b;background:#ffeded}
+.n91-status-good{color:#127a5b;background:#e7f7ef}
+.n91-status-muted{color:#587486;background:#eff4f7}
+.n91-item-risk{min-width:22px;text-align:right;color:#19394c;font-weight:750;font-size:13px}
+.n91-item-time{display:flex;flex-direction:column;gap:3px;align-items:flex-end;justify-content:center;min-width:62px;white-space:nowrap}
+.n91-item-time time{font-size:12px;color:#47697e;font-weight:730;line-height:1.25}
+.n91-item-time small{font-size:10px;color:#8ea0ad;line-height:1.2}
+.n91-item-chevron{display:flex;align-items:center;color:#a2b5c1;flex:none;margin-left:2px}
+#n91-compact-overview .n91-item:hover .n91-item-chevron{color:#187f8b}
+.n91-empty{margin:0;padding:22px 4px;color:#6b8595;font-size:12px;line-height:1.5}
+
+/* Provenance belongs near the content, not hidden in a tall empty card. */
+.n91-clean-foot{display:flex;align-items:center;gap:17px;flex-wrap:wrap;min-height:45px;padding:7px 3px 0;border-top:1px solid #e0e9ee;color:#778f9e;font-size:11px}
+.n91-foot-item{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.n91-foot-item strong{color:#597789;font-weight:730}
+.n91-foot-dot{width:7px;height:7px;background:#50b29c;border-radius:50%}
+.n91-foot-disclaimer{flex:1;min-width:270px}
+#n91-compact-overview .n91-clean-foot a{display:inline-flex;align-items:center;gap:5px;color:#117d89;font-size:11px;font-weight:760;white-space:nowrap}
+.n91-clean-notice{padding:10px 14px;border:1px solid #efd8a3;background:#fff6e7;border-radius:10px;color:#835e28;font-size:12px}
+.n91-clean-loading{padding:24px 4px;color:#607d90;font-size:13px}
+@media(max-height:810px) and (min-width:1050px){
+  body.n91-clean-on #n91-compact-overview{padding-top:12px;gap:11px}
+  .n91-hero{min-height:68px}
+  #n91-compact-overview .n91-metric{min-height:108px;padding:11px 15px;gap:5px}
+  .n91-section-head{min-height:63px;padding:10px 0}
+  #n91-compact-overview .n91-item{min-height:59px;padding:7px 0}
+  .n91-clean-foot{min-height:35px}
+}
+@media(max-width:1200px){
+  .n91-item-symbol{width:30px;height:30px}
+  #n91-compact-overview .n91-item{gap:8px}
+  .n91-metric-grid{gap:10px}
+  #n91-compact-overview .n91-metric{padding:14px}
+  .n91-clean-section{padding-left:14px;padding-right:14px}
+  .n91-item-time{min-width:53px}
+}
+@media(max-width:1050px){
+  .n91-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .n91-clean-columns{grid-template-columns:minmax(0,1fr)}
+  body.n91-clean-on .v4-main{height:auto;min-height:calc(100dvh - 70px)!important;overflow:auto!important}
+}
+@media(max-width:640px){
+  body.n91-clean-on .v4-main{padding:0 12px 15px!important}
+  body.n91-clean-on #n91-compact-overview{gap:12px;padding-top:13px}
+  .n91-hero{align-items:flex-start;flex-direction:column;gap:12px}
+  .n91-hero p{font-size:12px}
+  .n91-hero-actions{width:100%;justify-content:space-between}
+  .n91-metric-grid{gap:9px}
+  #n91-compact-overview .n91-metric{min-height:119px;padding:12px}
+  .n91-metric-icon{width:28px;height:28px}
+  #n91-compact-overview .n91-metric-value{font-size:26px}
+  #n91-compact-overview .n91-metric-source .n91-metric-value{font-size:15px}
+  .n91-metric-label{font-size:11px}
+  .n91-metric-foot{font-size:10px}
+  .n91-section-head{min-height:69px}
+  .n91-item-symbol{display:none}
+  .n91-item-content strong{font-size:13px}
+  .n91-item-time{min-width:46px}
+  .n91-item-action{min-width:74px;gap:5px}
+  .n91-item-chevron{display:none}
+  #n91-compact-overview .n91-item{gap:6px}
+  .n91-clean-foot{gap:8px}
+}
+@media(prefers-reduced-motion:reduce){
+ #n91-compact-overview *{transition:none!important;scroll-behavior:auto!important}
+}
+
+
+/* DBSEC N91 unified typography system (all five main routes and details).
+   No external font loads, no layout/information changes, no application writes.
+   Technical identifiers retain a monospace stack for readability. */
+:root {
+  --n91-font-ui: Inter, 'Segoe UI Variable', 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+  --n91-font-code: 'Cascadia Code', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  --n91-text-base: 15px;
+  --n91-text-table: 13.5px;
+  --n91-text-label: 12.5px;
+  --n91-text-control: 14px;
+  --n91-text-title: 28px;
+  --n91-text-section: 18px;
+  --n91-text-subhead: 16px;
+}
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+.v4-app {
+  font-family: var(--n91-font-ui) !important;
+  font-size: var(--n91-text-base);
+  line-height: 1.55;
+  font-style: normal;
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+/* Third-party/workbench/annotation panels are part of the same Portal. */
+.v4-app :is(.n91-business,.n91-investigation,.incident-workbench,.investigation-workbench,.v4-page-content) {
+  font-family: var(--n91-font-ui) !important;
+}
+/* Set typography on text-bearing elements, not svg/icons or canvas visualizations. */
+.v4-app :is(button,input,select,textarea,option,summary,legend) {
+  font-family: var(--n91-font-ui) !important;
+  font-size: var(--n91-text-control) !important;
+  line-height: 1.45;
+}
+.v4-app :is(.n91-business button,.n91-business input,.n91-business select,.n91-business textarea) {
+  font-family: var(--n91-font-ui) !important;
+  font-size: 14px !important;
+}
+.v4-app input::placeholder,.v4-app textarea::placeholder {font-size: 13px; opacity: 1;}
+/* Header hierarchy: page > section > subsection > label. */
+.v4-app :is(.page-heading h1,.v4-page-heading h1,.incident-detail-heading h1,.workload-detail-heading h1,.system-page > h1) {
+  font-family: var(--n91-font-ui) !important;
+  font-size: clamp(25px, 2vw, var(--n91-text-title)) !important;
+  font-weight: 750 !important;
+  letter-spacing: -.025em;
+  line-height: 1.24;
+}
+.v4-app :is(.panel-heading h2,.v4-panel .panel-heading h2,.incident-section-heading h2,.n91-business h2,.n91-investigation h2,.v4-system-tabs + section h2) {
+  font-family: var(--n91-font-ui) !important;
+  font-size: var(--n91-text-section) !important;
+  font-weight: 720 !important;
+  line-height: 1.32;
+  letter-spacing: -.012em;
+}
+.v4-app :is(.v4-subheading,.incident-section h3,.v4-page-content h3,.system-page h3,.workload-detail h3,.n91-business h3,.n91-investigation h3) {
+  font-family: var(--n91-font-ui) !important;
+  font-size: var(--n91-text-subhead) !important;
+  font-weight: 680 !important;
+  line-height: 1.38;
+}
+/* Main paragraphs and instructional copy should be readable at normal zoom. */
+.v4-app :is(.page-heading p,.panel-heading p,.v4-panel .panel-heading p,.incident-guide p,.incident-explanation,.v4-empty p,.v4-notice p,.workload-overview-note,.n91-business p,.n91-investigation p) {
+  font-size: 14px !important;
+  line-height: 1.58 !important;
+}
+/* Consistent navigation, sidebar account and top bar. */
+.v4-app :is(.nav-item,.sidebar-help,.environment-card > a,.sidebar-bottom .environment-card a) {
+  font-family: var(--n91-font-ui) !important;
+  font-size: 15px !important;
+  line-height: 1.4;
+  font-weight: 570;
+}
+.v4-app .nav-item.active {font-weight: 720 !important;}
+.v4-app :is(.breadcrumb,.v4-clock,.v4-account,.v4-account > strong,.topbar,.topbar select,.sidebar .workspace-label,.user-card strong) {
+  font-family: var(--n91-font-ui) !important;
+  font-size: 13px !important;
+  line-height: 1.45;
+}
+.v4-app :is(.v4-account small,.user-card > div > span,.nav-caption,.sidebar .workspace-label > span,.v4-footer,.dashboard-footer) {
+  font-family: var(--n91-font-ui) !important;
+  font-size: 12px !important;
+  line-height: 1.5;
+}
+/* Table cells across Events, Incidents, Workloads, System, Evidence and Admin. */
+.v4-app :is(.v4-table,.incident-events-table,.workloads-table,.audit-table,.n91-business table,.n91-investigation table,.v4-table-grid) {
+  font-family: var(--n91-font-ui) !important;
+  font-variant-numeric: tabular-nums;
+}
+.v4-app :is(.v4-table td,.incident-events-table td,.workloads-table td,.audit-table td,.n91-business table td,.n91-investigation table td,.table-scroll td) {
+  font-family: var(--n91-font-ui) !important;
+  font-size: var(--n91-text-table) !important;
+  line-height: 1.5 !important;
+}
+.v4-app :is(.v4-table th,.incident-events-table th,.workloads-table th,.audit-table th,.n91-business table th,.n91-investigation table th,.table-scroll th) {
+  font-family: var(--n91-font-ui) !important;
+  font-size: 12.5px !important;
+  font-weight: 710 !important;
+  line-height: 1.42 !important;
+  letter-spacing: .015em;
+}
+/* Form labels, field details, data freshness and status indicators. */
+.v4-app :is(.incident-field dt,.v4-fields dt,.v4-field dt,.n91-business label,.filter-select label,.incident-filters label,.workload-toolbar label,.audit-search-row label) {
+  font-size: 12.5px !important;
+  font-weight: 640 !important;
+  line-height: 1.48 !important;
+}
+.v4-app :is(.incident-field dd,.v4-fields dd,.v4-field dd,.incident-row-title,.workload-table-name) {
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+}
+.v4-app :is(.v4-badge,.badge,.severity-pill,.incident-status,.v4-source-status,.v4-rule,.system-health-badge,.incident-events-table .decision) {
+  font-family: var(--n91-font-ui) !important;
+  font-size: 11.5px !important;
+  line-height: 1.35 !important;
+  font-weight: 700 !important;
+  letter-spacing: 0;
+}
+.v4-app :is(.eyebrow,.v4-workspace-line,.v4-workspace-project,.v4-caption,.incident-timezone,.v4-notice small,.v4-table td small,.v4-table td time,.incident-row-subtitle,.incident-list-panel .table-footer,.table-footer,.v4-source-status strong) {
+  font-size: 12.5px !important;
+  line-height: 1.48 !important;
+}
+/* Technical IDs and hashes deliberately monospace; do not shrink below readable minimum. */
+.v4-app :is(code,pre,.incident-id,.incident-id-link,.incident-events-table td > code,.audit-event-id,.v4-id,.v4-code) {
+  font-family: var(--n91-font-code) !important;
+  font-size: 12.5px !important;
+  letter-spacing: 0;
+  line-height: 1.5;
+}
+.v4-app :is(.stat-value,.v4-app .stat-value,.incident-stats strong,.v4-quality-list strong) {
+  font-variant-numeric: tabular-nums;
+  font-weight: 750 !important;
+}
+/* Compact dashboard uses the same family and clear label hierarchy. */
+#n91-compact-overview {font-family: var(--n91-font-ui) !important; font-size: 14px;}
+#n91-compact-overview :is(button,input,a,small,strong,span,h1,h2,p,time) {font-family: var(--n91-font-ui) !important;}
+#n91-compact-overview .n91-metric-label {font-size: 13px !important;}
+#n91-compact-overview .n91-metric-foot {font-size: 12px !important;}
+#n91-compact-overview .n91-section-eyebrow {font-size: 11px !important;}
+#n91-compact-overview .n91-item-content strong {font-size: 14px !important;}
+#n91-compact-overview .n91-item-content small {font-size: 12px !important;}
+#n91-compact-overview .n91-item-time small {font-size: 11px !important;}
+#n91-compact-overview .n91-clean-foot {font-size: 12px !important;}
+#n91-compact-overview .n91-status {font-size: 11.5px !important;}
+/* Same typography in the separate analysis preview when opened through 5189.
+   Preview.css may load later, so use narrowly scoped !important overrides. */
+.n91-vnext-drawer,.n91-vnext-launch {
+  font-family: var(--n91-font-ui) !important;
+  font-size: 14px !important;
+  line-height: 1.52;
+}
+.n91-vnext-drawer :is(button,input,select,textarea) {font-family: var(--n91-font-ui) !important; font-size: 14px !important;}
+.n91-vnext-drawer :is(.n91-drawer-head h2) {font-size: 23px !important;line-height:1.25;font-weight:740;}
+.n91-vnext-drawer :is(.n91-h3,.n91-explain-step h3) {font-size: 17px !important;line-height:1.35;font-weight:700;}
+.n91-vnext-drawer :is(.n91-explain-step h4,.n91-mini-title) {font-size: 15px !important;line-height:1.4;font-weight:700;}
+.n91-vnext-drawer :is(.n91-sub,.n91-note,.n91-desc,.n91-explain-list,.n91-detector-desc,.n91-kv,.n91-table,.n91-case-title strong,.n91-member strong,.n91-inline-result,.n91-inline-result b) {
+  font-family: var(--n91-font-ui) !important;
+  font-size: 13px !important;
+  line-height: 1.55;
+}
+.n91-vnext-drawer :is(.n91-table th,.n91-table td) {font-size: 13px !important;line-height:1.5;}
+.n91-vnext-drawer :is(.n91-pill,.n91-stat small) {font-size: 12px !important;}
+/* Responsiveness: do not force one-screen layout on narrow devices. */
+@media (max-width: 760px) {
+  :root {--n91-text-title: 25px; --n91-text-section: 17px;}
+  .v4-app :is(.nav-item,.sidebar-help) {font-size: 14.5px !important;}
+  #n91-compact-overview .n91-metric-label {font-size: 12px !important;}
+}
+@media (prefers-reduced-motion: reduce) {
+  .v4-app {scroll-behavior:auto;}
+}
+
+
+/* =============================================================
+   N91 V4 FINAL VISUAL PASS — shared styles for every Portal page.
+   Changes the display only, not source availability, filtering or decisions.
+   Security errors, missing data and containment gates remain visible.
+   ============================================================= */
+:root{
+  --n91-ink:#153247;--n91-ink-soft:#526e83;--n91-ink-muted:#708698;
+  --n91-border:#dbe6ec;--n91-border-soft:#eaf0f4;
+  --n91-surface:#ffffff;--n91-canvas:#f3f7f9;
+  --n91-accent:#087d87;--n91-accent-soft:#e9f7f6;
+  --n91-shadow:0 4px 15px rgba(15,48,66,.035);
+  --n91-radius:14px;
+}
+.v4-app{color:var(--n91-ink);background:var(--n91-canvas)}
+.v4-app .v4-main{background:var(--n91-canvas)}
+/* Layout width and vertical rhythm on all internal screens. */
+.v4-app .v4-page-content{max-width:1550px;margin-inline:auto}
+.v4-app :is(.panel,.v4-panel,.incident-section,.v4-service-card,.v4-system-card,.v4-workload-card,.workload-inventory-panel,.audit-table-panel,.incident-list-panel){
+  border-color:var(--n91-border);border-radius:var(--n91-radius);
+  box-shadow:var(--n91-shadow);
+}
+.v4-app .page-heading{margin-bottom:18px;gap:5px}
+.v4-app .page-heading h1{font-size:28px!important;line-height:1.24!important;letter-spacing:-.025em;color:#12364b}
+.v4-app .page-heading .eyebrow{letter-spacing:.07em;color:#23808d;font-size:11.5px!important}
+.v4-app :is(.panel-heading,.v4-panel .panel-heading,.incident-section-heading){gap:7px;align-items:center}
+.v4-app :is(.panel-heading h2,.v4-panel .panel-heading h2,.incident-section-heading h2){font-size:17px!important}
+.v4-app :is(.v4-page-content p,.v4-page-content li,.v4-page-content dd,.v4-page-content dt){line-height:1.5}
+.v4-app .topbar{height:70px;min-height:66px}
+.v4-app :is(.sidebar,.v4-topbar){font-family:var(--n91-font-ui)!important}
+.v4-app .nav-item{border-radius:10px;min-height:43px;padding-block:10px;letter-spacing:-.005em}
+.v4-app .sidebar .nav-item .nav-active-dot{width:6px;height:6px}
+.v4-app .topbar .breadcrumb{font-size:13px!important}
+/* Tables: titles are not tiny; IDs still monospace. */
+.v4-app :is(.v4-table,.incident-events-table,.workloads-table,.audit-table,.table-scroll table){width:100%;border-collapse:collapse}
+.v4-app :is(.v4-table th,.incident-events-table th,.workloads-table th,.audit-table th,.table-scroll th){
+  padding:11px 12px!important;font-size:12px!important;color:#617e90!important;letter-spacing:.025em;
+  white-space:normal;vertical-align:middle;
+}
+.v4-app :is(.v4-table td,.incident-events-table td,.workloads-table td,.audit-table td,.table-scroll td){
+  padding:12px!important;font-size:13.5px!important;vertical-align:middle;color:var(--n91-ink);line-height:1.5!important;
+  border-color:var(--n91-border-soft);
+}
+.v4-app :is(.v4-table td,.incident-events-table td,.audit-table td) small{font-size:12px!important;color:var(--n91-ink-muted)}
+.v4-app :is(.table-scroll,.v4-scroll,.workload-scroll){scrollbar-color:#c7d7e0 transparent;scrollbar-width:thin}
+/* All action controls share an accessible hit area; disabled = genuinely disabled. */
+.v4-app :is(.button,.icon-button,.v4-btn,.v4-system-tabs a,.filter-select select,.v4-filter select,.incident-status-tabs button){border-radius:9px}
+.v4-app :is(.button,.incident-filters button,.v4-btn,.v4-top-select select){min-height:36px;font-weight:640}
+.v4-app :is(input,select,textarea){color:var(--n91-ink);border-color:var(--n91-border)!important}
+.v4-app :is(input,select,textarea):focus-visible{outline:2px solid #0b97a4;outline-offset:1px}
+.v4-app :is(.v4-badge,.badge,.severity-pill,.incident-status,.v4-rule,.incident-events-table .decision){
+  padding-inline:8px!important;padding-block:4px!important;min-height:23px;
+  font-size:11.5px!important;font-weight:710!important;
+}
+.v4-app .v4-id-link,.v4-app .incident-id-link{font-size:12.5px!important;font-family:var(--n91-font-code)!important;overflow-wrap:anywhere}
+/* Workload and system inventory are legible, not huge grids of pale notes. */
+.v4-app :is(.workload-overview-note,.incident-definition-grid,.v4-service-grid,.system-overview-grid){gap:12px}
+.v4-app :is(.v4-service-card,.v4-system-card,.workload-card){padding:14px}
+.v4-app .v4-system-tabs{gap:6px;flex-wrap:wrap}
+.v4-app .v4-system-tabs a{font-size:13.5px!important;padding:9px 12px}
+/* Remove dead-end navigation and redundant explanatory scaffolding only. */
+.v4-app :is(.v4-source-select,.v4-source-mode-notice,.v4-mode-label,.incident-guide,.incident-guide-steps,.v4-protection-strip){display:none!important}
+.v4-app .v4-system-tabs a[href*="/policies"],
+.v4-app .v4-system-tabs a[href*="/evaluation"],
+.v4-app .v4-system-tabs a[href*="/demo-coverage"]{display:none!important}
+/* Disabled review/action filters are not actionable: remove the field, not the underlying state. */
+.v4-app .incident-filters :is(label,.filter-select,.v4-filter):has(> select:disabled),
+.v4-app .incident-filters :is(label,.filter-select,.v4-filter):has(select:disabled){display:none!important}
+/* Non-error helper paragraphs repeat the same limitations each time; status and errors stay. */
+.v4-app .v4-filter-support:not(.v4-form-error):not([role="alert"]),
+.v4-app .v4-filter-scope {display:none!important}
+.v4-app :is(.incident-list-panel,.audit-table-panel,.workload-inventory-panel) .panel-heading > p {display:none!important}
+.v4-app .v4-form-error,.v4-app [role="alert"],.v4-app .v4-notice.warn{display:revert;}
+/* Keep source uncertainty visible, but compact across System/Incidents. */
+.v4-app :is(.v4-source-status,.v4-panel-note,.v4-notice){line-height:1.5}
+.v4-app .v4-panel-note{font-size:12.5px!important;color:var(--n91-ink-soft)}
+.v4-app .v4-empty{min-height:unset;padding:20px 14px;border-radius:10px}
+.v4-app .v4-empty :is(h3,p){margin-block:5px}
+.v4-app .v4-footer{padding-block:12px;font-size:12px!important;color:#7a8d9b}
+/* Keep source status accessible from sidebar; remove duplicated "Kiểm tra nguồn" decoration. */
+.v4-app .sidebar-bottom .environment-card{display:none!important}
+.v4-app .sidebar-bottom{padding-top:16px}
+/* Dashboard polished list: no empty 500px cards or truncated timestamps. */
+body.n91-clean-on #n91-compact-overview{max-width:1530px;gap:13px;padding-top:18px}
+#n91-compact-overview .n91-hero{min-height:63px}
+#n91-compact-overview .n91-hero h1{font-size:29px!important;line-height:1.17}
+#n91-compact-overview .n91-metric{min-height:112px;padding:14px 16px;gap:5px}
+#n91-compact-overview .n91-metric-value{font-size:32px!important}
+#n91-compact-overview .n91-metric-source .n91-metric-value{font-size:20px!important}
+#n91-compact-overview .n91-clean-section{align-self:start;min-height:0!important}
+#n91-compact-overview .n91-section-head{min-height:63px;padding-block:11px}
+#n91-compact-overview .n91-item{min-height:65px;padding-block:8px}
+#n91-compact-overview .n91-item-content small{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+#n91-compact-overview .n91-item-time{min-width:69px}
+#n91-compact-overview .n91-item-time :is(time,small){white-space:nowrap}
+#n91-compact-overview .n91-clean-foot{padding-top:10px;min-height:38px}
+/* Align typography for login and note forms. */
+.v4-app .n91-business{font-size:14px!important;line-height:1.5}
+.v4-app .n91-business :is(label,small){font-size:13px!important}
+.v4-app .n91-business h2{font-size:23px!important}
+.v4-app .n91-business :is(input,select,textarea,button){font-size:14px!important;min-height:40px}
+/* Compact without preventing vertical scroll at laptop/tablet widths. */
+@media(max-width:1360px){
+  .v4-app .v4-page-content{max-width:100%}
+  .v4-app :is(.v4-table th,.v4-table td,.incident-events-table th,.incident-events-table td){padding:10px!important}
+  #n91-compact-overview .n91-metric{min-height:103px}
+}
+@media(max-width:1050px){
+  body.n91-clean-on .v4-main{height:auto!important;min-height:calc(100dvh - 70px)!important}
+  .v4-app .v4-page-content{max-width:100%}
+}
+@media(max-width:760px){
+  .v4-app .page-heading h1{font-size:25px!important}
+  .v4-app :is(.panel-heading h2,.v4-panel .panel-heading h2){font-size:16px!important}
+  .v4-app :is(.v4-table th,.v4-table td,.incident-events-table th,.incident-events-table td){font-size:12px!important}
+  .v4-app :is(.button,.filter-select select){min-height:40px}
+  #n91-compact-overview .n91-metric-value{font-size:26px!important}
+  #n91-compact-overview .n91-metric-source .n91-metric-value{font-size:17px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .v4-app :is(button,a){transition:none!important}
+}
+
+/* Keep nested layouts within their viewport on small devices. */
+.v4-app :is(.main-shell,.v4-main,.v4-page-content){min-width:0;max-width:100%;box-sizing:border-box}
+.v4-app :is(.incident-filters,.audit-search-row,.workload-toolbar){min-width:0;max-width:100%;flex-wrap:wrap}
+.v4-app .table-scroll{max-width:100%;overflow-x:auto}
+@media(max-width:760px){
+  .v4-app .v4-main{padding-inline:12px!important}
+  .v4-app :is(.panel,.v4-panel,.incident-section){min-width:0}
+  .v4-app :is(.incident-filters input,.incident-filters select){max-width:100%}
+}
+
+/* ================================================================
+   N91 V5: Dashboard database-cluster status in the unused lower space.
+   Read-only snapshot; never equate a fresh failed read with a healthy DB.
+   ================================================================ */
+#n91-compact-overview .n91-galera-summary{
+  display:flex;flex-direction:column;gap:10px;
+  min-width:0;padding:13px 17px 12px;
+  border:1px solid #dce7ee;border-radius:15px;background:#fff;
+  box-shadow:0 3px 14px rgba(22,64,81,.03);
+}
+#n91-compact-overview .n91-galera-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
+#n91-compact-overview .n91-galera-title{display:flex;align-items:center;min-width:0;gap:11px}
+#n91-compact-overview .n91-galera-icon{width:36px;height:36px;display:flex;flex:none;align-items:center;justify-content:center;border-radius:10px;color:#087f88;background:#eaf7f7}
+#n91-compact-overview .n91-galera-heading h2{margin:0!important;font-size:16px!important;font-weight:750;line-height:1.3;color:#173b4e}
+#n91-compact-overview .n91-galera-heading p{margin:3px 0 0!important;font-size:12px!important;color:#668296;line-height:1.4}
+#n91-compact-overview .n91-galera-heading-right{display:flex;align-items:center;gap:13px;flex:none}
+#n91-compact-overview .n91-galera-link{display:inline-flex;align-items:center;gap:4px;color:#107d89;font-size:12px;font-weight:730;white-space:nowrap}
+#n91-compact-overview .n91-galera-link:hover{text-decoration:underline}
+#n91-compact-overview .n91-galera-nodes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+#n91-compact-overview .n91-galera-node{display:flex;flex-direction:column;gap:5px;min-width:0;padding:9px 13px;border:1px solid #e5edf1;background:#f8fbfc;border-radius:10px}
+#n91-compact-overview .n91-galera-node-head{display:flex;align-items:center;gap:7px;min-width:0}
+#n91-compact-overview .n91-galera-node-head strong{font-size:13px!important;font-weight:760;color:#1a3d52}
+#n91-compact-overview .n91-galera-node-dot{height:8px;width:8px;flex:none;border-radius:50%;background:#b0bfca}
+#n91-compact-overview .n91-galera-node-dot.n91-status-good{background:#1a9b74}
+#n91-compact-overview .n91-galera-node-dot.n91-status-danger{background:#cc5350}
+#n91-compact-overview .n91-galera-node-tag{margin-left:auto;color:#667f92;font-size:11px;white-space:nowrap}
+#n91-compact-overview .n91-galera-node small{color:#72899a;font-size:11px!important;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#n91-compact-overview .n91-galera-warning{font-size:11.5px!important;color:#866222;margin:0!important;padding-left:2px;line-height:1.35}
+#n91-compact-overview .n91-galera-summary .n91-status{font-size:11px!important;white-space:nowrap}
+/* The source state remains in the heading; the fourth metric becomes the actual
+   quarantined VM count (when the API certifies a fresh network classification). */
+#n91-compact-overview .n91-metric-source .n91-metric-value{font-size:32px!important}
+/* Workloads: no project ID in the name column, no incident-derived risk column;
+   only names of SGs directly returned for the VM's attached ports. */
+.v4-app table.n91-workload-table-slim th.n91-vm-name-heading{font-size:0!important}
+.v4-app table.n91-workload-table-slim th.n91-vm-name-heading::after{content:'MÁY ẢO';font-size:12px;letter-spacing:.025em}
+.v4-app table.n91-workload-table-slim .n91-vm-risk-hidden{display:none!important}
+.v4-app table.n91-workload-table-slim .n91-vm-name-cell > small{display:none!important}
+.v4-app table.n91-workload-table-slim .n91-vm-attached-sg :is(.v4-port-brief > small,.v4-port-brief > .v4-badge,.v4-security-groups code){display:none!important}
+.v4-app table.n91-workload-table-slim .n91-vm-attached-sg .v4-security-groups{display:flex;gap:6px;flex-wrap:wrap;margin:0;padding:0;list-style:none}
+.v4-app table.n91-workload-table-slim .n91-vm-attached-sg .v4-security-groups li{border:1px solid #dce9ef;background:#f4fafb;border-radius:7px;padding:4px 8px;list-style:none}
+.v4-app table.n91-workload-table-slim .n91-vm-attached-sg .v4-security-groups strong{font-size:12.5px;font-weight:650}
+.v4-app .n91-redundant-helper,.v4-app .n91-vm-source-banner > strong,.v4-app .n91-vm-source-banner > .n91-hide-source-verbose{display:none!important}
+.v4-app .n91-vm-source-banner:empty{display:none!important}
+/* The cluster lives in Dashboard. The deep-linked System page still remains
+   reachable from the 'Chi tiết' link for operator-level diagnostics. */
+.v4-app .v4-system-tabs > a[href="#/system/galera"]{display:none!important}
+@media (min-width:1051px) and (max-height:830px){
+  body.n91-clean-on #n91-compact-overview{gap:9px;padding-top:9px}
+  #n91-compact-overview .n91-hero{min-height:49px}
+  #n91-compact-overview .n91-hero p{display:none}
+  #n91-compact-overview .n91-metric{min-height:89px;padding:10px 13px;gap:3px}
+  #n91-compact-overview .n91-metric-value{font-size:27px!important}
+  #n91-compact-overview .n91-section-head{min-height:50px;padding-block:6px}
+  #n91-compact-overview .n91-item{min-height:53px;padding-block:6px}
+  #n91-compact-overview .n91-clean-foot{min-height:25px;padding-top:3px}
+  #n91-compact-overview .n91-galera-summary{padding:9px 12px 8px;gap:7px}
+  #n91-compact-overview .n91-galera-node{padding:6px 9px;gap:2px}
+  #n91-compact-overview .n91-galera-warning{font-size:11px!important}
+}
+@media (max-width:1050px){
+  #n91-compact-overview .n91-galera-heading{align-items:flex-start}
+  #n91-compact-overview .n91-galera-nodes{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:680px){
+  #n91-compact-overview .n91-galera-heading{flex-direction:column;align-items:stretch}
+  #n91-compact-overview .n91-galera-heading-right{justify-content:space-between}
+  #n91-compact-overview .n91-galera-nodes{grid-template-columns:minmax(0,1fr)}
+  #n91-compact-overview .n91-galera-node{min-height:48px}
+  #n91-compact-overview .n91-galera-node small{white-space:normal}
+}
+
+.v4-app .n91-vm-source-banner.n91-no-source-warning{display:none!important}
+
+/* V6: Original 7-column wsrep table on the Dashboard instead of 3 mini cards. */
+#n91-compact-overview .n91-galera-exact {padding:10px 12px 9px;gap:7px;overflow:hidden}
+#n91-compact-overview .n91-galera-exact .n91-galera-heading{padding:0 1px 3px;gap:12px}
+#n91-compact-overview .n91-galera-exact .n91-galera-icon{height:29px;width:29px;border-radius:7px}
+#n91-compact-overview .n91-galera-exact .n91-galera-title h2{font-size:15px!important}
+#n91-compact-overview .n91-galera-exact .n91-galera-title p{font-size:11px!important;margin:0!important}
+#n91-compact-overview .n91-galera-exact .n91-galera-warning{padding:3px 5px;color:#815c2c;font-size:11px!important;white-space:normal}
+#n91-compact-overview .n91-galera-table-wrap {max-width:100%;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;border-radius:6px}
+#n91-compact-overview table.n91-galera-exact-table {width:100%;min-width:940px;table-layout:fixed;border-collapse:collapse;color:#1b4057;text-align:left;font:500 12px/1.35 var(--n91-font-ui,Inter,'Segoe UI',Arial,sans-serif)!important}
+#n91-compact-overview .n91-galera-exact-table th {background:#f3f7f9;color:#51768d;font-size:10.8px!important;font-weight:750!important;line-height:1.3!important;padding:8px 9px!important;border-bottom:1px solid #dce8ed;vertical-align:middle;overflow-wrap:normal}
+#n91-compact-overview .n91-galera-exact-table td {padding:8px 9px!important;font-size:12px!important;line-height:1.35!important;vertical-align:middle;border-bottom:1px solid #e7eff2;overflow-wrap:break-word}
+#n91-compact-overview .n91-galera-exact-table tbody tr:last-child td{border-bottom:0}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(1){width:21%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(2){width:14%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(3){width:11%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(4){width:14%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(5){width:14%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(6){width:17%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(7){width:9%}
+#n91-compact-overview .n91-galera-node-cell strong{display:block;color:#183e53;font-size:12.2px!important;font-weight:750!important}
+#n91-compact-overview .n91-galera-node-cell small{display:block;margin-top:3px;color:#6d8798;font-size:10.5px!important;line-height:1.35}
+#n91-compact-overview .n91-galera-numeric{text-align:center}
+#n91-compact-overview .n91-galera-observed{color:#547084;font-size:11.3px!important;font-variant-numeric:tabular-nums}
+#n91-compact-overview .n91-galera-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 7px;border-radius:5px;background:#edf3f6;color:#557488;font-size:10.5px!important;font-weight:680!important;white-space:nowrap}
+#n91-compact-overview .n91-galera-pill.good{background:#e7f7ef;color:#168364}
+#n91-compact-overview .n91-galera-pill.warn{background:#fff2dd;color:#9b670b}
+#n91-compact-overview .n91-galera-pill.muted{background:#edf3f6;color:#557488}
+@media(max-height:850px) and (min-width:1050px){
+ #n91-compact-overview .n91-hero{min-height:55px}
+ #n91-compact-overview .n91-galera-exact .n91-galera-title p{display:none}
+ #n91-compact-overview .n91-galera-exact-table th{padding:7px 8px!important}
+ #n91-compact-overview .n91-galera-exact-table td{padding:6px 8px!important}
+ #n91-compact-overview .n91-clean-columns .n91-item{min-height:49px!important}
+ #n91-compact-overview .n91-metric{min-height:100px!important}
+}
+@media(max-width:1200px){
+ #n91-compact-overview table.n91-galera-exact-table{min-width:900px}
+ #n91-compact-overview .n91-galera-exact-table td{font-size:11.5px!important}
+}
+@media(max-width:640px){
+ #n91-compact-overview .n91-galera-exact .n91-galera-title p{display:block}
+ #n91-compact-overview table.n91-galera-exact-table{min-width:990px}
+ #n91-compact-overview .n91-galera-exact .n91-galera-heading-right{gap:6px}
+}
+
+/* Fit the original full-width 7-column table below short recent lists on laptop. */
+@media (min-width:1051px) and (max-height:850px){
+ body.n91-clean-on #n91-compact-overview{gap:8px!important;padding-top:8px!important;padding-bottom:2px!important}
+ #n91-compact-overview .n91-hero{min-height:48px!important}
+ #n91-compact-overview .n91-hero p{display:none!important}
+ #n91-compact-overview .n91-metric{min-height:89px!important;padding:9px 13px!important;gap:3px!important}
+ #n91-compact-overview .n91-metric-icon{height:28px;width:28px}
+ #n91-compact-overview .n91-metric-value{font-size:27px!important}
+ #n91-compact-overview .n91-section-head{min-height:46px!important;padding-block:6px!important}
+ #n91-compact-overview .n91-item{min-height:45px!important;padding-block:5px!important}
+ #n91-compact-overview .n91-galera-exact .n91-galera-heading{min-height:29px;padding:0!important}
+ #n91-compact-overview .n91-galera-exact .n91-galera-icon{height:26px;width:26px}
+ #n91-compact-overview .n91-galera-exact-table th{padding:5px 7px!important}
+ #n91-compact-overview .n91-galera-exact-table td{padding:5px 7px!important}
+ #n91-compact-overview .n91-clean-foot{min-height:19px!important;padding-top:3px!important}
+}
+
+/* A desktop overview must fit one viewport. All Galera failures remain in row details. */
+@media (min-width:1051px) and (max-height:950px){
+ body.n91-clean-on #n91-compact-overview{gap:8px!important;padding-top:8px!important;padding-bottom:0!important}
+ #n91-compact-overview .n91-hero{min-height:47px!important}
+ #n91-compact-overview .n91-hero p{display:none!important}
+ #n91-compact-overview .n91-metric{min-height:89px!important;padding:9px 13px!important;gap:3px!important}
+ #n91-compact-overview .n91-metric-icon{height:28px;width:28px}
+ #n91-compact-overview .n91-metric-value{font-size:27px!important}
+ #n91-compact-overview .n91-section-head{min-height:46px!important;padding-block:6px!important}
+ #n91-compact-overview .n91-item{min-height:45px!important;padding-block:5px!important}
+ #n91-compact-overview .n91-clean-foot{display:none!important}
+ #n91-compact-overview .n91-galera-exact .n91-galera-heading{min-height:29px;padding:0!important}
+ #n91-compact-overview .n91-galera-exact-table th{padding:5px 7px!important}
+ #n91-compact-overview .n91-galera-exact-table td{padding:5px 7px!important}
+}
+
+/* ================================================================
+   V7 dashboard proportions, November 15, 2026.
+   V6's max-height:950px rule compressed a 940px-high desktop into
+   45px rows and 89px cards, leaving a 230px blank lower canvas.
+   Preserve the 7-column Galera contract and all source-state rules.
+   Only visual layout; no hiding errors, no API or action changes.
+   ================================================================ */
+#n91-compact-overview {
+  --n91-v7-ink: #123549;
+  --n91-v7-muted: #607e91;
+  --n91-v7-line: #e1eaf0;
+  --n91-v7-soft: #f4f8fa;
+}
+#n91-compact-overview .n91-hero h1 {
+  font-size: clamp(29px, 1.75vw, 35px) !important;
+  letter-spacing: -.04em !important;
+}
+#n91-compact-overview .n91-hero p {
+  display: block !important;
+  font-size: 14px !important;
+  color: var(--n91-v7-muted) !important;
+}
+#n91-compact-overview .n91-kicker {font-size: 12px !important;letter-spacing: .08em}
+#n91-compact-overview .n91-metric-label {font-size: 14px !important;line-height: 1.3}
+#n91-compact-overview .n91-metric-foot {font-size: 12.4px !important;line-height: 1.4}
+#n91-compact-overview .n91-metric-value {font-size: clamp(32px, 2.1vw, 39px) !important}
+#n91-compact-overview .n91-section-eyebrow {font-size: 11.7px !important;letter-spacing:.085em}
+#n91-compact-overview .n91-section-head h2 {font-size: 19px !important;line-height: 1.25}
+#n91-compact-overview .n91-section-action {font-size: 13.5px !important}
+#n91-compact-overview .n91-item-content strong {font-size: 15.5px !important}
+#n91-compact-overview .n91-item-content small {font-size: 13px !important;line-height: 1.45}
+#n91-compact-overview .n91-item-time time {font-size: 13px !important}
+#n91-compact-overview .n91-item-time small {font-size: 12px !important}
+#n91-compact-overview .n91-status {font-size: 12px !important;padding:6px 10px;min-height:28px}
+#n91-compact-overview .n91-item-risk {font-size: 14px}
+#n91-compact-overview .n91-item-symbol {height: 38px;width:38px;border-radius:11px}
+#n91-compact-overview .n91-clean-section,
+#n91-compact-overview .n91-metric,
+#n91-compact-overview .n91-galera-exact {
+  border-color: var(--n91-v7-line);
+  box-shadow: 0 3px 14px rgba(19,55,77,.045);
+}
+#n91-compact-overview .n91-galera-title h2 {font-size: 18px !important;line-height: 1.3}
+#n91-compact-overview .n91-galera-title p {display:block !important;font-size: 12.4px !important;line-height:1.4}
+#n91-compact-overview .n91-galera-link {font-size: 13px !important}
+#n91-compact-overview .n91-galera-pill {font-size: 11.8px !important;padding: 6px 8px;line-height:1.2}
+#n91-compact-overview .n91-galera-exact-table th {
+  font-size: 11.7px !important;
+  line-height:1.4 !important;
+  font-weight:750 !important;
+  padding: 9px 10px !important;
+}
+#n91-compact-overview .n91-galera-exact-table td {
+  font-size: 13px !important;
+  line-height:1.42 !important;
+  padding: 9px 10px !important;
+}
+#n91-compact-overview .n91-galera-node-cell strong {font-size: 13px !important}
+#n91-compact-overview .n91-galera-node-cell small {font-size: 11.7px !important;line-height:1.35 !important}
+#n91-compact-overview .n91-galera-observed {font-size: 12.3px !important;line-height:1.35 !important}
+#n91-compact-overview .n91-galera-exact-table {min-width: 1030px !important}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(1) {width:20%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(2) {width:14%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(3) {width:11%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(4) {width:13%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(5) {width:17%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(6) {width:16%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(7) {width:9%}
+
+/* Spacious monitor: use the whole vertical canvas instead of the old
+   max-height 950px squash rule. Lists stretch naturally with screen height. */
+@media (min-width:1051px) and (min-height:850px) {
+  body.n91-clean-on .v4-main {
+    overflow-y:auto!important;
+    height:calc(100dvh - 70px)!important;
+    padding:0 clamp(18px,1.5vw,28px) 0!important;
+  }
+  body.n91-clean-on #n91-compact-overview {
+    display:grid!important;
+    grid-template-rows: minmax(72px, auto) minmax(125px, auto) minmax(255px, 1fr) auto;
+    width:100%;height:100%;min-height:0;
+    max-width:1650px;
+    padding:16px 0 18px!important;
+    gap:14px!important;
+    align-items:stretch;
+  }
+  #n91-compact-overview .n91-hero {min-height:72px!important;gap:18px}
+  #n91-compact-overview .n91-metric-grid {gap:16px}
+  #n91-compact-overview .n91-metric {min-height:125px!important;padding:18px 20px!important;gap:9px!important;border-radius:16px}
+  #n91-compact-overview .n91-metric-icon {height:37px;width:37px}
+  #n91-compact-overview .n91-clean-columns {align-items:stretch;min-height:255px;gap:16px}
+  #n91-compact-overview .n91-clean-section {height:100%;padding:0 21px 6px;border-radius:16px}
+  #n91-compact-overview .n91-section-head {min-height:65px!important;padding:13px 0!important}
+  #n91-compact-overview .n91-rows {flex:1 1 auto;min-height:0}
+  #n91-compact-overview .n91-item {flex:1 1 0;min-height:65px!important;padding:12px 2px!important;gap:13px!important}
+  #n91-compact-overview .n91-galera-exact {min-height:238px;padding:15px 18px 12px!important;gap:10px;border-radius:16px}
+  #n91-compact-overview .n91-galera-exact .n91-galera-heading {min-height:49px!important;gap:14px;padding:0 0 7px!important}
+  #n91-compact-overview .n91-galera-exact .n91-galera-icon {height:35px;width:35px}
+  #n91-compact-overview .n91-clean-foot {display:none!important}
+}
+
+/* Short laptops retain the original one-screen layout without making the
+   whole dashboard overflow. Text remains more readable than in V6. */
+@media (min-width:1051px) and (max-height:849px) {
+  body.n91-clean-on #n91-compact-overview {max-width:1640px;gap:8px!important;padding-top:7px!important}
+  #n91-compact-overview .n91-hero {min-height:47px!important}
+  #n91-compact-overview .n91-hero p {display:none!important}
+  #n91-compact-overview .n91-metric {min-height:86px!important;padding:8px 12px!important;gap:3px!important}
+  #n91-compact-overview .n91-metric-label {font-size:12.7px!important}
+  #n91-compact-overview .n91-metric-foot {font-size:11.6px!important}
+  #n91-compact-overview .n91-metric-value {font-size:28px!important}
+  #n91-compact-overview .n91-section-head {min-height:45px!important;padding:5px 0!important}
+  #n91-compact-overview .n91-section-head h2 {font-size:16px!important}
+  #n91-compact-overview .n91-item {min-height:47px!important;padding:5px 0!important}
+  #n91-compact-overview .n91-item-content strong {font-size:13.7px!important}
+  #n91-compact-overview .n91-item-content small {font-size:11.7px!important}
+  #n91-compact-overview .n91-item-time time {font-size:12px!important}
+  #n91-compact-overview .n91-status {font-size:11px!important;min-height:23px;padding:4px 7px}
+  #n91-compact-overview .n91-galera-exact {padding:8px 11px 7px!important;gap:6px}
+  #n91-compact-overview .n91-galera-exact .n91-galera-heading {min-height:25px!important}
+  #n91-compact-overview .n91-galera-title h2 {font-size:14px!important}
+  #n91-compact-overview .n91-galera-title p {display:none!important}
+  #n91-compact-overview .n91-galera-exact-table th {font-size:10.8px!important;padding:5px 7px!important}
+  #n91-compact-overview .n91-galera-exact-table td {font-size:12px!important;padding:5px 7px!important}
+  #n91-compact-overview .n91-galera-node-cell small {font-size:10.8px!important}
+  #n91-compact-overview .n91-galera-pill {font-size:10.8px!important;padding:4px 5px}
+  #n91-compact-overview .n91-clean-foot {display:none!important}
+}
+
+/* Narrow viewports may scroll; never cut off evidence or squeeze 7 columns
+   into unreadable fragments. */
+@media (max-width:1050px) {
+  #n91-compact-overview .n91-galera-exact-table {min-width:1030px!important}
+  #n91-compact-overview .n91-galera-table-wrap{overflow-x:auto}
+  #n91-compact-overview .n91-hero p {display:block!important}
+}
+
+
+/* V7 final: remove unnecessary metric and Galera helper copy from DOM.
+   Two clear levels per card: metric label and value. The source-error lines
+   inside Galera node cells are kept: they are operational evidence. */
+#n91-compact-overview .n91-metric {
+  justify-content:space-between!important;
+  align-items:stretch;
+}
+#n91-compact-overview .n91-metric-value {
+  margin-top:auto!important;
+  padding-top:2px;
+}
+#n91-compact-overview .n91-galera-title {min-height:31px;}
+#n91-compact-overview .n91-galera-title h2 {margin:0!important;}
+/* Avoid thumbnail-size text on short laptop displays. */
+@media (min-width:1051px) and (max-height:849px) {
+ #n91-compact-overview .n91-metric {min-height:102px!important;padding:12px 15px!important;}
+ #n91-compact-overview .n91-metric-label {font-size:13.5px!important;}
+ #n91-compact-overview .n91-metric-value {font-size:31px!important;}
+ #n91-compact-overview .n91-galera-title h2 {font-size:16px!important;}
+ #n91-compact-overview .n91-galera-exact-table th {font-size:11.3px!important;}
+ #n91-compact-overview .n91-galera-exact-table td {font-size:12.6px!important;}
+ #n91-compact-overview .n91-galera-node-cell small {font-size:11.4px!important;}
+}
+
+/* V10: system-only cleanup. The three real service cards remain visible. */
+.n91-v10-proxy > .v4-source-status,
+.n91-v10-proxy .v4-proxy-snapshot,
+.n91-v10-proxy .v4-proxy-ref,
+.n91-v10-proxy .v4-proxy-unit,
+.n91-v10-proxy > .v4-panel-note,
+.n91-v10-reader > .v4-source-status,
+.n91-v10-reader .panel-heading p,
+.n91-v10-reader .v4-service-card .v4-fields > div:nth-child(n+3) { display: none !important; }
+.n91-v10-proxy .v4-proxy-service .v4-fields > div:not(:nth-child(3)):not(:nth-child(4)) { display: none !important; }
+.n91-v10-proxy .v4-proxy-services { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; }
+.n91-v10-proxy .v4-proxy-service { min-height:0 !important; padding:17px !important; }
+.n91-v10-proxy .v4-proxy-service-title { gap:10px; align-items:center; flex-wrap:wrap; }
+.n91-v10-proxy .v4-proxy-service-title h3 { font-size: 15px !important; line-height: 1.4 !important; }
+.n91-v10-proxy .v4-proxy-service .v4-fields,
+.n91-v10-reader .v4-service-card .v4-fields { margin-top: 12px; }
+.n91-v10-proxy .v4-proxy-service .v4-fields dt,
+.n91-v10-reader .v4-service-card .v4-fields dt { font-size: 12px !important; }
+.n91-v10-proxy .v4-proxy-service .v4-fields dd,
+.n91-v10-reader .v4-service-card .v4-fields dd { font-size: 13px !important; }
+.n91-v10-reader .v4-service-grid { grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); }
+.n91-v10-reader .v4-service-card { min-height:0 !important; }
+@media(max-width:980px){ .n91-v10-proxy .v4-proxy-services{grid-template-columns:1fr;} }
+
+
+/* V12: only on #/workloads. One red history pill; history opens a dialog.
+   Keep the current green/normal network status and all VM action controls. */
+.v4-app table.v4-table details.n91-v12-hide-native-history{display:none!important}
+.v4-app .n91-v12-isolation-pill{
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  width:max-content;margin:7px 0 0;padding:5px 10px;max-width:100%;
+  border:1px solid #f3bcbc;border-radius:7px;background:#fff0f0;
+  color:#b42330;font:750 12.5px/1.3 Inter,'Segoe UI',system-ui,sans-serif;
+  letter-spacing:0;text-align:center;white-space:normal;cursor:pointer;
+  box-shadow:none;transition:background .15s,border-color .15s,transform .15s;
+}
+.v4-app .n91-v12-isolation-pill:hover{background:#ffe2e2;border-color:#dc6c76}
+.v4-app .n91-v12-isolation-pill:active{transform:translateY(1px)}
+.v4-app .n91-v12-isolation-pill:focus-visible{outline:3px solid #df6871;outline-offset:2px}
+.v4-app .n91-v12-isolation-dot{flex:none;width:6px;height:6px;background:#d03542;border-radius:50%}
+.n91-v12-isolation-dialog{
+  box-sizing:border-box;width:min(940px,calc(100vw - 36px));max-height:min(85dvh,800px);
+  margin:auto;padding:0;border:1px solid #cbdde7;border-radius:15px;
+  background:#fff;color:#15364a;box-shadow:0 26px 82px #092d4380;
+  font:14px/1.5 Inter,'Segoe UI',system-ui,sans-serif;
+}
+.n91-v12-isolation-dialog::backdrop{background:rgba(9,28,45,.59)}
+.n91-v12-isolation-dialog *{box-sizing:border-box}
+.n91-v12-modal-head{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:18px;
+  padding:22px 25px;border-bottom:1px solid #e4edf2;background:#f7fafc;
+}
+.n91-v12-modal-eyebrow{display:block;color:#317283;font-size:11px;font-weight:800;letter-spacing:.08em}
+.n91-v12-modal-head h2{margin:5px 0;font-size:24px;line-height:1.22;font-weight:780;letter-spacing:-.025em;color:#10354e}
+.n91-v12-modal-vm{margin:5px 0 0;color:#536e80;font-size:14px;font-weight:650;overflow-wrap:anywhere}
+.n91-v12-close,.n91-v12-retry{
+  border:1px solid #d1dfe8;border-radius:8px;background:#fff;color:#254a62;
+  padding:9px 13px;font:650 13px/1.25 Inter,'Segoe UI',system-ui,sans-serif;
+  cursor:pointer;white-space:nowrap;
+}
+.n91-v12-close:hover,.n91-v12-retry:hover{background:#eaf3f7}
+.n91-v12-close:focus-visible,.n91-v12-retry:focus-visible{outline:3px solid #228ba5;outline-offset:2px}
+.n91-v12-modal-content{padding:22px 25px;max-height:calc(85dvh - 138px);overflow:auto}
+.n91-v12-table-scroll{overflow-x:auto;border:1px solid #deebf1;border-radius:10px}
+.n91-v12-history-table{width:100%;border-collapse:collapse;text-align:left;min-width:690px}
+.n91-v12-history-table th{
+  padding:12px 13px;background:#edf5f8;color:#536f82;border-bottom:1px solid #dbe8ee;
+  font-size:12px;font-weight:750;white-space:nowrap;
+}
+.n91-v12-history-table td{
+  padding:15px 13px;border-bottom:1px solid #e8f0f4;font-size:13.5px;
+  color:#1a4057;white-space:nowrap;
+}
+.n91-v12-history-table tr:last-child td{border-bottom:0}
+.n91-v12-history-table tbody tr:nth-child(even) td{background:#f9fbfc}
+.n91-v12-ordinal{font-weight:750;color:#6a8394}
+.n91-v12-episode-status{display:inline-flex;padding:4px 9px;border-radius:7px;font-size:12px;font-weight:700}
+.n91-v12-done{background:#e4f7ef;color:#077557}
+.n91-v12-unresolved{background:#fff0ee;color:#b12f38}
+.n91-v12-modal-scope{margin:14px 0 0;font-size:12px;color:#7c91a0}
+.n91-v12-modal-empty{padding:27px 15px;margin:0;text-align:center;color:#536f82;font-weight:600}
+.n91-v12-modal-error{padding:14px;background:#fff6f3;border:1px solid #f2cbc6;border-radius:9px;color:#993e43}
+.n91-v12-modal-error p{margin:8px 0 15px}
+@media (max-width:560px) {
+  .n91-v12-modal-head,.n91-v12-modal-content{padding:17px 15px}
+  .n91-v12-modal-head h2{font-size:20px}
+  .n91-v12-close{padding:8px}
+}
+
+
+/* V13: Workloads network labels only. Uniform size, names and compact alignment.
+   Other badges, tables, pages, status colors and modal behavior are untouched. */
+.v4-app table.v4-table .n91-v13-network-label,
+.v4-app table.v4-table .n91-v12-isolation-pill {
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 154px !important;
+  min-width: 154px !important;
+  max-width: 154px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  padding: 0 9px !important;
+  border-radius: 7px !important;
+  font-size: 12px !important;
+  line-height: 1.2 !important;
+  font-weight: 750 !important;
+  white-space: nowrap !important;
+  text-align: center !important;
+}
+.v4-app table.v4-table .n91-v13-network-label { margin: 0 !important; }
+.v4-app table.v4-table .n91-v12-isolation-pill { margin: 7px 0 0 !important; }
+
+/* V13 isolation history now has four columns; keep the table compact. */
+.n91-v12-isolation-dialog .n91-v12-history-table {min-width:560px}

@@ -488,9 +488,7 @@ def system_health(request: Request):
         "last_attempt": now, "source_ref": "sha256:" + snapshot.fingerprint if snapshot else None,
         "last_error_code": error,
     }]
-    components.extend({"component_id": name, "name": name, "status": "UNKNOWN", "observed_at": None,
-                       "last_success": None, "last_attempt": None, "source_ref": None}
-                      for name in ("P17 worker live", "P16H canonical reader", "P17.5 controller", "Nova / Neutron", "Galera"))
+    # No fabricated service-health rows: each displayed state needs direct evidence.
     services = read_services(settings.proxy_services_path)
     data = {"components": components + services["components"], "proxy_services_source": services["source"]}
     if snapshot is None:

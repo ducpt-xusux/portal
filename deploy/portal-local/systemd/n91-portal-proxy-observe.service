@@ -1,0 +1,10 @@
+[Unit]
+Description=N91 read-only Proxy systemd observation (Portal)
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+ExecStart=/usr/bin/python3 /home/ubuntu/portal-local/.n91-proxy-health/collect_proxy_services.py --output /home/ubuntu/portal-local/.n91-proxy-health/proxy-services.json
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full

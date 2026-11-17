@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh N91 Portal VNext snapshot every 5 seconds
+
+[Timer]
+OnBootSec=10s
+OnUnitInactiveSec=5s
+AccuracySec=1s
+Unit=n91-portal-vnext-local.service
+
+[Install]
+WantedBy=timers.target

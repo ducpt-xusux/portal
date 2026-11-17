@@ -1,0 +1,38 @@
+/* N91 Detail Demo V2. Scope is all event/incident RECORD DETAIL routes, not two IDs. */
+html[data-n91-demo-mode="compact"][data-n91-demo-page="event"] #root .n91-demo-hide-v2,
+html[data-n91-demo-mode="compact"][data-n91-demo-page="incident"] #root .n91-demo-hide-v2,
+html[data-n91-demo-mode="compact"][data-n91-demo-page="event"] #root .n91-demo-tab-hide-v2,
+html[data-n91-demo-mode="compact"][data-n91-demo-page="incident"] #root .n91-demo-tab-hide-v2 {
+  display: none !important;
+}
+html[data-n91-demo-mode="compact"][data-n91-demo-page="event"] #root .v4-detail-grid .v4-panel,
+html[data-n91-demo-mode="compact"][data-n91-demo-page="incident"] #root .v4-detail-grid .v4-panel,
+html[data-n91-demo-mode="compact"][data-n91-demo-page="incident"] #root .n91-workbench .v4-panel {
+  margin-bottom: 0.8rem;
+}
+.n91-detail-demo-switch-v2 {
+  position: fixed;
+  z-index: 4000;
+  right: 20px;
+  bottom: 19px;
+  min-width: 130px;
+  padding: 9px 14px;
+  border: 1px solid rgba(117, 130, 151, 0.52);
+  border-radius: 999px;
+  background: #15243a;
+  color: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  box-shadow: 0 3px 16px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+}
+.n91-detail-demo-switch-v2:hover,
+.n91-detail-demo-switch-v2:focus-visible {
+  background: #253b58;
+  outline: 2px solid #7aa7ef;
+}
+@media print { .n91-detail-demo-switch-v2 { display: none !important; } }
+@media (max-width: 640px) {
+  .n91-detail-demo-switch-v2 { bottom: 9px; right: 9px; }
+}

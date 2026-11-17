@@ -1,0 +1,7 @@
+/* N91 Portal - one visual-only fix: keep the sidebar subtitle on one line. */
+.v4-app .sidebar .subbrand {
+  max-width: none !important;
+  white-space: nowrap !important;
+  font-size: 11px !important;
+  letter-spacing: 0.08em !important;
+}

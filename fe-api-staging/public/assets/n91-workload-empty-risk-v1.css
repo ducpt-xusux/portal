@@ -1,0 +1,5 @@
+/* Workload detail only. The class is applied by JS only after it verifies the
+   source explicitly reports that there is no risk summary. */
+.v4-main section[aria-label="Overview máy ảo"] section.v4-panel.n91-workload-risk-empty-v1 {
+  display: none !important;
+}

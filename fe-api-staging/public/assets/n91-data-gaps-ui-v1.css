@@ -1,0 +1,13 @@
+/* N91 additive evidence-aware display cleanup: route-scoped.
+ * Existing React widgets, API, data, action controls and bundles untouched. */
+html[data-n91-gaps-route="event"]:not([data-n91-demo-mode="full"]) #root .n91-gaps-hide-v1,
+html[data-n91-gaps-route="vm"] #root .n91-gaps-hide-v1 {
+  display: none !important;
+}
+@media print { html[data-n91-gaps-route="event"] #root .n91-gaps-hide-v1,
+  html[data-n91-gaps-route="vm"] #root .n91-gaps-hide-v1 { display: none !important; }
+html[data-n91-gaps-route="event"][data-n91-demo-mode="full"] #root .n91-gaps-canonical-v1 {
+  display:none !important;
+}
+#root .n91-gaps-canonical-v1 .n91-gaps-rule-v1 {font-size:.88rem;margin:.45rem 0;line-height:1.45}
+#root .n91-gaps-canonical-v1 a {display:inline-block;margin-top:.45rem}

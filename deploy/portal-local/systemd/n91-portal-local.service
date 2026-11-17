@@ -1,0 +1,18 @@
+[Unit]
+Description=N91 DBSEC Portal Local
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/portal-local
+Environment=PYTHONPATH=/home/ubuntu/portal-local/n91-portal-proxy-linux/backend
+ExecStart=/home/ubuntu/portal-local/.venv313/bin/python -m uvicorn local_app:app --host 127.0.0.1 --port 5188 --no-proxy-headers --env-file /home/ubuntu/portal-local/openstack.env
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target

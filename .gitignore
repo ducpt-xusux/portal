@@ -17,3 +17,11 @@ dist/
 backend/data/
 incoming-n91/
 *-credential*.json
+
+# Local deployment configuration, environments and generated snapshots.
+.venv313/
+openstack.env
+/portal-quarantine-member.json
+.n91-proxy-health/
+vnext_data/
+galera-snapshots/

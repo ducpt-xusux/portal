@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { readFileSync } from 'node:fs'
 
 const apiTarget = process.env.PORTAL_API_TARGET || 'http://127.0.0.1:8000'
 
@@ -23,8 +24,30 @@ async function consoleAccess() {
   }
 }
 
+
+function portalLiveExtensions() {
+  const manifest = JSON.parse(
+    readFileSync(new URL('./portal-extensions.json', import.meta.url), 'utf8')
+  )
+  return {
+    name: 'portal-live-extensions',
+    transformIndexHtml: {
+      order: 'post',
+      handler(html) {
+        const additions = manifest.tags.map((entry) => entry.tag).join('\n')
+        return html.replace(
+          '</head>',
+          '<!-- N91 LIVE EXTENSIONS: keep manifest order -->\n' +
+            additions +
+            '\n</head>'
+        )
+      },
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), portalLiveExtensions()],
   server: {
     port: 5173,
     strictPort: true,

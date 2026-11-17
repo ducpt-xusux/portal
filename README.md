@@ -34,3 +34,13 @@ theo hướng dẫn của layout đang chạy. Bản cài bằng systemd đặt 
 release mà launcher đang đọc. Sao lưu Business DB và chạy migration
 `--migrate-only` nếu đang dùng schema 1. Cấu hình, credential và dữ liệu
 vận hành được quản lý riêng trên Proxy.
+
+## Nguồn cập nhật Proxy ngày 17/11/2026
+
+Các thay đổi đang hoạt động đã được nhập vào nguồn: API P17 vNext, các
+extension JS/CSS, launcher và collector. Xem
+[quy trình build/triển khai portal-local](deploy/portal-local/README.md),
+[nguồn worker P17 riêng](components/p17-worker/README.md) và
+[ghi chú frontend](fe-api-staging/PORTAL_EXTENSIONS.md).
+Archive được commit trước đây trong deploy/ là bản cũ; hãy build gói mới
+từ commit định triển khai. Cấu hình riêng và dữ liệu vẫn được giữ trên Proxy.

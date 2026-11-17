@@ -1,0 +1,202 @@
+{
+  "schema": "portal-proxy-source-import-1",
+  "captured_at": "2026-11-17T09:10:37.743714+00:00",
+  "base_commit": "92c3c75512121097908d54ffbbba59f98ee16d56",
+  "live_index_sha256": "87a908af417affc4b7f0620a9bc04fda24273b9135cffbc501d66e0f75161f17",
+  "extensions": 20,
+  "runtime_code": [
+    {
+      "path": "/home/ubuntu/portal-local/n91-portal-proxy-linux/web/assets/n91-clean-ui.css",
+      "sha256": "1009627172c39f7ae8606e06d7c29b04efd873cbd932b249788354ef9a9feced",
+      "normalized_sha256": "1009627172c39f7ae8606e06d7c29b04efd873cbd932b249788354ef9a9feced"
+    },
+    {
+      "path": "/home/ubuntu/portal-local/n91-portal-proxy-linux/web/assets/n91-clean-preload.js",
+      "sha256": "7a38cb987cb35bf5881fc5ef1d909d5dde9e3405ca350f284ea7d5524657fdb1",
+      "normalized_sha256": "7a38cb987cb35bf5881fc5ef1d909d5dde9e3405ca350f284ea7d5524657fdb1"
+    },
+    {
+      "path": "/home/ubuntu/portal-local/n91-portal-proxy-linux/web/assets/n91-clean-ui.js",
+      "sha256": "76dff0c00cf2c03b8ad1c684a0e737740f2fe7a380e47edb98ad035b6d2ba70a",
+      "normalized_sha256": "76dff0c00cf2c03b8ad1c684a0e737740f2fe7a380e47edb98ad035b6d2ba70a"
+    },
+    {
+      "path": "/home/ubuntu/portal-local/n91-portal-proxy-linux/web/assets/n91-unified-workbench.css",
+      "sha256": "38ed800e5c453191a0913e91359954f3c075ed1199fc6c1dc655b291056cbd7b",
+      "normalized_sha256": "38ed800e5c453191a0913e91359954f3c075ed1199fc6c1dc655b291056cbd7b"
+    },
+    {
+      "path": "/home/ubuntu/portal-local/n91-portal-proxy-linux/web/assets/n91-unified-workbench.js",
+      "sha256": "7add175680b71df2ab8015b95db6d099fcc409f2f76b7829bf9fc872c629e623",
+      "normalized_sha256": "7add175680b71df2ab8015b95db6d099fcc409f2f76b7829bf9fc872c629e623"
+    },
+    {
+      "path": "/home/ubuntu/portal-local/n91-portal-proxy-linux/web/assets/n91-brand-one-line.css",
+      "sha256": "4afb597b4193a5e297f4dbf63985c6bebc992bf20e71d271248dc7a04a47d59d",
+      "normalized_sha256": "4afb597b4193a5e297f4dbf63985c6bebc992bf20e71d271248dc7a04a47d59d"
+    },
+    {
+      "path": "/home/ubuntu/portal-local/n91-portal-proxy-linux/web/assets/n91-demo-clean-v4.css",
+      "sha256": "fc0386fd6cb38bbf89d8c441ae58863a7cd22a66d3eb4fddc14a783c9764ebaf",
+      "normalized_sha256": "fc0386fd6cb38bbf89d8c441ae58863a7cd22a66d3eb4fddc14a783c9764ebaf"
+    },
+    {
+      "path": "/home/ubuntu/portal-local/n91-portal-proxy-linux/web/assets/n91-demo-clean-v4.js",
+      "sha256": "cc092fcaaf1e3440c028b4d243488dc5791312a829f1c64b771c4d17ae56bc04",
+      "normalized_sha256": "cc092fcaaf1e3440c028b4d243488dc5791312a829f1c64b771c4d17ae56bc04"
+    },
+    {
+      "path": "/home/ubuntu/portal-local/n91-portal-proxy-linux/web/assets/n91-detail-demo-v2.css",
+      "sha256": "dd0e9489b7d9e5cccd12055a98f7694bfb8d398b8c30cce3eaa110da6f57370b",
+      "normalized_sha256": "dd0e9489b7d9e5cccd12055a98f7694bfb8d398b8c30cce3eaa110da6f57370b"
+    },
+    {
+      "path": "/home/ubuntu/portal-local/n91-portal-proxy-linux/web/assets/n91-detail-demo-v2.js",
+      "sha256": "af73226ab20f4e2a79d878e01335e207bb6228a0c2c0109d3ffbc36c6ed0c84e",
+      "normalized_sha256": "af73226ab20f4e2a79d878e01335e207bb6228a0c2c0109d3ffbc36c6ed0c84e"
+    },
+    {
+      "path": "/home/ubuntu/portal-local/n91-portal-proxy-linux/web/assets/n91-workload-empty-risk-v1.css",
+      "sha256": "babd34cc80d71cc9c21cdda1353c844444b6d1109d47b37c702daa08c8fff8b2",
+      "normalized_sha256": "babd34cc80d71cc9c21cdda1353c844444b6d1109d47b37c702daa08c8fff8b2"
+    },
+    {
+      "path": "/home/ubuntu/portal-local/n91-portal-proxy-linux/web/assets/n91-workload-empty-risk-v1.js",
+      "sha256": "aa5fdb777bc454f538cc3929f5ed78a20de2f805098c469280012fc20d91a6ce",
+      "normalized_sha256": "aa5fdb777bc454f538cc3929f5ed78a20de2f805098c469280012fc20d91a6ce"
+    },
+    {
+      "path": "/home/ubuntu/portal-local/n91-portal-proxy-linux/web/assets/n91-data-gaps-ui-v1.css",
+      "sha256": "57f73214df833ba710e370edb5040ccf40a1f76ac32f4cd53c151e50351cc863",
+      "normalized_sha256": "57f73214df833ba710e370edb5040ccf40a1f76ac32f4cd53c151e50351cc863"
+    },
+    {
+      "path": "/home/ubuntu/portal-local/n91-portal-proxy-linux/web/assets/n91-data-gaps-ui-v1.js",
+      "sha256": "35b416e9d39a312e7f45a1853b6dccde67c9b8ed79877f482ae7b647e0b92673",
+      "normalized_sha256": "35b416e9d39a312e7f45a1853b6dccde67c9b8ed79877f482ae7b647e0b92673"
+    },
+    {
+      "path": "/home/ubuntu/portal-local/n91-portal-proxy-linux/web/assets/n91-incident-list-clean-v1.css",
+      "sha256": "d26f8477161e63e8c396bc65104c676e454275a625a54fb32aea48dc3398514f",
+      "normalized_sha256": "d26f8477161e63e8c396bc65104c676e454275a625a54fb32aea48dc3398514f"
+    },
+    {
+      "path": "/home/ubuntu/portal-local/n91-portal-proxy-linux/web/assets/n91-incident-list-clean-v1.js",
+      "sha256": "daeb7f135bddd0224885aa7a47fee7c5b076f15f659aa7f15701997c25ba0d70",
+      "normalized_sha256": "daeb7f135bddd0224885aa7a47fee7c5b076f15f659aa7f15701997c25ba0d70"
+    },
+    {
+      "path": "/home/ubuntu/portal-local/n91-portal-proxy-linux/web/assets/n91-incident-source-v2.css",
+      "sha256": "f3b3a7eaaac7b5d0ac8fede1715941032a7f13118b76cdcae3a0f087722f1682",
+      "normalized_sha256": "f3b3a7eaaac7b5d0ac8fede1715941032a7f13118b76cdcae3a0f087722f1682"
+    },
+    {
+      "path": "/home/ubuntu/portal-local/n91-portal-proxy-linux/web/assets/n91-incident-source-v2.js",
+      "sha256": "7ff4e60df6502c2a6af5e865957c3584599057c13e7149d81bab98b20ea34fa8",
+      "normalized_sha256": "7ff4e60df6502c2a6af5e865957c3584599057c13e7149d81bab98b20ea34fa8"
+    },
+    {
+      "path": "/home/ubuntu/portal-local/n91-portal-proxy-linux/web/assets/n91-detail-single-toggle-v1.css",
+      "sha256": "8407dae52646efb361e7961b5cf044a7688eef3fb1a97dbaecd9e631b59e0877",
+      "normalized_sha256": "8407dae52646efb361e7961b5cf044a7688eef3fb1a97dbaecd9e631b59e0877"
+    },
+    {
+      "path": "/home/ubuntu/portal-local/n91-portal-proxy-linux/web/assets/n91-detail-single-toggle-v1.js",
+      "sha256": "135b214eb81a4154a5ce0fb5bb832d110ecf06e6f5e7296dbffb081a8050903f",
+      "normalized_sha256": "135b214eb81a4154a5ce0fb5bb832d110ecf06e6f5e7296dbffb081a8050903f"
+    },
+    {
+      "path": "/home/ubuntu/portal-local/n91-portal-proxy-linux/backend/app/main.py",
+      "sha256": "b2bcae6934390719bfa71b087609f29ce8e0d874412ad1cf066ee61d4aaaacf2",
+      "normalized_sha256": "00f13fe412b9a41a1c98c7c5c0261c75968b364690d9f75f44d396e799199aa5"
+    },
+    {
+      "path": "/home/ubuntu/portal-local/n91-portal-proxy-linux/backend/app/p17_api.py",
+      "sha256": "ea860b697f3046036a00d708b4826606cd325bd56b48da5c20fb431d25c90142",
+      "normalized_sha256": "ab478561c3d683ccc8dfb94e261378c7a3e085e74e5e60107af53c6c509faef7"
+    },
+    {
+      "path": "/home/ubuntu/portal-local/n91-portal-proxy-linux/backend/app/p17_vnext_api.py",
+      "sha256": "258ea8d18d35042174c65df40f82bf21eba3e9303844df54ebe67da50b4e5abb",
+      "normalized_sha256": "258ea8d18d35042174c65df40f82bf21eba3e9303844df54ebe67da50b4e5abb"
+    },
+    {
+      "path": "/home/ubuntu/portal-local/local_app.py",
+      "sha256": "554e55ebe305e8c3d4674cfc167d73093461698594dc493f0f32c8e9fd68a1c9",
+      "normalized_sha256": "554e55ebe305e8c3d4674cfc167d73093461698594dc493f0f32c8e9fd68a1c9"
+    },
+    {
+      "path": "/home/ubuntu/portal-local/.n91-proxy-health/collect_proxy_services.py",
+      "sha256": "58b1254b894aaeada78d308129d4924d3b72d3fc652d30b3ba5382045013877c",
+      "normalized_sha256": "58b1254b894aaeada78d308129d4924d3b72d3fc652d30b3ba5382045013877c"
+    },
+    {
+      "path": "/opt/db-firewall/p17-incident-g03-dual-v3-20261104/p17_decision.py",
+      "sha256": "30798f5e6712b93e3d329ba93a6be3d00df9170029beecc9bab827c163606452",
+      "normalized_sha256": "30798f5e6712b93e3d329ba93a6be3d00df9170029beecc9bab827c163606452"
+    },
+    {
+      "path": "/opt/db-firewall/p17-incident-g03-dual-v3-20261104/p17_backup.py",
+      "sha256": "7ab93d904ad448e821fe67d1cb8735ae445bb0b381f4b6497052541f8c9c8af9",
+      "normalized_sha256": "7ab93d904ad448e821fe67d1cb8735ae445bb0b381f4b6497052541f8c9c8af9"
+    },
+    {
+      "path": "/opt/db-firewall/p17-incident-g03-dual-v3-20261104/p17_vnext.py",
+      "sha256": "d8a1acbf1cebfbe10e77e7ea7611b6381bbe6636d63c8ed3d63b500982c15219",
+      "normalized_sha256": "d8a1acbf1cebfbe10e77e7ea7611b6381bbe6636d63c8ed3d63b500982c15219"
+    },
+    {
+      "path": "/opt/db-firewall/p17-incident-g03-dual-v3-20261104/p17_durable.py",
+      "sha256": "a10a9b9a594b80979533f112af5491c722ad6e018d33cfbdf804bd08ee61e084",
+      "normalized_sha256": "a10a9b9a594b80979533f112af5491c722ad6e018d33cfbdf804bd08ee61e084"
+    },
+    {
+      "path": "/opt/db-firewall/p17-incident-g03-dual-v3-20261104/p17_core.py",
+      "sha256": "86eccd8bac12d6c863a393c3ee09f5a6a956d5d6cf70d8f68dd4677b437fac8c",
+      "normalized_sha256": "86eccd8bac12d6c863a393c3ee09f5a6a956d5d6cf70d8f68dd4677b437fac8c"
+    }
+  ],
+  "p17_worker": [
+    {
+      "path": "components/p17-worker/p17_backup.py",
+      "sha256": "7ab93d904ad448e821fe67d1cb8735ae445bb0b381f4b6497052541f8c9c8af9",
+      "source_path": "/opt/db-firewall/p17-incident-g03-dual-v3-20261104/p17_backup.py"
+    },
+    {
+      "path": "components/p17-worker/p17_core.py",
+      "sha256": "86eccd8bac12d6c863a393c3ee09f5a6a956d5d6cf70d8f68dd4677b437fac8c",
+      "source_path": "/opt/db-firewall/p17-incident-g03-dual-v3-20261104/p17_core.py"
+    },
+    {
+      "path": "components/p17-worker/p17_decision.py",
+      "sha256": "30798f5e6712b93e3d329ba93a6be3d00df9170029beecc9bab827c163606452",
+      "source_path": "/opt/db-firewall/p17-incident-g03-dual-v3-20261104/p17_decision.py"
+    },
+    {
+      "path": "components/p17-worker/p17_durable.py",
+      "sha256": "a10a9b9a594b80979533f112af5491c722ad6e018d33cfbdf804bd08ee61e084",
+      "source_path": "/opt/db-firewall/p17-incident-g03-dual-v3-20261104/p17_durable.py"
+    },
+    {
+      "path": "components/p17-worker/p17_vnext.py",
+      "sha256": "d8a1acbf1cebfbe10e77e7ea7611b6381bbe6636d63c8ed3d63b500982c15219",
+      "source_path": "/opt/db-firewall/p17-incident-g03-dual-v3-20261104/p17_vnext.py"
+    }
+  ],
+  "optional_tools_from_package": [
+    "N91_PORTAL_LOCAL_VNEXT_FIXED/proxy/publish_vnext.py",
+    "N91_PORTAL_LOCAL_VNEXT_FIXED/proxy/vnext_detector_manifest.json",
+    "N91_PORTAL_LOCAL_VNEXT_FIXED/proxy/n91-portal-vnext-local.service",
+    "N91_PORTAL_LOCAL_VNEXT_FIXED/proxy/n91-portal-vnext-local.timer"
+  ],
+  "base_frontend_assets": [
+    {
+      "url": "/assets/index-BzvMO7A2.js",
+      "sha256": "5b8be48284208776c1c2049879f36fc941a1dc0082f194f940e100103651d695"
+    },
+    {
+      "url": "/assets/index-OOLI5VeH.css",
+      "sha256": "bae70d113dacb35b91427cea001976527921c8854d976ead20ca30c0077fb451"
+    }
+  ]
+}

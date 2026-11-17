@@ -23,6 +23,7 @@ def bundle_files(web: Path):
         source = ROOT / 'deploy/proxy' / name
         yield name, source.read_bytes().replace(b'\r\n', b'\n')
     yield 'backend/requirements.txt', (ROOT / 'backend/requirements.txt').read_bytes()
+    yield 'backend/requirements-runtime.lock', (ROOT / 'backend/requirements-runtime.lock').read_bytes()
     for name in ('collect_galera_snapshot.py', 'galera_periodic.py'):
         yield f'backend/{name}', (ROOT / 'backend' / name).read_bytes()
     app = ROOT / 'backend/app'
@@ -31,6 +32,22 @@ def bundle_files(web: Path):
         if (path.is_file() and path.suffix in {'.py', '.json', '.sql'}
                 and not {'tests', '__pycache__'}.intersection(relative.parts)):
             yield f'backend/app/{relative.as_posix()}', path.read_bytes()
+
+    # Version the launcher, collectors, publisher and separate P17 worker source.
+    # No environment, database, log or runtime snapshot is read from the host.
+    for prefix in ('deploy/portal-local', 'components/p17-worker'):
+        base = ROOT / prefix
+        for path in sorted(base.rglob('*')):
+            relative = path.relative_to(base)
+            if not path.is_file() or {'tests', '__pycache__'}.intersection(relative.parts):
+                continue
+            if path.is_symlink() or any(part.startswith('.') for part in relative.parts):
+                raise ValueError('Unexpected runtime source path')
+            if path.suffix not in {'.py', '.json', '.md', '.example', '.service', '.timer'}:
+                continue
+            destination = ('portal-local' if prefix == 'deploy/portal-local'
+                           else 'components/p17-worker')
+            yield f'{destination}/{relative.as_posix()}', path.read_bytes()
 
     if not (web / 'index.html').is_file() or not (web / 'assets').is_dir():
         raise ValueError('Build the frontend before packaging')
@@ -61,7 +78,7 @@ def main():
     files = dict(bundle_files(args.web))
     sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
     dirty = subprocess.check_output(
-        ['git', 'status', '--porcelain', '--untracked-files=all', '--', 'backend', 'fe-api-staging', 'deploy/proxy', 'deploy/build_proxy_bundle.py'],
+        ['git', 'status', '--porcelain', '--untracked-files=all', '--', 'backend', 'fe-api-staging', 'deploy/proxy', 'deploy/portal-local', 'components/p17-worker', 'deploy/build_proxy_bundle.py'],
         cwd=ROOT, text=True,
     ).strip()
     web_assets = sorted(name for name in files if name.startswith('web/'))
