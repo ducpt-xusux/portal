@@ -1,13 +1,14 @@
 import { Activity, ArrowUpRight, RefreshCw } from 'lucide-react'
 import { readCollection } from '../services/portalApi'
 import { useV4Resource } from './IncidentPages'
+import { uiLabel } from '../services/uiLanguage'
 import { Badge, FieldGrid, ObservationAgeBadge, Panel, display, useTime } from './PortalUI'
 import './ProxyServicesPanel.css'
 
 const serviceNames = {
-  'db-firewall.service': 'DB Firewall',
+  'db-firewall.service': 'Bộ kiểm soát truy vấn SQL',
   'db-firewall-audit.service': 'Bộ thu nhật ký',
-  'db-firewall-p17.service': 'Bộ phát hiện sự cố',
+  'db-firewall-p17.service': 'Bộ phát hiện hành vi và sự cố',
 }
 
 export default function ProxyServicesPanel({ system = false }) {
@@ -33,6 +34,19 @@ export default function ProxyServicesPanel({ system = false }) {
     row.source_ref === resource.meta.source_ref &&
     row.read_ok === true &&
     Number.isFinite(Date.parse(row.observed_at))
+
+  // The service reader is optional. An unconfigured source is not a service failure.
+  // Show one clear source warning, not three large cards of invented UNKNOWN values.
+  if (system && !sourceOk) {
+    return (
+      <Panel title="Dịch vụ bảo mật trên Proxy" resource={resource}>
+        <p className="v4-inline-warning" role="status">
+          Chưa kết nối nguồn theo dõi dịch vụ trên Proxy. Không thể kết luận trạng thái chạy từ dữ liệu này.
+        </p>
+        <a className="v4-text-link" href="#/system/sources">Kiểm tra nguồn dữ liệu</a>
+      </Panel>
+    )
+  }
 
   if (!system)
     return (
@@ -127,7 +141,7 @@ export default function ProxyServicesPanel({ system = false }) {
                 <h3>{serviceNames[row.unit] || display(row.name)}</h3>
                 <Badge value={state}>{labels[state]}</Badge>
               </div>
-              <code className="v4-proxy-unit">{display(row.unit)}</code>
+              <code className="v4-proxy-unit">{uiLabel(row.unit)}</code>
               <FieldGrid
                 rows={[
                   ['PID lúc chụp', valid ? display(row.pid) : '—'],

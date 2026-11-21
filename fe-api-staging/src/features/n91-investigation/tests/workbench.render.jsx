@@ -70,7 +70,7 @@ export function runRenderCases(fixture) {
     payload.data.detection.reason_codes[0] = reason
     const html = render('detection', { resource: { ...base, payload } })
     assert.match(html, expectedText)
-    assert.match(html, /Số bằng chứng P17 ghi nhận/)
+    assert.match(html, /Số bằng chứng bộ phát hiện ghi nhận/)
     assert.match(html, /Ứng viên tái dựng/)
     assert.match(html, /Liên kết trực tiếp<\/span><strong>—<\/strong>/)
     assert.match(html, /Liên kết dựng lại theo cửa sổ thời gian/)

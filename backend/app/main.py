@@ -18,8 +18,10 @@ from .ingest import Importer
 from .schemas import utc_now
 from .store import Store
 from .p17_snapshot import SnapshotReader
+from .p17_vnext_api import router as p17_vnext_router
 from .p17_api import CursorCodec, evaluation_run_router, observation_auth_router, quarantine_router, require_read_access, router as p17_router, source_status_router
 from .openstack_inventory import InventoryError, InventoryReader
+from .inventory_export import InventoryExportReader, SessionInventoryReader
 from .remote_console import ConsoleService
 from .workload_quarantine import QuarantineError, WorkloadQuarantine
 from .quarantine_recovery import QuarantineRecovery
@@ -35,6 +37,14 @@ from .n91_investigation.api import assert_no_duplicate_routes, business_session_
 
 
 SESSION_POLICIES = (
+    ('GET', '/api/v1/system/report-evidence', 'read'),
+    ('GET', '/api/v1/system/automatic-response', 'read'),
+    ('GET', '/api/v1/workloads/{server_id}/journal', 'read'),
+    ('GET', '/api/v1/p17-vnext/status', 'read'),
+    ('GET', '/api/v1/p17-vnext/cases', 'read'),
+    ('GET', '/api/v1/p17-vnext/cases/{case_id}', 'read'),
+    ('GET', '/api/v1/p17-vnext/events', 'read'),
+    ('GET', '/api/v1/p17-vnext/events/{event_id}', 'read'),
     ('GET', '/api/v1/system/build', 'read'),
     ('GET', '/api/v1/system/demo-coverage/defense-run', 'read'),
     ('GET', '/api/v1/portal/incidents/{incident_id}/investigation', 'evidence'),
@@ -58,6 +68,7 @@ def validate_business_database(config, settings, evidence):
         evidence.index_path, settings.evaluation_index_path, settings.proxy_sync_status_path,
         settings.openstack_credential_path, settings.openstack_console_credential_path,
         settings.openstack_quarantine_credential_path,
+        settings.openstack_ssh_relay_config_path,
         settings.investigation_policy_path, settings.investigation_controller_path,
         settings.investigation_controller_archive_path, settings.investigation_controller_binding_path,
         settings.evaluation_observations_path, settings.system_observations_path,
@@ -85,6 +96,7 @@ def create_app(settings: Settings | None = None, *, evidence_config: EvidenceCon
             database_path=settings.business_database_path,
             secure_cookie=not settings.session_local_http,
             allow_insecure_loopback=settings.session_local_http,
+            single_account_username=settings.single_account_username,
             trusted_origins=settings.cors_origins if settings.business_database_path else (),
         )
         validate_business_database(config, settings, evidence)
@@ -95,8 +107,15 @@ def create_app(settings: Settings | None = None, *, evidence_config: EvidenceCon
             snapshot_reader, config.context, settings.p16h_import_context) if settings.p17_snapshot_path else None)
     store = Store(settings.database_path)
     importer = Importer(settings, store)
-    inventory = InventoryReader(settings, history_store=store)
+    inventory_class = (SessionInventoryReader if session_enabled and settings.openstack_ssh_relay_config_path
+                       else InventoryExportReader) if settings.openstack_inventory_export_path else InventoryReader
+    inventory = inventory_class(settings, history_store=store)
     recovery = QuarantineRecovery(WorkloadQuarantine(settings), business, store)
+    automatic = None
+    if settings.automatic_response_remote:
+        from .auto_remote import RemoteAutomaticResponse, CombinedQuarantineRecovery
+        automatic = RemoteAutomaticResponse(settings.openstack_ssh_relay_config_path)
+        recovery = CombinedQuarantineRecovery(recovery, automatic)
 
     async def poll():
         while True:
@@ -167,6 +186,7 @@ def create_app(settings: Settings | None = None, *, evidence_config: EvidenceCon
     app.state.console_service = ConsoleService(settings)
     app.state.workload_quarantine = recovery.cloud
     app.state.quarantine_recovery = recovery
+    app.state.automatic_response = automatic
     app.state.quarantine_ready = False
     app.state.quarantine_audit = business
     app.state.build_info = load_build_info(settings.build_manifest_path)
@@ -218,6 +238,7 @@ def create_app(settings: Settings | None = None, *, evidence_config: EvidenceCon
     def access_mode(request: Request):
         return response(request, {
             'mode': 'SESSION' if session_enabled else 'OBSERVATION',
+            'single_account': bool(business and business.config.single_account_username),
             'console_proxy_allowed': not session_enabled and settings.openstack_console_enabled,
             'workload_quarantine_available': bool(
                 app.state.quarantine_ready
@@ -227,6 +248,16 @@ def create_app(settings: Settings | None = None, *, evidence_config: EvidenceCon
     @app.get("/api/v1/system/build", dependencies=[Depends(require_key), Depends(require_read_access)])
     def build_status(request: Request):
         return response(request, request.app.state.build_info)
+
+    @app.get('/api/v1/system/automatic-response', dependencies=[Depends(require_key), Depends(require_read_access)])
+    def automatic_response_status(request: Request):
+        if automatic is None:
+            return response(request, {'configured': False})
+        try:
+            return response(request, {'configured': True, **automatic.status()})
+        except BusinessError as error:
+            return JSONResponse({'data': None, 'meta': {'request_id': request.state.request_id},
+                'error': {'code': error.code, 'message': 'Không đọc được bộ điều khiển ứng phó tự động.'}}, status_code=error.status)
 
     def observation_investigation_access(request, required):
         require_read_access(request)
@@ -238,6 +269,7 @@ def create_app(settings: Settings | None = None, *, evidence_config: EvidenceCon
 
     app.include_router(router)
     app.include_router(p17_router)
+    app.include_router(p17_vnext_router, dependencies=[Depends(require_key), Depends(require_read_access)])
     app.include_router(evaluation_run_router)
     app.include_router(source_status_router)
     if business:

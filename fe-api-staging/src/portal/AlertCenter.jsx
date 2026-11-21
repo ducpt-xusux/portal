@@ -61,7 +61,7 @@ function AlertDetail({ id, onClose }) {
             </div>
             <div className="v4-alert-badges">
               <Badge value={alert.severity} />
-              <span className="v4-rule">{alert.signal_code}</span>
+              <span className="v4-rule">{uiLabel(alert.signal_code)}</span>
             </div>
             <h3>{uiLabel(alert.title)}</h3>
             <p>{uiAlertSummary(alert.summary)}</p>
@@ -196,7 +196,7 @@ function AlertFeed({ filters, onRestart }) {
                     <td>
                       <strong>{uiLabel(alert.title)}</strong>
                       <small>
-                        {alert.signal_code} · {uiLabel(alert.kind)}
+                        {uiLabel(alert.signal_code)} · {uiLabel(alert.kind)}
                       </small>
                       <small>{alert.alert_id}</small>
                     </td>
@@ -302,7 +302,7 @@ export default function AlertCenter({ initialRange = null }) {
             <input
               value={draft.signal_code}
               maxLength={64}
-              placeholder="SINGLE_P15_HIGH / CORR-002"
+              placeholder="Ví dụ: CORR-002"
               onChange={(event) => update('signal_code')(event.target.value)}
             />
           </Filter>

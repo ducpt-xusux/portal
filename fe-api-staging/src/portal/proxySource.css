@@ -1,0 +1,384 @@
+/* N91 dashboard visual refinement â€” static, GET-only UI. No third-party fonts/assets. */
+.v4-app {
+  font-family: Inter, 'Segoe UI', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.v4-app h1,.v4-app .v4-page-heading h1{font-size:clamp(24px,2vw,30px);line-height:1.2;font-weight:750;letter-spacing:-.025em}
+.v4-app h2,.v4-app .panel-heading h2{font-size:17px;line-height:1.35;font-weight:700;letter-spacing:-.01em}
+.v4-app h3,.v4-app .v4-subheading{font-size:15px;font-weight:700}
+.v4-app p,.v4-app td,.v4-app dd,.v4-app li,.v4-app a{font-style:normal}
+.v4-app button,.v4-app input,.v4-app select,.v4-app textarea{font-family:inherit;font-size:13px}
+.v4-app .v4-table th,.v4-app .v4-fields dt,.v4-app .eyebrow,.v4-app .v4-source-status,.v4-app .v4-caption,.v4-app small{font-size:12px}
+.v4-app .v4-table td{font-size:13px}
+/* Clean command-center header. */
+.n91-hero{display:flex;justify-content:space-between;align-items:center;gap:24px;min-height:83px;padding:1px 2px}
+.n91-hero-main{display:flex;flex-direction:column;gap:2px;min-width:0}
+.n91-kicker{display:inline-flex;align-items:center;gap:8px;color:#087987;font-size:11px;line-height:1.3;font-weight:800;letter-spacing:.105em}
+.n91-kicker-dot{width:7px;height:7px;background:#0e8f93;border-radius:50%;box-shadow:0 0 0 4px #def4f1}
+#n91-compact-overview .n91-hero h1{margin:4px 0 1px;font-size:clamp(26px,2.1vw,33px);font-weight:760;letter-spacing:-.038em;line-height:1.14;color:#102e44}
+.n91-hero p{margin:2px 0 0;color:#6f8799;font-size:13px;line-height:1.4}
+.n91-hero-actions{display:flex;align-items:center;gap:12px;flex:none}
+.n91-data-indicator{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid #dce8ee;border-radius:999px;background:#fff;color:#46697a;font-weight:700;font-size:12px;white-space:nowrap}
+.n91-indicator-dot{width:7px;height:7px;background:#899ba6;border-radius:50%}
+.n91-data-ok .n91-indicator-dot{background:#1c9e7b;box-shadow:0 0 0 3px #e1f7ed}
+.n91-data-unavailable .n91-indicator-dot{background:#ce5553;box-shadow:0 0 0 3px #fbe9e8}
+#n91-dash-refresh{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:40px;padding:9px 15px;border-radius:10px;border:1px solid #cddde5;background:#fff;color:#174357;font-size:13px;font-weight:730;white-space:nowrap;cursor:pointer;box-shadow:0 2px 4px rgba(9,42,59,.025);transition:background .15s,border-color .15s,transform .15s}
+#n91-dash-refresh:hover{background:#effafa;border-color:#7abac1;transform:translateY(-1px)}
+
+/* Summary strip: consistent vertical rhythm; colored icons instead of thick top borders. */
+.n91-metric-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+#n91-compact-overview .n91-metric{display:flex;flex-direction:column;gap:8px;min-width:0;min-height:131px;padding:17px 18px 16px;border:1px solid #dce7ee;border-radius:15px;background:#fff;box-shadow:0 3px 13px rgba(22,64,81,.035);transition:transform .14s,border-color .14s,box-shadow .14s}
+#n91-compact-overview .n91-metric:hover{transform:translateY(-2px);border-color:#89bdc8;box-shadow:0 8px 24px rgba(18,72,90,.075)}
+.n91-metric-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.n91-metric-label{min-width:0;color:#536f83;font-weight:720;font-size:12px;letter-spacing:.005em}
+.n91-metric-icon{height:34px;width:34px;flex:none;display:flex;align-items:center;justify-content:center;color:#247a89;background:#edf7f8;border-radius:10px}
+.n91-metric-danger .n91-metric-icon{color:#bd4b4d;background:#fff0ef}
+.n91-metric-warn .n91-metric-icon{color:#b17d29;background:#fff5e4}
+.n91-metric-source .n91-metric-icon{color:#407aa7;background:#eff5fb}
+#n91-compact-overview .n91-metric-value{font-size:clamp(27px,2.5vw,35px);font-weight:770;line-height:1.04;letter-spacing:-.045em;color:#10354b;margin:0}
+#n91-compact-overview .n91-metric-source .n91-metric-value{font-size:clamp(17px,1.65vw,23px);letter-spacing:-.02em;line-height:1.25;white-space:normal;overflow-wrap:anywhere;min-height:34px;display:flex;align-items:center}
+.n91-metric-foot{display:block;color:#7a91a0;font-size:11px;font-weight:500;line-height:1.35}
+
+/* Natural-height list panels: NO giant dead area when only four records exist. */
+.n91-clean-columns{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:14px;align-items:start}
+.n91-clean-section{min-width:0;display:flex;flex-direction:column;padding:0 20px 6px;background:#fff;border:1px solid #dce7ee;border-radius:15px;overflow:hidden;box-shadow:0 3px 14px rgba(22,64,81,.03)}
+.n91-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:77px;padding:14px 0 12px;border-bottom:1px solid #e8eef2}
+.n91-section-eyebrow{display:block;color:#8399a6;font-size:10px;font-weight:790;letter-spacing:.095em;margin-bottom:4px}
+#n91-compact-overview .n91-section-head h2{font-size:17px;font-weight:760;letter-spacing:-.02em;color:#16394f;margin:0;line-height:1.22}
+#n91-compact-overview .n91-section-action{display:inline-flex;align-items:center;gap:7px;color:#087b89;font-weight:750;font-size:12px;white-space:nowrap;padding:7px 0}
+#n91-compact-overview .n91-section-action:hover{color:#06586a}
+.n91-section-action svg{transition:transform .15s}
+.n91-section-action:hover svg{transform:translateX(3px)}
+.n91-rows{display:flex;flex-direction:column;min-width:0}
+#n91-compact-overview .n91-item{display:flex;align-items:center;gap:11px;min-height:73px;padding:11px 0;border-bottom:1px solid #edf2f5;transition:background .13s}
+#n91-compact-overview .n91-item:last-child{border-bottom:none}
+#n91-compact-overview .n91-item:hover{background:#f6fbfd;margin:0 -12px;padding-left:12px;padding-right:12px;border-radius:8px}
+.n91-item-symbol{display:flex;flex:none;align-items:center;justify-content:center;width:34px;height:34px;border-radius:11px;font-weight:850;font-size:15px}
+.n91-symbol-block{color:#c85055;background:#fdf0ee}
+.n91-symbol-allow{color:#158966;background:#e8f6ed}
+.n91-symbol-incident{color:#af792d;background:#fff6e8}
+.n91-item-content{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0}
+.n91-item-content strong{display:block;color:#153c51;font-weight:750;font-size:14px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.n91-item-content small{display:block;color:#728b9c;font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.n91-item-action{display:inline-flex;flex:none;align-items:center;justify-content:flex-end;gap:8px;min-width:90px}
+.n91-status{display:inline-flex;align-items:center;justify-content:center;padding:5px 9px;min-height:25px;border-radius:7px;font-size:11px;font-weight:760;white-space:nowrap;line-height:1}
+.n91-status-danger{color:#b7434b;background:#ffeded}
+.n91-status-good{color:#127a5b;background:#e7f7ef}
+.n91-status-muted{color:#587486;background:#eff4f7}
+.n91-item-risk{min-width:22px;text-align:right;color:#19394c;font-weight:750;font-size:13px}
+.n91-item-time{display:flex;flex-direction:column;gap:3px;align-items:flex-end;justify-content:center;min-width:62px;white-space:nowrap}
+.n91-item-time time{font-size:12px;color:#47697e;font-weight:730;line-height:1.25}
+.n91-item-time small{font-size:10px;color:#8ea0ad;line-height:1.2}
+.n91-item-chevron{display:flex;align-items:center;color:#a2b5c1;flex:none;margin-left:2px}
+#n91-compact-overview .n91-item:hover .n91-item-chevron{color:#187f8b}
+.n91-empty{margin:0;padding:22px 4px;color:#6b8595;font-size:12px;line-height:1.5}
+
+/* Provenance belongs near the content, not hidden in a tall empty card. */
+.n91-clean-foot{display:flex;align-items:center;gap:17px;flex-wrap:wrap;min-height:45px;padding:7px 3px 0;border-top:1px solid #e0e9ee;color:#778f9e;font-size:11px}
+.n91-foot-item{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.n91-foot-item strong{color:#597789;font-weight:730}
+.n91-foot-dot{width:7px;height:7px;background:#50b29c;border-radius:50%}
+.n91-foot-disclaimer{flex:1;min-width:270px}
+#n91-compact-overview .n91-clean-foot a{display:inline-flex;align-items:center;gap:5px;color:#117d89;font-size:11px;font-weight:760;white-space:nowrap}
+.n91-clean-notice{padding:10px 14px;border:1px solid #efd8a3;background:#fff6e7;border-radius:10px;color:#835e28;font-size:12px}
+.n91-clean-loading{padding:24px 4px;color:#607d90;font-size:13px}
+@media(max-height:810px) and (min-width:1050px){
+  #n91-compact-overview{padding-top:12px;gap:11px}
+  .n91-hero{min-height:68px}
+  #n91-compact-overview .n91-metric{min-height:108px;padding:11px 15px;gap:5px}
+  .n91-section-head{min-height:63px;padding:10px 0}
+  #n91-compact-overview .n91-item{min-height:59px;padding:7px 0}
+  .n91-clean-foot{min-height:35px}
+}
+@media(max-width:1200px){
+  .n91-item-symbol{width:30px;height:30px}
+  #n91-compact-overview .n91-item{gap:8px}
+  .n91-metric-grid{gap:10px}
+  #n91-compact-overview .n91-metric{padding:14px}
+  .n91-clean-section{padding-left:14px;padding-right:14px}
+  .n91-item-time{min-width:53px}
+}
+@media(max-width:1050px){
+  .n91-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .n91-clean-columns{grid-template-columns:minmax(0,1fr)}
+
+}
+@media(max-width:640px){
+
+  #n91-compact-overview{gap:12px;padding-top:13px}
+  .n91-hero{align-items:flex-start;flex-direction:column;gap:12px}
+  .n91-hero p{font-size:12px}
+  .n91-hero-actions{width:100%;justify-content:space-between}
+  .n91-metric-grid{gap:9px}
+  #n91-compact-overview .n91-metric{min-height:119px;padding:12px}
+  .n91-metric-icon{width:28px;height:28px}
+  #n91-compact-overview .n91-metric-value{font-size:26px}
+  #n91-compact-overview .n91-metric-source .n91-metric-value{font-size:15px}
+  .n91-metric-label{font-size:11px}
+  .n91-metric-foot{font-size:10px}
+  .n91-section-head{min-height:69px}
+  .n91-item-symbol{display:none}
+  .n91-item-content strong{font-size:13px}
+  .n91-item-time{min-width:46px}
+  .n91-item-action{min-width:74px;gap:5px}
+  .n91-item-chevron{display:none}
+  #n91-compact-overview .n91-item{gap:6px}
+  .n91-clean-foot{gap:8px}
+}
+@media(prefers-reduced-motion:reduce){
+ #n91-compact-overview *{transition:none!important;scroll-behavior:auto!important}
+}
+
+
+/* V6: Original 7-column wsrep table on the Dashboard instead of 3 mini cards. */
+#n91-compact-overview .n91-galera-exact {padding:10px 12px 9px;gap:7px;overflow:hidden}
+#n91-compact-overview .n91-galera-exact .n91-galera-heading{padding:0 1px 3px;gap:12px}
+#n91-compact-overview .n91-galera-exact .n91-galera-icon{height:29px;width:29px;border-radius:7px}
+#n91-compact-overview .n91-galera-exact .n91-galera-title h2{font-size:15px!important}
+#n91-compact-overview .n91-galera-exact .n91-galera-title p{font-size:11px!important;margin:0!important}
+#n91-compact-overview .n91-galera-exact .n91-galera-warning{padding:3px 5px;color:#815c2c;font-size:11px!important;white-space:normal}
+#n91-compact-overview .n91-galera-table-wrap {max-width:100%;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;border-radius:6px}
+#n91-compact-overview table.n91-galera-exact-table {width:100%;min-width:940px;table-layout:fixed;border-collapse:collapse;color:#1b4057;text-align:left;font:500 12px/1.35 var(--n91-font-ui,Inter,'Segoe UI',Arial,sans-serif)!important}
+#n91-compact-overview .n91-galera-exact-table th {background:#f3f7f9;color:#51768d;font-size:10.8px!important;font-weight:750!important;line-height:1.3!important;padding:8px 9px!important;border-bottom:1px solid #dce8ed;vertical-align:middle;overflow-wrap:normal}
+#n91-compact-overview .n91-galera-exact-table td {padding:8px 9px!important;font-size:12px!important;line-height:1.35!important;vertical-align:middle;border-bottom:1px solid #e7eff2;overflow-wrap:break-word}
+#n91-compact-overview .n91-galera-exact-table tbody tr:last-child td{border-bottom:0}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(1){width:21%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(2){width:14%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(3){width:11%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(4){width:14%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(5){width:14%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(6){width:17%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(7){width:9%}
+#n91-compact-overview .n91-galera-node-cell strong{display:block;color:#183e53;font-size:12.2px!important;font-weight:750!important}
+#n91-compact-overview .n91-galera-node-cell small{display:block;margin-top:3px;color:#6d8798;font-size:10.5px!important;line-height:1.35}
+#n91-compact-overview .n91-galera-numeric{text-align:center}
+#n91-compact-overview .n91-galera-observed{color:#547084;font-size:11.3px!important;font-variant-numeric:tabular-nums}
+#n91-compact-overview .n91-galera-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 7px;border-radius:5px;background:#edf3f6;color:#557488;font-size:10.5px!important;font-weight:680!important;white-space:nowrap}
+#n91-compact-overview .n91-galera-pill.good{background:#e7f7ef;color:#168364}
+#n91-compact-overview .n91-galera-pill.warn{background:#fff2dd;color:#9b670b}
+#n91-compact-overview .n91-galera-pill.muted{background:#edf3f6;color:#557488}
+@media(max-height:850px) and (min-width:1050px){
+ #n91-compact-overview .n91-hero{min-height:55px}
+ #n91-compact-overview .n91-galera-exact .n91-galera-title p{display:none}
+ #n91-compact-overview .n91-galera-exact-table th{padding:7px 8px!important}
+ #n91-compact-overview .n91-galera-exact-table td{padding:6px 8px!important}
+ #n91-compact-overview .n91-clean-columns .n91-item{min-height:49px!important}
+ #n91-compact-overview .n91-metric{min-height:100px!important}
+}
+@media(max-width:1200px){
+ #n91-compact-overview table.n91-galera-exact-table{min-width:900px}
+ #n91-compact-overview .n91-galera-exact-table td{font-size:11.5px!important}
+}
+@media(max-width:640px){
+ #n91-compact-overview .n91-galera-exact .n91-galera-title p{display:block}
+ #n91-compact-overview table.n91-galera-exact-table{min-width:990px}
+ #n91-compact-overview .n91-galera-exact .n91-galera-heading-right{gap:6px}
+}
+
+/* Fit the original full-width 7-column table below short recent lists on laptop. */
+@media (min-width:1051px) and (max-height:850px){
+ #n91-compact-overview{gap:8px!important;padding-top:8px!important;padding-bottom:2px!important}
+ #n91-compact-overview .n91-hero{min-height:48px!important}
+ #n91-compact-overview .n91-hero p{display:none!important}
+ #n91-compact-overview .n91-metric{min-height:89px!important;padding:9px 13px!important;gap:3px!important}
+ #n91-compact-overview .n91-metric-icon{height:28px;width:28px}
+ #n91-compact-overview .n91-metric-value{font-size:27px!important}
+ #n91-compact-overview .n91-section-head{min-height:46px!important;padding-block:6px!important}
+ #n91-compact-overview .n91-item{min-height:45px!important;padding-block:5px!important}
+ #n91-compact-overview .n91-galera-exact .n91-galera-heading{min-height:29px;padding:0!important}
+ #n91-compact-overview .n91-galera-exact .n91-galera-icon{height:26px;width:26px}
+ #n91-compact-overview .n91-galera-exact-table th{padding:5px 7px!important}
+ #n91-compact-overview .n91-galera-exact-table td{padding:5px 7px!important}
+ #n91-compact-overview .n91-clean-foot{min-height:19px!important;padding-top:3px!important}
+}
+
+/* A desktop overview must fit one viewport. All Galera failures remain in row details. */
+@media (min-width:1051px) and (max-height:950px){
+ #n91-compact-overview{gap:8px!important;padding-top:8px!important;padding-bottom:0!important}
+ #n91-compact-overview .n91-hero{min-height:47px!important}
+ #n91-compact-overview .n91-hero p{display:none!important}
+ #n91-compact-overview .n91-metric{min-height:89px!important;padding:9px 13px!important;gap:3px!important}
+ #n91-compact-overview .n91-metric-icon{height:28px;width:28px}
+ #n91-compact-overview .n91-metric-value{font-size:27px!important}
+ #n91-compact-overview .n91-section-head{min-height:46px!important;padding-block:6px!important}
+ #n91-compact-overview .n91-item{min-height:45px!important;padding-block:5px!important}
+ #n91-compact-overview .n91-clean-foot{display:none!important}
+ #n91-compact-overview .n91-galera-exact .n91-galera-heading{min-height:29px;padding:0!important}
+ #n91-compact-overview .n91-galera-exact-table th{padding:5px 7px!important}
+ #n91-compact-overview .n91-galera-exact-table td{padding:5px 7px!important}
+}
+
+/* ================================================================
+   V7 dashboard proportions, November 15, 2026.
+   V6's max-height:950px rule compressed a 940px-high desktop into
+   45px rows and 89px cards, leaving a 230px blank lower canvas.
+   Preserve the 7-column Galera contract and all source-state rules.
+   Only visual layout; no hiding errors, no API or action changes.
+   ================================================================ */
+#n91-compact-overview {
+  --n91-v7-ink: #123549;
+  --n91-v7-muted: #607e91;
+  --n91-v7-line: #e1eaf0;
+  --n91-v7-soft: #f4f8fa;
+}
+#n91-compact-overview .n91-hero h1 {
+  font-size: clamp(29px, 1.75vw, 35px) !important;
+  letter-spacing: -.04em !important;
+}
+#n91-compact-overview .n91-hero p {
+  display: block !important;
+  font-size: 14px !important;
+  color: var(--n91-v7-muted) !important;
+}
+#n91-compact-overview .n91-kicker {font-size: 12px !important;letter-spacing: .08em}
+#n91-compact-overview .n91-metric-label {font-size: 14px !important;line-height: 1.3}
+#n91-compact-overview .n91-metric-foot {font-size: 12.4px !important;line-height: 1.4}
+#n91-compact-overview .n91-metric-value {font-size: clamp(32px, 2.1vw, 39px) !important}
+#n91-compact-overview .n91-section-eyebrow {font-size: 11.7px !important;letter-spacing:.085em}
+#n91-compact-overview .n91-section-head h2 {font-size: 19px !important;line-height: 1.25}
+#n91-compact-overview .n91-section-action {font-size: 13.5px !important}
+#n91-compact-overview .n91-item-content strong {font-size: 15.5px !important}
+#n91-compact-overview .n91-item-content small {font-size: 13px !important;line-height: 1.45}
+#n91-compact-overview .n91-item-time time {font-size: 13px !important}
+#n91-compact-overview .n91-item-time small {font-size: 12px !important}
+#n91-compact-overview .n91-status {font-size: 12px !important;padding:6px 10px;min-height:28px}
+#n91-compact-overview .n91-item-risk {font-size: 14px}
+#n91-compact-overview .n91-item-symbol {height: 38px;width:38px;border-radius:11px}
+#n91-compact-overview .n91-clean-section,
+#n91-compact-overview .n91-metric,
+#n91-compact-overview .n91-galera-exact {
+  border-color: var(--n91-v7-line);
+  box-shadow: 0 3px 14px rgba(19,55,77,.045);
+}
+#n91-compact-overview .n91-galera-title h2 {font-size: 18px !important;line-height: 1.3}
+#n91-compact-overview .n91-galera-title p {display:block !important;font-size: 12.4px !important;line-height:1.4}
+#n91-compact-overview .n91-galera-link {font-size: 13px !important}
+#n91-compact-overview .n91-galera-pill {font-size: 11.8px !important;padding: 6px 8px;line-height:1.2}
+#n91-compact-overview .n91-galera-exact-table th {
+  font-size: 11.7px !important;
+  line-height:1.4 !important;
+  font-weight:750 !important;
+  padding: 9px 10px !important;
+}
+#n91-compact-overview .n91-galera-exact-table td {
+  font-size: 13px !important;
+  line-height:1.42 !important;
+  padding: 9px 10px !important;
+}
+#n91-compact-overview .n91-galera-node-cell strong {font-size: 13px !important}
+#n91-compact-overview .n91-galera-node-cell small {font-size: 11.7px !important;line-height:1.35 !important}
+#n91-compact-overview .n91-galera-observed {font-size: 12.3px !important;line-height:1.35 !important}
+#n91-compact-overview .n91-galera-exact-table {min-width: 1030px !important}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(1) {width:20%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(2) {width:14%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(3) {width:11%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(4) {width:13%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(5) {width:17%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(6) {width:16%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(7) {width:9%}
+
+/* Spacious monitor: use the whole vertical canvas instead of the old
+   max-height 950px squash rule. Lists stretch naturally with screen height. */
+@media (min-width:1051px) and (min-height:850px) {
+
+  #n91-compact-overview {
+    display:grid!important;
+    grid-template-rows: minmax(72px, auto) minmax(125px, auto) minmax(255px, 1fr) auto;
+    width:100%;height:100%;min-height:0;
+    max-width:1650px;
+    padding:16px 0 18px!important;
+    gap:14px!important;
+    align-items:stretch;
+  }
+  #n91-compact-overview .n91-hero {min-height:72px!important;gap:18px}
+  #n91-compact-overview .n91-metric-grid {gap:16px}
+  #n91-compact-overview .n91-metric {min-height:125px!important;padding:18px 20px!important;gap:9px!important;border-radius:16px}
+  #n91-compact-overview .n91-metric-icon {height:37px;width:37px}
+  #n91-compact-overview .n91-clean-columns {align-items:stretch;min-height:255px;gap:16px}
+  #n91-compact-overview .n91-clean-section {height:100%;padding:0 21px 6px;border-radius:16px}
+  #n91-compact-overview .n91-section-head {min-height:65px!important;padding:13px 0!important}
+  #n91-compact-overview .n91-rows {flex:1 1 auto;min-height:0}
+  #n91-compact-overview .n91-item {flex:1 1 0;min-height:65px!important;padding:12px 2px!important;gap:13px!important}
+  #n91-compact-overview .n91-galera-exact {min-height:238px;padding:15px 18px 12px!important;gap:10px;border-radius:16px}
+  #n91-compact-overview .n91-galera-exact .n91-galera-heading {min-height:49px!important;gap:14px;padding:0 0 7px!important}
+  #n91-compact-overview .n91-galera-exact .n91-galera-icon {height:35px;width:35px}
+  #n91-compact-overview .n91-clean-foot {display:none!important}
+}
+
+/* Short laptops retain the original one-screen layout without making the
+   whole dashboard overflow. Text remains more readable than in V6. */
+@media (min-width:1051px) and (max-height:849px) {
+  #n91-compact-overview {max-width:1640px;gap:8px!important;padding-top:7px!important}
+  #n91-compact-overview .n91-hero {min-height:47px!important}
+  #n91-compact-overview .n91-hero p {display:none!important}
+  #n91-compact-overview .n91-metric {min-height:86px!important;padding:8px 12px!important;gap:3px!important}
+  #n91-compact-overview .n91-metric-label {font-size:12.7px!important}
+  #n91-compact-overview .n91-metric-foot {font-size:11.6px!important}
+  #n91-compact-overview .n91-metric-value {font-size:28px!important}
+  #n91-compact-overview .n91-section-head {min-height:45px!important;padding:5px 0!important}
+  #n91-compact-overview .n91-section-head h2 {font-size:16px!important}
+  #n91-compact-overview .n91-item {min-height:47px!important;padding:5px 0!important}
+  #n91-compact-overview .n91-item-content strong {font-size:13.7px!important}
+  #n91-compact-overview .n91-item-content small {font-size:11.7px!important}
+  #n91-compact-overview .n91-item-time time {font-size:12px!important}
+  #n91-compact-overview .n91-status {font-size:11px!important;min-height:23px;padding:4px 7px}
+  #n91-compact-overview .n91-galera-exact {padding:8px 11px 7px!important;gap:6px}
+  #n91-compact-overview .n91-galera-exact .n91-galera-heading {min-height:25px!important}
+  #n91-compact-overview .n91-galera-title h2 {font-size:14px!important}
+  #n91-compact-overview .n91-galera-title p {display:none!important}
+  #n91-compact-overview .n91-galera-exact-table th {font-size:10.8px!important;padding:5px 7px!important}
+  #n91-compact-overview .n91-galera-exact-table td {font-size:12px!important;padding:5px 7px!important}
+  #n91-compact-overview .n91-galera-node-cell small {font-size:10.8px!important}
+  #n91-compact-overview .n91-galera-pill {font-size:10.8px!important;padding:4px 5px}
+  #n91-compact-overview .n91-clean-foot {display:none!important}
+}
+
+/* Narrow viewports may scroll; never cut off evidence or squeeze 7 columns
+   into unreadable fragments. */
+@media (max-width:1050px) {
+  #n91-compact-overview .n91-galera-exact-table {min-width:1030px!important}
+  #n91-compact-overview .n91-galera-table-wrap{overflow-x:auto}
+  #n91-compact-overview .n91-hero p {display:block!important}
+}
+
+
+/* V7 final: remove unnecessary metric and Galera helper copy from DOM.
+   Two clear levels per card: metric label and value. The source-error lines
+   inside Galera node cells are kept: they are operational evidence. */
+#n91-compact-overview .n91-metric {
+  justify-content:space-between!important;
+  align-items:stretch;
+}
+#n91-compact-overview .n91-metric-value {
+  margin-top:auto!important;
+  padding-top:2px;
+}
+#n91-compact-overview .n91-galera-title {min-height:31px;}
+#n91-compact-overview .n91-galera-title h2 {margin:0!important;}
+/* Avoid thumbnail-size text on short laptop displays. */
+@media (min-width:1051px) and (max-height:849px) {
+ #n91-compact-overview .n91-metric {min-height:102px!important;padding:12px 15px!important;}
+ #n91-compact-overview .n91-metric-label {font-size:13.5px!important;}
+ #n91-compact-overview .n91-metric-value {font-size:31px!important;}
+ #n91-compact-overview .n91-galera-title h2 {font-size:16px!important;}
+ #n91-compact-overview .n91-galera-exact-table th {font-size:11.3px!important;}
+ #n91-compact-overview .n91-galera-exact-table td {font-size:12.6px!important;}
+ #n91-compact-overview .n91-galera-node-cell small {font-size:11.4px!important;}
+}
+
+/* V10: system-only cleanup. The three real service cards remain visible. */
+#n91-compact-overview{display:flex;flex-direction:column;gap:17px;width:100%;max-width:1540px;margin:0 auto;color:#15364a}
+.n91-galera-heading h2{display:flex;gap:10px;align-items:center;margin:0}.n91-galera-heading-right{display:flex;gap:14px;align-items:center}.n91-item-time{max-width:150px;white-space:normal;text-align:right;font-size:12px}.brand-word>span{white-space:nowrap;font-size:9px;letter-spacing:.02em}.n91-secondary-comparison{display:none}.n91-workload-history-button{display:block;margin-top:8px;border:1px solid #e9b9b9;border-radius:7px;background:#fff2f2;color:#b23e45;padding:6px 9px;font:inherit;font-size:12px;cursor:pointer}.n91-network-history-dialog{width:min(850px,90vw);border:1px solid #d9e5ed;border-radius:16px;padding:24px;color:#163b50}.n91-network-history-dialog::backdrop{background:#0c253b80}.n91-network-history-dialog header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.n91-network-history-dialog h2{margin:0}.n91-native-summary{margin:18px 0}.n91-native-summary .v4-fields{grid-template-columns:repeat(3,minmax(0,1fr))}.n91-detail-id{overflow-wrap:anywhere}
+@media(max-width:760px){#n91-compact-overview{gap:14px}.n91-hero{align-items:flex-start}.n91-hero-actions{flex-wrap:wrap}.n91-native-summary .v4-fields{grid-template-columns:1fr 1fr}}
+
+.n91-local-preview-banner{margin:0 0 16px;padding:10px 14px;border:1px solid #e1b558;background:#fff4d5;color:#765110;border-radius:9px;font-size:12px;font-weight:700}
+
+.n91-advanced-filters{flex-basis:100%;margin:6px 0}.n91-advanced-filters>summary{cursor:pointer;font-size:13px;color:#51768d;font-weight:650}.n91-advanced-filters>div{display:flex;gap:12px;flex-wrap:wrap;padding:12px 0}.n91-advanced-filters input,.n91-advanced-filters select{min-width:160px}#n91-compact-overview .n91-clean-foot{display:flex!important}.n91-galera-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.n91-galera-summary{border:1px solid #dce7ee;border-radius:14px;background:white;padding:18px}#n91-compact-overview .n91-galera-heading h2{font-size:17px}.n91-galera-node-cell small{display:block}
+
+.v4-app .brand{gap:9px}.v4-app .brand-mark{flex-shrink:0}.v4-app .brand-word{min-width:0;flex:1;container-type:inline-size}.v4-app .brand-word>span{font-size:clamp(7px,6cqw,9px)!important;letter-spacing:0!important;white-space:nowrap;max-width:100%}
+
+.n91-report-event{margin:16px 0}.n91-report-event dd{overflow-wrap:anywhere}.n91-field-missing{color:#a35b19}

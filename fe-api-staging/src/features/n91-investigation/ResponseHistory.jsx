@@ -46,7 +46,7 @@ function CurrentGroups({ cycle }) {
   const reason = expired ? 'NEUTRON_CURRENT_STALE' : cycle.current_reason
   return (
     <section>
-      <h4>Security Group hiện tại · Neutron</h4>
+      <h4>Nhóm bảo mật hiện tại · Neutron</h4>
       <Badge value={expired ? 'UNKNOWN' : cycle.current_state} />
       {reason && <p>{uiLabel(reason)}</p>}
       {current && !expired && (
@@ -63,14 +63,14 @@ export function ResponseHistoryView({ history }) {
   const time = useTime()
   return (
     <section className="n91-wb-response">
-      <h3>Lịch sử xử lý từ Controller</h3>
+      <h3>Lịch sử xử lý từ bộ điều khiển</h3>
       <p><Badge value={history.availability} /> · Nguồn gốc {uiLabel(history.provenance.origin_mode)}</p>
-      <p>Incident do Controller ghi nhận · <code>{history.incident_id}</code></p>
+      <p>Sự cố do bộ điều khiển ghi nhận · <code>{history.incident_id}</code></p>
       {history.binding_source_ref && (
-        <p>Nguồn liên kết P17 · <code>{history.binding_source_ref}</code></p>
+        <p>Nguồn liên kết sự cố · <code>{history.binding_source_ref}</code></p>
       )}
       {history.arm_context && (
-        <p>Owner ARM trong lab · {time(history.arm_context.timestamp)} · <code>{history.arm_context.source_ref}</code></p>
+        <p>Chủ hệ thống kích hoạt trong môi trường thử nghiệm · {time(history.arm_context.timestamp)} · <code>{history.arm_context.source_ref}</code></p>
       )}
       <ul className="n91-wb-reasons">
         {history.reason_codes.map((reason) => <li key={reason}>{uiLabel(reason)}</li>)}
@@ -83,8 +83,8 @@ export function ResponseHistoryView({ history }) {
             ['Port', <code>{cycle.port_id}</code>],
             ['Máy ảo', <code>{cycle.vm_id}</code>],
             ['Project', cycle.project_id ? <code>{cycle.project_id}</code> : 'Chưa xác định'],
-            ['SG cách ly do Controller ghi nhận', cycle.quarantine_sg ? <code>{cycle.quarantine_sg}</code> : 'Chưa có dữ liệu'],
-            ['SG gốc do Controller ghi nhận', <Groups ids={cycle.original_sgs} />],
+            ['SG cách ly do bộ điều khiển ghi nhận', cycle.quarantine_sg ? <code>{cycle.quarantine_sg}</code> : 'Chưa có dữ liệu'],
+            ['SG gốc do bộ điều khiển ghi nhận', <Groups ids={cycle.original_sgs} />],
           ]} />
           {cycle.clock_marks.length > 0 && (
             <ul>
@@ -101,7 +101,7 @@ export function ResponseHistoryView({ history }) {
               ? uiLabel(metric.unavailable_reason)
               : `${seconds.format(metric.seconds)} giây · ${uiLabel(metric.time_basis)}`,
           ])} />
-          <h4>Lịch sử Security Group</h4>
+          <h4>Lịch sử nhóm bảo mật</h4>
           <dl>
             {Object.entries(phaseNames).map(([phase, label]) => {
               const snapshot = cycle.history[phase]
@@ -121,7 +121,7 @@ export function ResponseHistoryView({ history }) {
       ))}
       <details>
         <summary>Nguồn bằng chứng</summary>
-        <p>Run · <code>{history.provenance.run_id}</code></p>
+        <p>Lần thực hiện · <code>{history.provenance.run_id}</code></p>
         <ul>
           {history.provenance.artifacts.map(({ label, source_ref }) => (
             <li key={source_ref}>{uiLabel(label)} · <code>{source_ref}</code></li>
@@ -166,7 +166,7 @@ function HistoryResource() {
     }],
   } : history
   return (
-    <Panel title="Lịch sử xử lý và Security Group" resource={resource}>
+    <Panel title="Lịch sử xử lý và nhóm bảo mật" resource={resource}>
       {resource.error
         ? <p>{uiLabel(resource.error.code)}</p>
         : view && <ResponseHistoryView history={view} />}
@@ -174,7 +174,7 @@ function HistoryResource() {
         <>
           <button type="button" className="text-button" disabled={current.loading}
             onClick={() => readCurrent ? current.refresh() : setReadCurrent(true)}>
-            {current.loading ? 'Đang đọc Security Group hiện tại…' : 'Đọc Security Group hiện tại'}
+            {current.loading ? 'Đang đọc Nhóm bảo mật hiện tại…' : 'Đọc Nhóm bảo mật hiện tại'}
           </button>
           {current.error && <p role="status">Chưa đọc được quan sát hiện tại từ Neutron.</p>}
           {!current.error && current.data && !matches && (
@@ -191,7 +191,7 @@ export function StandaloneResponseHistory({ initiallyOpen }) {
   return (
     <div className="n91-workbench">
       <button type="button" className="text-button" aria-expanded={open} onClick={() => setOpen(!open)}>
-        {open ? 'Đóng lịch sử xử lý từ Controller' : 'Mở lịch sử xử lý từ Controller'}
+        {open ? 'Đóng lịch sử xử lý từ bộ điều khiển' : 'Mở lịch sử xử lý từ bộ điều khiển'}
       </button>
       {open && <HistoryResource />}
     </div>

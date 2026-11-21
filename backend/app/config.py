@@ -26,6 +26,7 @@ class Settings:
     cors_origins: tuple[str, ...] = ("http://127.0.0.1:5173", "http://localhost:5173")
     api_key: str = ""
     p17_snapshot_path: Path | None = None
+    p17_vnext_snapshot_path: Path | None = None
     p17_local_readonly: bool = False
     proxy_sync_status_path: Path | None = None
     v4_audit_enabled: bool = False
@@ -34,6 +35,11 @@ class Settings:
     build_manifest_path: Path | None = None
     openstack_enabled: bool = False
     openstack_credential_path: Path | None = None
+    openstack_ssh_relay_config_path: Path | None = None
+    openstack_inventory_export_path: Path | None = None
+    workload_journal_export_path: Path | None = None
+    workload_network_history_export_path: Path | None = None
+    report_evidence_path: Path | None = None
     openstack_auth_url: str = ""
     openstack_compute_url: str = ""
     openstack_network_url: str = ""
@@ -53,6 +59,8 @@ class Settings:
     session_auth_enabled: bool = False
     business_database_path: Path | None = None
     session_local_http: bool = False
+    single_account_username: str | None = None
+    automatic_response_remote: bool = False
     investigation_policy_path: Path | None = None
     investigation_policy_sha256: str = ""
     investigation_policy_version: str = ""
@@ -70,6 +78,10 @@ class Settings:
     investigation_controller_binding_sha256: str = ""
 
     def __post_init__(self):
+        if self.automatic_response_remote and not (self.session_auth_enabled and self.openstack_ssh_relay_config_path):
+            raise ValueError("Automatic response integration requires SESSION and a configured SSH relay")
+        if self.single_account_username and not (self.session_auth_enabled and self.session_local_http):
+            raise ValueError("Single-account profile requires local SESSION mode")
         if any(str(UUID(server_id)) != server_id for server_id in self.quarantine_allowed_server_ids):
             raise ValueError("Quarantine allowlist requires canonical VM UUIDs")
         if self.quarantine_ttl_seconds != 0 and not 15 <= self.quarantine_ttl_seconds <= 600:
@@ -80,6 +92,7 @@ class Settings:
                 self.evidence_index_path, self.evaluation_index_path, self.business_database_path,
                 self.openstack_credential_path, self.openstack_console_credential_path,
                 self.openstack_quarantine_credential_path,
+                self.openstack_ssh_relay_config_path,
                 self.proxy_sync_status_path, self.proxy_services_path,
                 self.investigation_policy_path, self.investigation_controller_path,
                 self.investigation_controller_archive_path, self.investigation_controller_binding_path,
@@ -96,7 +109,7 @@ class Settings:
             path.resolve() for path in (self.audit_path, self.database_path, self.p17_snapshot_path, self.evaluation_index_path) if path
         }:
             raise ValueError("Evidence index must use a dedicated metadata registry")
-        if self.p16h_import_context not in {None, "TEST", "EVALUATION", "IMPORTED_UNVERIFIED"}:
+        if self.p16h_import_context not in {None, "TEST", "EVALUATION", "IMPORTED_UNVERIFIED", "LIVE_READONLY"}:
             raise ValueError("Invalid P16H import context")
         if self.p16h_import_context in {"TEST", "EVALUATION"} and self.mode != "snapshot":
             raise ValueError("Test/evaluation P16H imports require a separate snapshot store")
@@ -123,6 +136,7 @@ class Settings:
             ).split(",") if x.strip()),
             api_key=os.getenv("PORTAL_API_KEY", ""),
             p17_snapshot_path=absolute_path(os.environ["P17_SNAPSHOT_PATH"]) if os.getenv("P17_SNAPSHOT_PATH") else None,
+            p17_vnext_snapshot_path=optional_path("P17_VNEXT_SNAPSHOT_PATH"),
             p17_local_readonly=os.getenv("P17_LOCAL_READONLY", "false").lower() == "true",
             proxy_sync_status_path=absolute_path(os.environ["PROXY_SYNC_STATUS_PATH"]) if os.getenv("PROXY_SYNC_STATUS_PATH") else None,
             v4_audit_enabled=os.getenv("V4_AUDIT_ENABLED", "false").lower() == "true",
@@ -131,6 +145,11 @@ class Settings:
             build_manifest_path=optional_path("PORTAL_BUILD_MANIFEST"),
             openstack_enabled=os.getenv("OPENSTACK_INVENTORY_ENABLED", "false").lower() == "true",
             openstack_credential_path=absolute_path(os.environ["OPENSTACK_CREDENTIAL_PATH"]) if os.getenv("OPENSTACK_CREDENTIAL_PATH") else None,
+            openstack_ssh_relay_config_path=optional_path('OPENSTACK_SSH_RELAY_CONFIG'),
+            openstack_inventory_export_path=optional_path("OPENSTACK_INVENTORY_EXPORT_PATH"),
+            workload_journal_export_path=optional_path("WORKLOAD_JOURNAL_EXPORT_PATH"),
+            workload_network_history_export_path=optional_path('WORKLOAD_NETWORK_HISTORY_EXPORT_PATH'),
+            report_evidence_path=optional_path('PORTAL_REPORT_EVIDENCE_PATH'),
             openstack_auth_url=os.getenv("OPENSTACK_AUTH_URL", ""),
             openstack_compute_url=os.getenv("OPENSTACK_COMPUTE_URL", ""),
             openstack_network_url=os.getenv("OPENSTACK_NETWORK_URL", ""),
@@ -153,6 +172,8 @@ class Settings:
             session_auth_enabled=os.getenv("PORTAL_SESSION_AUTH", "false").lower() == "true",
             business_database_path=optional_path("PORTAL_BUSINESS_DATABASE"),
             session_local_http=os.getenv("PORTAL_SESSION_LOCAL_HTTP", "false").lower() == "true",
+            single_account_username=os.getenv("PORTAL_SINGLE_ACCOUNT_USERNAME") or None,
+            automatic_response_remote=os.getenv("PORTAL_AUTOMATIC_RESPONSE_REMOTE", "false").lower() == "true",
             investigation_policy_path=optional_path("PORTAL_INVESTIGATION_POLICY"),
             investigation_policy_sha256=os.getenv("PORTAL_INVESTIGATION_POLICY_SHA256", ""),
             investigation_policy_version=os.getenv("PORTAL_INVESTIGATION_POLICY_VERSION", ""),

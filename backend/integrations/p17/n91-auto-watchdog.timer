@@ -1,0 +1,11 @@
+[Unit]
+Description=Check N91 incomplete quarantine operations independently
+
+[Timer]
+OnBootSec=5
+OnUnitActiveSec=3
+AccuracySec=1
+Unit=n91-auto-watchdog.service
+
+[Install]
+WantedBy=timers.target

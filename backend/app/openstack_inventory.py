@@ -17,8 +17,7 @@ from urllib.parse import urlencode, urlsplit
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 from uuid import UUID
 
-from .proxy_services import unique_object
-from .schemas import iso
+from .source_json import unique_object, iso
 
 REFRESH_SECONDS = 15
 NETWORK_SAMPLE_SECONDS = 3
@@ -125,11 +124,15 @@ def network_state(ports, quarantine_sg_id):
 
 
 class InventoryReader:
+    credential_profile = 'reader'
     accepted_roles = (frozenset({"reader"}),)
     role_error_code = "OPENSTACK_READER_SCOPE_REQUIRED"
 
     def __init__(self, settings, transport=None, clock=None, monotonic=None, *, history_store=None):
         self.settings = settings
+        if transport is None and getattr(settings, 'openstack_ssh_relay_config_path', None):
+            from .ssh_openstack import SSHTransport
+            transport = SSHTransport(settings.openstack_ssh_relay_config_path, self.credential_profile)
         self.transport = transport or Transport()
         self.clock = clock or (lambda: datetime.now(timezone.utc))
         self.monotonic = monotonic or time.monotonic
@@ -154,7 +157,7 @@ class InventoryReader:
         cfg = self.settings
         if not cfg.openstack_enabled:
             raise InventoryError("OPENSTACK_NOT_CONFIGURED")
-        if cfg.openstack_credential_path is None:
+        if cfg.openstack_credential_path is None and not getattr(cfg, 'openstack_ssh_relay_config_path', None):
             raise InventoryError("OPENSTACK_CREDENTIAL_NOT_CONFIGURED")
         try:
             identifier(cfg.openstack_project_id)
@@ -170,6 +173,10 @@ class InventoryReader:
     def authenticate(self):
         now = self.clock()
         if self.token and self.token_expiry and self.token_expiry > now + timedelta(seconds=30):
+            return
+        if hasattr(self.transport, 'authenticate'):
+            data, token = self.transport.authenticate()
+            self.accept_authentication(data, token, now)
             return
         try:
             with self.settings.openstack_credential_path.open("rb") as stream:
@@ -189,6 +196,9 @@ class InventoryReader:
         payload = {"auth": {"identity": {"methods": ["application_credential"],
                     "application_credential": {"id": credential_id, "secret": secret}}}}
         data, token = self.transport.send("POST", self.settings.openstack_auth_url.rstrip("/") + "/auth/tokens", body=payload)
+        self.accept_authentication(data, token, now)
+
+    def accept_authentication(self, data, token, now):
         try:
             auth = data["token"]
             role_names = {item["name"] for item in auth["roles"]}
@@ -297,6 +307,7 @@ class InventoryReader:
             mapped = {
                 "port_id": port_id, "project_id": cfg.openstack_project_id,
                 "device_id": device_id, "device_owner": text(port.get("device_owner")),
+                "revision_number": port.get("revision_number") if type(port.get("revision_number")) is int else None,
                 "network_id": identifier(port.get("network_id")), "status": text(port.get("status"), 64),
                 "mac_address": text(port.get("mac_address"), 64), "fixed_ips": fixed,
                 "floating_ips": fip_by_port.get(port_id, []), "security_group_ids": sg_ids,

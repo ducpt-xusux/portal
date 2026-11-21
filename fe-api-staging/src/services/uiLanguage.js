@@ -1,5 +1,46 @@
 // Presentation labels only. Never use translated labels as API values or keys.
+import { fieldLabels, sourceErrors, valueLabels } from './uiGlossary.js'
+const normalizedFields = Object.fromEntries(Object.entries(fieldLabels).map(([key, value]) => [key.trim().toLowerCase(), value]))
 const labels = {
+  REVIEWED_REPORT_EVIDENCE: 'Bằng chứng đã đối chiếu nguồn',
+  LIVE_READONLY: 'Nguồn thật, chỉ đọc',
+  READONLY_COLLECTOR_HASH_CHECKED: 'Đã kiểm tra hash bản ghi nguồn',
+  H2B_ENVELOPE_SHA256: 'SHA-256 envelope nguồn đã đối chiếu',
+  DIRECT_PERSISTED: 'Liên kết bằng chứng được bộ phát hiện lưu trực tiếp',
+  PERSISTED_P17_SNAPSHOT: 'Bản chụp bằng chứng đã lưu của bộ phát hiện',
+  'Proxy P17 via SSH': 'Bộ phát hiện hành vi · kết nối SSH tới Proxy',
+  P17_G03_V3_SQLITE: 'Kho dữ liệu phân tích hành vi · SQLite',
+  'Proxy systemd snapshot': 'Trạng thái dịch vụ trên Proxy',
+  'Galera wsrep snapshots': 'Trạng thái sao chép cụm Galera',
+  'Portal source status report': 'Tình trạng kết nối các nguồn dữ liệu',
+  'p17-incident-durable-1': 'Bản ghi sự cố bền vững · phiên bản 1',
+  'portal-p16h-live-1': 'Nhật ký kiểm toán chuẩn hóa · phiên bản 1',
+  'portal-proxy-services-1': 'Trạng thái dịch vụ · phiên bản 1',
+  'portal-galera-node-1': 'Trạng thái node Galera · phiên bản 1',
+  'openstack-inventory-1': 'Danh mục hạ tầng OpenStack · phiên bản 1',
+  'n91-portal-p17-vnext-1': 'Phân tích hành vi và chuỗi sự kiện · phiên bản 1',
+  'p17-lab-clone': 'Máy ảo thử nghiệm cách ly',
+  'n91-clone-auto-corr002-v2': 'Tự động cách ly máy thử nghiệm · CORR-002 · phiên bản 2',
+  'p17-incident-g03-dual-v3-20261104': 'Bộ phát hiện hành vi · G03 · phiên bản 3 · 04/11/2026',
+  'UNREVIEWED': 'Chưa rà soát', 'NONE': 'Chưa xử lý', 'VERIFIED_BEFORE': 'Đã xác minh trước thực thi',
+  'ATTEMPTED': 'Đã bắt đầu thực thi',
+  'db-firewall-p17.service': 'Bộ phát hiện hành vi · dịch vụ systemd',
+  'db-firewall-audit-ingest.service': 'Thu thập nhật ký kiểm toán · dịch vụ systemd',
+  Port: 'Cổng mạng', Project: 'Dự án', Network: 'Mạng', 'Floating IP': 'IP truy cập ngoài',
+  'Compute host': 'Máy chủ tính toán', 'Revision Neutron': 'Phiên bản cổng mạng Neutron',
+  'Port Security': 'Bảo vệ cổng mạng', 'Port status': 'Trạng thái cổng mạng',
+  'Backend': 'Dịch vụ xử lý', 'Frontend': 'Giao diện', 'Snapshot': 'Bản chụp dữ liệu',
+  VERIFIED_EQUAL: 'Hash khớp bản ghi nguồn',
+  'P17 snapshot reader': 'Nguồn dữ liệu phân tích sự cố',
+  'Proxy P17 SSH reader': 'Nguồn dữ liệu sự cố từ Proxy',
+  'P17 worker live': 'Bộ phát hiện hành vi và sự cố',
+  'P16H canonical reader': 'Bộ đọc nhật ký bảo mật',
+  'P17.5 controller': 'Bộ điều khiển cách ly và khôi phục',
+  'Nova / Neutron': 'Hạ tầng máy ảo và mạng',
+  'P17 snapshot': 'Bản ghi phân tích sự cố',
+  'P16H canonical audit (independent source)': 'Nhật ký bảo mật chuẩn hóa',
+  'P16H canonical audit': 'Nhật ký bảo mật chuẩn hóa',
+  'P15 risk score': 'Điểm đánh giá rủi ro',
   'P15 cao trên một request': 'Điểm rủi ro cao trên một yêu cầu',
   'P17 tương quan SQL injection': 'Tương quan SQL injection',
   'P17 tương quan truy cập dữ liệu nhạy cảm': 'Truy cập dữ liệu nhạy cảm có tương quan',
@@ -108,8 +149,8 @@ const labels = {
   captured_at: 'Chụp lúc', imported_at: 'Nhập lúc', freshness_state: 'Tình trạng cập nhật',
   execution_mode: 'Chế độ thực hiện', verification: 'Mức xác minh', context: 'Phạm vi dữ liệu',
   source_verified_recorded: 'Nguồn đã xác minh', isolation_authorized_recorded: 'Được phép cách ly',
-  'p17-proxy-reader': 'Nguồn sự cố từ Proxy', 'p17-snapshot': 'Bản chụp sự cố',
-  'p16-canonical-audit': 'Nhật ký kiểm toán', 'P17 outbox': 'Nguồn cảnh báo',
+  'p17-proxy-reader': 'Nguồn sự cố từ Proxy', 'p17-snapshot': 'Bản ghi sự cố',
+  'p16-canonical-audit': 'Nhật ký kiểm toán', 'P17 outbox': 'Nguồn cảnh báo bảo mật',
   'N91 defense source registry': 'Kho bằng chứng', 'P16H canonical': 'Nhật ký kiểm toán chuẩn',
   IMPORTED_OBSERVATION: 'Quan sát đã nhập', PLANNED: 'Đã lên kế hoạch',
   SOURCE_NOT_PROVIDED: 'Nguồn chưa cung cấp dữ liệu',
@@ -171,7 +212,46 @@ export function uiLabel(value) {
   if (value === null || value === undefined || value === '') return 'Chưa xác định'
   if (typeof value === 'boolean') return value ? 'Có' : 'Không'
   const key = String(value)
-  return Object.hasOwn(labels, key) ? labels[key] : key
+  return uiText(Object.hasOwn(valueLabels, key) ? valueLabels[key]
+    : Object.hasOwn(labels, key.trim()) ? labels[key.trim()]
+      : Object.hasOwn(normalizedFields, key.trim().toLowerCase()) ? normalizedFields[key.trim().toLowerCase()] : key)
+}
+
+export function uiErrorMessage(error) {
+  return sourceErrors[error?.code] || uiText(error?.message || 'Chưa đọc được nguồn dữ liệu.')
+}
+
+// Display copy only. API keys, source objects, URLs and exported evidence stay original.
+export function uiText(value) {
+  if (typeof value !== 'string') return value
+  if (/^\s*(SELECT|WITH|GRANT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP)\s/i.test(value)) return value
+  let result = value.replace(/\bP17[._]5\b/gi, 'bộ điều khiển phản ứng')
+    .replace(/\bP17[._]3\b/gi, 'bộ đánh giá điều kiện xử lý')
+    .replace(/\bP16H\b/gi, 'nhật ký kiểm toán chuẩn hóa')
+    .replace(/\bP17\b/gi, 'bộ phát hiện hành vi')
+    .replace(/\bP16\b/gi, 'API quản trị bảo mật')
+    .replace(/\bP15\b/gi, 'bộ đánh giá rủi ro')
+    .replace(/\bP14\b/gi, 'bộ thực thi chính sách')
+    .replace(/\bP19\b/gi, 'bộ kiểm thử nghiệm thu')
+  if (/\s/.test(result)) result = result
+    .replace(/\bCanonical(?: Audit)?\b/gi, 'nhật ký kiểm toán chuẩn hóa')
+    .replace(/\bsnapshot\b/gi, 'bản chụp')
+    .replace(/\bSecurity Group(s)?\b/g, 'nhóm bảo mật')
+    .replace(/\bController\b/g, 'bộ điều khiển')
+    .replace(/\bworker\b/gi, 'bộ xử lý phát hiện')
+    .replace(/\bhash\b/gi, 'mã băm')
+    .replace(/\brequest\b/g, 'yêu cầu')
+    .replace(/\bincident\b/gi, 'sự cố')
+    .replace(/\bstream\b/g, 'luồng dữ liệu')
+    .replace(/\bEvent\b/g, 'sự kiện')
+    .replace(/\bupstream\b/gi, 'nguồn gốc')
+    .replace(/\bmetadata\b/gi, 'thông tin mô tả')
+    .replace(/\benvelope\b/gi, 'gói bản ghi')
+    .replace(/\bproduction\b/gi, 'môi trường vận hành')
+    .replace(/\bLAB\b/g, 'thử nghiệm')
+    .replace(/\blab\b/g, 'môi trường thử nghiệm')
+    .replace(/bộ phát hiện bộ phát hiện hành vi/g, 'bộ phát hiện hành vi')
+  return result
 }
 
 export function uiRoleList(value) {

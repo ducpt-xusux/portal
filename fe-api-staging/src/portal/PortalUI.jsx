@@ -1,6 +1,7 @@
-import { uiLabel, uiRoleList } from '../services/uiLanguage.js'
-import { useEffect, useId, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { DetailToggle, useDetailView, compactFields } from "./DetailView";
+import { uiLabel, uiRoleList, uiErrorMessage } from "../services/uiLanguage.js";
+import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowLeft,
   ArrowRight,
@@ -9,88 +10,98 @@ import {
   Database,
   RefreshCw,
   ShieldAlert,
+  Server,
+  Activity,
+  ScrollText,
+  Layers3,
+  ScanSearch,
+  SlidersHorizontal,
   X,
-} from 'lucide-react'
-import { freshness, sourceState } from '../services/portalApi'
-import { usePortal, useSourceDisplay } from './PortalContext'
+} from "lucide-react";
+import { freshness, sourceState } from "../services/portalApi";
+import { usePortal, useSourceDisplay } from "./PortalContext";
 
 export const display = (value) =>
-  value === null || value === undefined || value === ''
-    ? '—'
-    : typeof value === 'boolean'
+  value === null || value === undefined || value === ""
+    ? "—"
+    : typeof value === "boolean"
       ? value
-        ? 'Có'
-        : 'Không'
-      : String(value)
+        ? "Có"
+        : "Không"
+      : String(value);
 
 export function useTime() {
-  const { timezone } = usePortal()
+  const { timezone } = usePortal();
   return (value) => {
     if (!value || !Number.isFinite(Date.parse(value)))
-      return 'Chưa có thời điểm'
-    return new Intl.DateTimeFormat('vi-VN', {
-      dateStyle: 'short',
-      timeStyle: 'medium',
+      return "Chưa có thời điểm";
+    return new Intl.DateTimeFormat("vi-VN", {
+      dateStyle: "short",
+      timeStyle: "medium",
       timeZone: timezone,
-    }).format(new Date(value))
-  }
+    }).format(new Date(value));
+  };
 }
 
 const green = [
-  'FRESH',
-  'HEALTHY',
-  'ONLINE',
-  'NORMAL',
-  'ALLOW',
-  'ACTIVE',
-  'SYNCED',
-  'PRIMARY',
-  'VERIFIED',
-]
+  "FRESH",
+  "HEALTHY",
+  "ONLINE",
+  "NORMAL",
+  "ALLOW",
+  "ACTIVE",
+  "SYNCED",
+  "PRIMARY",
+  "VERIFIED",
+];
 const red = [
-  'BLOCK',
-  'CRITICAL',
-  'FAILED',
-  'ERROR',
-  'DOWN',
-  'UNREACHABLE',
-  'MISMATCH',
-]
+  "BLOCK",
+  "CRITICAL",
+  "FAILED",
+  "ERROR",
+  "DOWN",
+  "UNREACHABLE",
+  "MISMATCH",
+];
 const amber = [
-  'STALE',
-  'PARTIAL',
-  'DEGRADED',
-  'WARNING',
-  'HIGH',
-  'DRIFT',
-  'REVIEW_REQUIRED',
-  'RECOVERY_REQUIRED',
-]
-export function Badge({ value, children, className = '' }) {
-  const state = typeof value === 'string' ? value.toUpperCase() : 'UNKNOWN'
+  "STALE",
+  "PARTIAL",
+  "DEGRADED",
+  "WARNING",
+  "HIGH",
+  "DRIFT",
+  "REVIEW_REQUIRED",
+  "RECOVERY_REQUIRED",
+];
+export function Badge({ value, children, className = "" }) {
+  const state = typeof value === "string" ? value.toUpperCase() : "UNKNOWN";
   const tone = green.includes(state)
-    ? 'good'
+    ? "good"
     : red.includes(state)
-      ? 'danger'
+      ? "danger"
       : amber.includes(state)
-        ? 'warn'
-        : state === 'QUARANTINED'
-          ? 'quarantine'
-          : 'neutral'
+        ? "warn"
+        : state === "QUARANTINED"
+          ? "quarantine"
+          : "neutral";
   return (
     <span className={`v4-badge ${tone} ${className}`}>
       <i />
-      {children || uiLabel(value || 'UNKNOWN')}
+      {children || uiLabel(value || "UNKNOWN")}
     </span>
-  )
+  );
 }
 
 export function ObservationAgeBadge({ value }) {
   return (
     <Badge value={value}>
-      {value === 'FRESH' ? 'Trong thời hạn' : value === 'STALE' ? 'Đã quá hạn' : 'Chưa có quan sát'}
+      {value === "FRESH"
+        ? "Trong thời hạn"
+        : value === "STALE"
+          ? "Đã quá hạn"
+          : "Chưa có quan sát"}
     </Badge>
-  )
+  );
 }
 
 export function PageHeading({
@@ -100,14 +111,29 @@ export function PageHeading({
   resource,
   children,
 }) {
+  const Icon =
+    {
+      "Sự kiện bảo mật": ScrollText,
+      "Chi tiết sự kiện": ScrollText,
+      "Sự cố": ShieldAlert,
+      "Điều tra sự cố": ScanSearch,
+      "Máy ảo": Server,
+      "Hệ thống": Activity,
+    }[title] || Layers3;
   return (
     <div className="page-heading v4-page-heading">
-      <div>
-        {eyebrow && <div className="eyebrow">{eyebrow}</div>}
-        <h1>{title}</h1>
-        {description && <p>{description}</p>}
+      <div className="portal-heading-content">
+        <span className="portal-heading-icon" aria-hidden="true">
+          <Icon size={25} strokeWidth={1.7} />
+        </span>
+        <div>
+          {eyebrow && <div className="eyebrow">{eyebrow}</div>}
+          <h1>{title}</h1>
+          {description && <p>{description}</p>}
+        </div>
       </div>
       <div className="page-actions">
+        <DetailToggle />
         {children}
         {resource && (
           <button
@@ -115,32 +141,33 @@ export function PageHeading({
             disabled={resource.loading}
             onClick={resource.refresh}
           >
-            <RefreshCw size={15} className={resource.loading ? 'spin' : ''} />
+            <RefreshCw size={15} className={resource.loading ? "spin" : ""} />
             Làm mới
           </button>
         )}
       </div>
     </div>
-  )
+  );
 }
 
 export function SourceStatus({ resource, label }) {
-  const time = useTime()
-  const { hideSourceSystem } = useSourceDisplay()
-  const [, tick] = useState(0)
+  const time = useTime();
+  const { hideSourceSystem } = useSourceDisplay();
+  const [, tick] = useState(0);
   useEffect(() => {
-    const timer = setInterval(() => tick((value) => value + 1), 5000)
-    return () => clearInterval(timer)
-  }, [])
-  const state = freshness(resource.meta, Boolean(resource.error))
-  const snapshot = resource.meta?.source_mode === 'SNAPSHOT'
+    const timer = setInterval(() => tick((value) => value + 1), 5000);
+    return () => clearInterval(timer);
+  }, []);
+  const state = freshness(resource.meta, Boolean(resource.error));
+  const snapshot = resource.meta?.source_mode === "SNAPSHOT";
+  const historical = resource.meta?.freshness_state === "HISTORICAL";
   if (hideSourceSystem) {
     // Dashboard gọn: bỏ tên nguồn kỹ thuật (source_system) và nhãn
     // HISTORICAL, chỉ giữ trạng thái đọc được và mốc thời gian nguồn.
     const value =
       resource.data === null
-        ? 'UNKNOWN'
-        : sourceState(resource.meta, Boolean(resource.error))
+        ? "UNKNOWN"
+        : sourceState(resource.meta, Boolean(resource.error));
     return (
       <div className="v4-source-status">
         <span>
@@ -149,41 +176,49 @@ export function SourceStatus({ resource, label }) {
         </span>
         <span>
           {resource.meta?.read_at
-            ? `Đọc ${snapshot ? 'tệp ' : ''}lúc ${time(resource.meta.read_at)}`
-            : 'Chưa đọc được nguồn'}
+            ? `Đọc ${snapshot ? "tệp " : ""}lúc ${time(resource.meta.read_at)}`
+            : "Chưa đọc được nguồn"}
           {resource.meta?.data_as_of &&
-            ` · ${snapshot ? 'Chốt bản chụp' : 'Dữ liệu đến'} ${time(resource.meta.data_as_of)}`}
+            ` · ${snapshot ? "Chốt bản chụp" : "Dữ liệu đến"} ${time(resource.meta.data_as_of)}`}
         </span>
       </div>
-    )
+    );
   }
   return (
     <div className="v4-source-status">
       <span>
         <Database size={14} />
         <strong>
-          {label || uiLabel(resource.meta?.source_system || 'UNKNOWN')}
+          {label || uiLabel(resource.meta?.source_system || "UNKNOWN")}
         </strong>
         <Badge
           value={
-            resource.data === null ? 'UNKNOWN' : snapshot ? 'HISTORICAL' : state
+            resource.data === null
+              ? "UNKNOWN"
+              : resource.error
+                ? "STALE"
+                : snapshot || historical
+                  ? "HISTORICAL"
+                  : state
           }
         />
-        {snapshot && state !== 'FRESH' && <Badge value={state} />}
+        {snapshot && !historical && state !== "FRESH" && (
+          <Badge value={state} />
+        )}
       </span>
       <span>
         {resource.meta?.read_at
-          ? `Đọc ${snapshot ? 'tệp ' : ''}lúc ${time(resource.meta.read_at)}`
-          : 'Chưa đọc được nguồn'}
+          ? `Đọc ${snapshot ? "tệp " : ""}lúc ${time(resource.meta.read_at)}`
+          : "Chưa đọc được nguồn"}
         {resource.meta?.data_as_of &&
-          ` · ${snapshot ? 'Chốt bản chụp' : 'Dữ liệu đến'} ${time(resource.meta.data_as_of)}`}
+          ` · ${snapshot ? "Chốt bản chụp" : "Dữ liệu đến"} ${time(resource.meta.data_as_of)}`}
       </span>
     </div>
-  )
+  );
 }
 
-export function ResourceNotice({ resource, noun = 'dữ liệu' }) {
-  const { setLoginOpen } = usePortal()
+export function ResourceNotice({ resource, noun = "dữ liệu" }) {
+  const { setLoginOpen } = usePortal();
   if (resource.loading && resource.data === null)
     return (
       <div
@@ -195,28 +230,28 @@ export function ResourceNotice({ resource, noun = 'dữ liệu' }) {
         <div />
         <div />
       </div>
-    )
+    );
   if (resource.error)
     return (
       <div
-        className={`v4-notice ${resource.data !== null ? 'warn' : ''}`}
+        className={`v4-notice ${resource.data !== null ? "warn" : ""}`}
         role="status"
       >
         <ShieldAlert size={19} />
         <div>
           <strong>
             {resource.error.status === 401
-              ? 'Phiên đăng nhập chưa hợp lệ'
+              ? "Phiên đăng nhập chưa hợp lệ"
               : resource.data !== null
-                ? 'Đang hiển thị dữ liệu lần đọc trước'
+                ? "Đang hiển thị dữ liệu lần đọc trước"
                 : `Chưa đọc được ${noun}`}
           </strong>
-          <p>{resource.error.message}</p>
+          <p>{uiErrorMessage(resource.error)}</p>
           <small>
             {resource.error.code}
             {resource.error.requestId
               ? ` · Mã yêu cầu ${resource.error.requestId}`
-              : ''}
+              : ""}
           </small>
         </div>
         {resource.error.status === 401 && (
@@ -227,12 +262,22 @@ export function ResourceNotice({ resource, noun = 'dữ liệu' }) {
             Đăng nhập
           </button>
         )}
+        {resource.error.status !== 401 && typeof resource.refresh === "function" && (
+          <button
+            type="button"
+            className="button secondary"
+            disabled={resource.loading}
+            onClick={resource.refresh}
+          >
+            Đọc lại dữ liệu
+          </button>
+        )}
       </div>
-    )
+    );
   if (
-    resource.meta?.source_mode === 'REMOTE_READONLY' &&
+    resource.meta?.source_mode === "REMOTE_READONLY" &&
     resource.data !== null &&
-    freshness(resource.meta) !== 'FRESH'
+    freshness(resource.meta) !== "FRESH"
   )
     return (
       <div className="v4-notice warn" role="status">
@@ -240,26 +285,26 @@ export function ResourceNotice({ resource, noun = 'dữ liệu' }) {
         <div>
           <strong>Chưa đồng bộ được dữ liệu mới từ Proxy</strong>
           <p>
-            Đang hiển thị dữ liệu lưu tạm của lần đọc trước. Kiểm tra bộ đọc SSH và kết
-            nối tới Proxy.
+            Đang hiển thị dữ liệu lưu tạm của lần đọc trước. Kiểm tra bộ đọc SSH
+            và kết nối tới Proxy.
           </p>
-          <small>{resource.meta.last_error_code || 'REMOTE_SYNC_STALE'}</small>
+          <small>{resource.meta.last_error_code || "REMOTE_SYNC_STALE"}</small>
         </div>
       </div>
-    )
+    );
   if (!resource.loading && resource.data === null)
     return (
       <Empty
         title={`Chưa có ${noun}`}
         text="Nguồn chưa cung cấp dữ liệu để hiển thị."
       />
-    )
-  return null
+    );
+  return null;
 }
 
 export function Empty({
-  title = 'Không có dữ liệu phù hợp',
-  text = 'Hãy thử thay đổi bộ lọc hoặc khoảng thời gian.',
+  title = "Không có dữ liệu phù hợp",
+  text = "Hãy thử thay đổi bộ lọc hoặc khoảng thời gian.",
   children,
 }) {
   return (
@@ -269,7 +314,7 @@ export function Empty({
       <p>{text}</p>
       {children}
     </div>
-  )
+  );
 }
 
 export function Panel({
@@ -277,9 +322,23 @@ export function Panel({
   subtitle,
   resource,
   children,
-  className = '',
+  className = "",
   action,
 }) {
+  const { compact, kind } = useDetailView();
+  if (
+    compact &&
+    kind === "incidents" &&
+    [
+      "Nguồn & phạm vi",
+      "Tình trạng dữ liệu xử lý",
+      "Kho bằng chứng",
+      "Đối chiếu máy ảo",
+      "Ghi chú rà soát",
+      "Đánh giá phản ứng",
+    ].includes(title)
+  )
+    return null;
   return (
     <section
       className={`panel v4-panel ${className}`}
@@ -300,54 +359,65 @@ export function Panel({
       )}
       {children}
     </section>
-  )
+  );
 }
 
 export function FieldGrid({ rows }) {
+  const { compact } = useDetailView();
+  const visible = compact ? compactFields(rows) : rows;
   return (
     <dl className="v4-fields">
-      {rows.map(([name, value]) => (
+      {visible.map(([name, value]) => (
         <div key={name}>
           <dt>{uiLabel(name)}</dt>
           <dd>
-            {value === null || value === undefined || value === ''
-              ? '—'
+            {value === null || value === undefined || value === ""
+              ? "—"
               : value}
           </dd>
         </div>
       ))}
     </dl>
-  )
+  );
 }
 
 export function CopyId({ value }) {
-  const [state, setState] = useState('')
-  const timer = useRef(null)
-  useEffect(() => () => clearTimeout(timer.current), [])
+  const [state, setState] = useState("");
+  const timer = useRef(null);
+  useEffect(() => () => clearTimeout(timer.current), []);
   return (
     <button
       type="button"
       className="v4-copy"
       disabled={!value}
-      aria-label={`Sao chép ${value || 'ID'}`}
-      title={state || 'Sao chép ID'}
+      aria-label={`Sao chép ${value || "ID"}`}
+      title={state || "Sao chép ID"}
       onClick={async () => {
         try {
-          await navigator.clipboard.writeText(value)
-          setState('Đã sao chép')
+          await navigator.clipboard.writeText(value);
+          setState("Đã sao chép");
         } catch {
-          setState('Không thể sao chép')
+          setState("Không thể sao chép");
         }
-        clearTimeout(timer.current)
-        timer.current = setTimeout(() => setState(''), 2000)
+        clearTimeout(timer.current);
+        timer.current = setTimeout(() => setState(""), 2000);
       }}
     >
-      {state === 'Đã sao chép' ? <Check size={13} /> : <Copy size={13} />}
+      {state === "Đã sao chép" ? <Check size={13} /> : <Copy size={13} />}
       <span className="sr-only" role="status">
-        {uiLabel(state)}
+        {state}
       </span>
     </button>
-  )
+  );
+}
+
+export function FilterHeading() {
+  return (
+    <div className="portal-filter-title">
+      <SlidersHorizontal size={16} />
+      Bộ lọc dữ liệu
+    </div>
+  );
 }
 
 export function Filter({ label, children }) {
@@ -356,7 +426,7 @@ export function Filter({ label, children }) {
       <span>{label}</span>
       {children}
     </label>
-  )
+  );
 }
 export function SelectFilter({
   label,
@@ -369,7 +439,7 @@ export function SelectFilter({
   return (
     <Filter label={label}>
       <select
-        value={value || ''}
+        value={value || ""}
         disabled={disabled}
         aria-describedby={describedBy}
         onChange={(event) => onChange(event.target.value)}
@@ -385,18 +455,18 @@ export function SelectFilter({
         ))}
       </select>
     </Filter>
-  )
+  );
 }
 
 export function CursorPager({ resource, cursor, history, onNext, onPrevious }) {
-  const next = resource.meta?.next_cursor
+  const next = resource.meta?.next_cursor;
   return (
     <div className="v4-pager">
       <span>
-        Trang {history.length + 1} ·{' '}
+        Trang {history.length + 1} ·{" "}
         {resource.meta?.has_more === true
-          ? 'Còn dữ liệu'
-          : 'Theo phạm vi truy vấn'}
+          ? "Còn dữ liệu"
+          : "Theo phạm vi truy vấn"}
       </span>
       <div>
         <button
@@ -417,57 +487,57 @@ export function CursorPager({ resource, cursor, history, onNext, onPrevious }) {
         </button>
       </div>
     </div>
-  )
+  );
 }
 
 export function Dialog({ title, onClose, children }) {
-  const ref = useRef(null)
-  const closeRef = useRef(onClose)
-  closeRef.current = onClose
-  const titleId = useId()
+  const ref = useRef(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  const titleId = useId();
   useEffect(() => {
-    const previous = document.activeElement
-    const overflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    const previous = document.activeElement;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     const focusable = () => [
       ...ref.current.querySelectorAll(
-        'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex="0"]'
+        'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex="0"]',
       ),
-    ]
-    focusable()[0]?.focus()
+    ];
+    focusable()[0]?.focus();
     const key = (event) => {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        closeRef.current()
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeRef.current();
       }
-      if (event.key !== 'Tab') return
+      if (event.key !== "Tab") return;
       const items = focusable(),
         first = items[0],
-        last = items.at(-1)
+        last = items.at(-1);
       if (!first) {
-        event.preventDefault()
-        return
+        event.preventDefault();
+        return;
       }
       if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault()
-        last.focus()
+        event.preventDefault();
+        last.focus();
       } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault()
-        first.focus()
+        event.preventDefault();
+        first.focus();
       }
-    }
-    document.addEventListener('keydown', key)
+    };
+    document.addEventListener("keydown", key);
     return () => {
-      document.body.style.overflow = overflow
-      document.removeEventListener('keydown', key)
-      previous?.focus?.()
-    }
-  }, [])
+      document.body.style.overflow = overflow;
+      document.removeEventListener("keydown", key);
+      previous?.focus?.();
+    };
+  }, []);
   return createPortal(
     <div
       className="v4-dialog-backdrop"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose()
+        if (event.target === event.currentTarget) onClose();
       }}
     >
       <section
@@ -491,45 +561,45 @@ export function Dialog({ title, onClose, children }) {
         {children}
       </section>
     </div>,
-    document.body
-  )
+    document.body,
+  );
 }
 
 export function LoginDialog() {
-  const { auth, login, loginOpen, setLoginOpen } = usePortal()
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
-  if (!loginOpen) return null
+  const { auth, login, loginOpen, setLoginOpen } = usePortal();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  if (!loginOpen) return null;
   const close = () => {
     if (!busy) {
-      setLoginOpen(false)
-      setPassword('')
-      setError('')
+      setLoginOpen(false);
+      setPassword("");
+      setError("");
     }
-  }
+  };
   return (
     <Dialog title="Đăng nhập Portal" onClose={close}>
       <form
         onSubmit={async (event) => {
-          event.preventDefault()
-          setBusy(true)
-          setError('')
+          event.preventDefault();
+          setBusy(true);
+          setError("");
           try {
-            await login(username.trim(), password)
+            await login(username.trim(), password);
           } catch (failure) {
-            setError(failure.message)
+            setError(failure.message);
           } finally {
-            setPassword('')
-            setBusy(false)
+            setPassword("");
+            setBusy(false);
           }
         }}
       >
         <p className="v4-form-intro">
           Sử dụng tài khoản được cấp cho Portal quản trị.
         </p>
-        {auth.status === 'unavailable' && (
+        {auth.status === "unavailable" && (
           <p className="v4-inline-warning">
             Chưa xác minh được dịch vụ đăng nhập. Không có phiên demo hoặc tài
             khoản mặc định.
@@ -573,10 +643,10 @@ export function LoginDialog() {
             Hủy
           </button>
           <button className="button primary" disabled={busy}>
-            {busy ? 'Đang đăng nhập…' : 'Đăng nhập'}
+            {busy ? "Đang đăng nhập…" : "Đăng nhập"}
           </button>
         </footer>
       </form>
     </Dialog>
-  )
+  );
 }

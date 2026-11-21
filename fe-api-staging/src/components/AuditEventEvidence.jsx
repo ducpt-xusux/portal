@@ -32,7 +32,7 @@ export default function AuditEventEvidence({ event }) {
                         {part.id}
                       </a>
                     ) : (
-                      'DEFAULT DENY'
+                      'CHẶN MẶC ĐỊNH'
                     )}
                   </code>
                   <span>{part.name}</span>

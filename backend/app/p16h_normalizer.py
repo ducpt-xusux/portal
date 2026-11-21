@@ -5,6 +5,8 @@ RECENT sample or nested metadata schema. This explicit offline profile is never 
 that a production RECENT response has been verified.
 """
 import json
+import hashlib
+from copy import deepcopy
 from typing import Annotated, Literal
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, StrictInt, field_validator, model_validator
@@ -13,6 +15,7 @@ from .schemas import AuditEvent, iso
 
 MAX_BYTES = 1024 * 1024
 PROFILE = "portal-p16h-import-1"
+LIVE_PROFILE = "portal-p16h-live-1"
 Identifier = Annotated[str, Field(strict=True, min_length=1, max_length=160, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.:-]*$")]
 Hash = Annotated[str, Field(strict=True, pattern=r"^[a-f0-9]{64}$")]
 Sequence = Annotated[StrictInt, Field(ge=0, le=9007199254740991)]
@@ -157,6 +160,64 @@ class ImportDocument(SafeModel):
         return self
 
 
+class LiveBackend(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    host: str = Field(max_length=255)
+    port: StrictInt = Field(ge=1, le=65535)
+    status: Literal['SELECTED', 'UNAVAILABLE']
+
+
+class LivePrivacy(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    profile: Literal['p16h-h2b-restricted-egress-v1']
+    query_rendering: Literal['restricted-template-values-and-unapproved-identifiers-redacted']
+    sql_mode_tracking: Literal['UNVERIFIED_BACKSLASH_INPUT_WITHHELD']
+    backend_status: str = Field(max_length=64)
+    database_status: str = Field(max_length=64)
+    db_user_status: str = Field(max_length=64)
+
+
+class LiveMetadata(Metadata):
+    backend: LiveBackend
+    privacy: LivePrivacy
+    backend_status: Literal['DOCUMENTED_H2B_V1'] = 'DOCUMENTED_H2B_V1'
+    privacy_status: Literal['DOCUMENTED_H2B_V1'] = 'DOCUMENTED_H2B_V1'
+
+    @model_validator(mode='before')
+    @classmethod
+    def withhold_uncontracted_nested_metadata(cls, value):
+        return value
+
+
+def normalize_live(value):
+    if value.get('context') != 'LIVE_READONLY':
+        raise ImportError('P16H_LIVE_CONTEXT_REQUIRED')
+    delivery = value['delivery']
+    if delivery['delivery_version'] != 'p16h-local-1':
+        raise ImportError('P16H_DELIVERY_VERSION_UNSUPPORTED')
+    envelope = delivery['envelope']
+    encoded = json.dumps(envelope, sort_keys=True, separators=(',', ':'), ensure_ascii=True, allow_nan=False).encode('ascii')
+    if hashlib.sha256(encoded).hexdigest() != delivery['payload_sha256']:
+        raise ImportError('P16H_PAYLOAD_HASH_MISMATCH')
+    if (envelope['schema_version'] != '1.2.0-candidate' or envelope['event_type'] != 'AUDIT_EVENT' or
+        envelope['event_id'] != envelope['record']['event_id'] or
+        envelope['timestamp'] != envelope['record']['timestamp'] or
+        set(envelope) != {'schema_version', 'event_type', 'event_id', 'timestamp', 'stream_role', 'metadata', 'record'}):
+        raise ImportError('P16H_ENVELOPE_IDENTITY_INVALID')
+    parsed = Delivery.model_validate(delivery)
+    LiveMetadata.model_validate(envelope['metadata'])
+    record = parsed.envelope.record
+    if record.query_text_withheld or set(envelope['record']) - set(CanonicalRecord.model_fields):
+        raise ImportError('P16H_LIVE_RECORD_INVALID')
+    source = Source.model_validate(value['source'])
+    if not source.source_host or source.collected_at is None:
+        raise ImportError('P16H_LIVE_SOURCE_INVALID')
+    # Retain the validated original envelope so the upstream hash remains
+    # independently checkable on the next ingestion. Never rewrite this payload.
+    return {'schema_version': LIVE_PROFILE, 'context': 'LIVE_READONLY',
+            'source': source.model_dump(mode='json'), 'delivery': deepcopy(delivery)}
+
+
 def unique_object(pairs):
     result = {}
     for key, value in pairs:
@@ -203,6 +264,8 @@ def normalize_line(raw):
             if result["query_mask_status"] != "MASKED":
                 result["query_masked"] = None
             return result
+        if value['schema_version'] == LIVE_PROFILE:
+            return normalize_live(value)
         if value["schema_version"] != PROFILE:
             raise ImportError("P16H_SCHEMA_UNSUPPORTED")
         if value.get("delivery", {}).get("delivery_version") != "p16h-local-1":
@@ -223,7 +286,7 @@ def normalize_line(raw):
 
 
 def unpack(document):
-    if document.get("schema_version") == PROFILE:
+    if document.get("schema_version") in {PROFILE, LIVE_PROFILE}:
         delivery = document["delivery"]
         return delivery["envelope"]["record"], delivery["stream_id"]
     return document, None
@@ -233,8 +296,10 @@ def storage_record(document):
     record, stream = unpack(document)
     if stream is None:
         return record
+    if document['schema_version'] == LIVE_PROFILE:
+        record = CanonicalRecord.model_validate(record).record()
     return {**record, "_p16h": {
-        "schema_version": PROFILE, "context": document["context"], "source": document["source"],
+        "schema_version": document['schema_version'], "context": document["context"], "source": document["source"],
         **{key: value for key, value in document["delivery"].items() if key != "envelope"},
         "metadata": document["delivery"]["envelope"]["metadata"],
     }}

@@ -30,13 +30,13 @@ export const metricTitles = {
 export const funnelReasons = {
   REQUEST_ID_NOT_PROVIDED:
     'Nguồn canonical chưa cung cấp request_id; chỉ đếm audit event.',
-  PARSER_FEATURES_NOT_PROVIDED: 'Chưa có kết quả parser từ P14.',
+  PARSER_FEATURES_NOT_PROVIDED: 'Chưa có kết quả phân tích cú pháp từ bộ thực thi chính sách.',
   IMPORTED_RECORDS_ONLY:
     'Đếm event đã nhập, chưa xác nhận đủ traffic trong cửa sổ.',
   OUTBOX_RECORDS_ONLY: 'Đếm alert_id trong outbox đã thu thập.',
   P17_CREATED_RECORDS_ONLY:
     'Đếm incident được tạo trong cửa sổ, không phải toàn bộ incident cần review.',
-  P17_5_NOT_CONFIGURED: 'Chưa nối action evidence P17.5.',
+  P17_5_NOT_CONFIGURED: 'Chưa kết nối bằng chứng xử lý của bộ điều khiển phản ứng.',
   EVALUATION_FUNNEL_NOT_CAPTURED:
     'Run chưa cung cấp counter cho bước này; số case PASS không thay số request.',
   SOURCE_NOT_CONFIGURED: 'Nguồn chưa được cấu hình.',

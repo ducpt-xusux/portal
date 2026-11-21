@@ -68,3 +68,22 @@ def test_canonical_duplicate_and_rotation_preserve_provenance(tmp_path):
         saved = next(row for row in result["data"]["items"] if row["event_id"] == original_id)
         assert saved["imported_at"] == initial["imported_at"]
         assert saved["source_provenance"] == initial["source_provenance"]
+
+
+def test_canonical_read_timestamps_describe_reader_attempts_and_keep_prior_success_on_error(tmp_path):
+    fixture = Path(__file__).parent / 'fixtures' / 'p16h-TEST-delivery.json'
+    audit = tmp_path / 'audit.jsonl'
+    audit.write_text(json.dumps(json.loads(fixture.read_bytes())) + '\n', encoding='utf-8')
+    app = create_app(Settings(audit, tmp_path / 'audit.db', mode='snapshot',
+                             p17_local_readonly=True, p17_snapshot_path=tmp_path / 'p17.json',
+                             v4_audit_enabled=True, p16h_import_context='TEST'))
+    with TestClient(app, client=('127.0.0.1', 1)) as client:
+        first = client.get('/api/v1/events?source=canonical').json()['meta']
+        assert first['last_attempt']
+        assert first['last_success'] == first['last_sync_at']
+        assert first['last_success'] != first['data_as_of']
+        audit.rename(tmp_path / 'audit.offline')
+        second = client.get('/api/v1/events?source=canonical').json()['meta']
+        assert second['last_success'] == first['last_success']
+        assert second['last_attempt'] >= first['last_attempt']
+        assert second['freshness_state'] == 'STALE'

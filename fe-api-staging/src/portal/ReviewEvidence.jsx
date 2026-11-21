@@ -70,7 +70,7 @@ function ExportButtons({ client, incidentId, streamId, available }) {
   return (
     <div className="v4-evidence-export">
       <p>
-        Tệp chứa các tham chiếu P17 theo luồng của sự cố. Các liên kết tái dựng
+        Tệp chứa các tham chiếu phát hiện sự cố theo luồng của sự cố. Các liên kết tái dựng
         có phạm vi một phần. Nội dung ghi chú xử lý nằm riêng trong hồ sơ Portal.
       </p>
       <div className="v4-inline-actions">

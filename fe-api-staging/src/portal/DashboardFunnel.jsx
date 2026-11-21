@@ -136,8 +136,8 @@ export function DecisionFunnel({
         </>
       ) : !runId && context === 'EVALUATION' ? (
         <Empty
-          title="Chọn run đánh giá"
-          text="Funnel evaluation tách khỏi dữ liệu runtime và KPI live."
+          title="Chọn lần đánh giá"
+          text="Các bước đánh giá dùng số liệu riêng của lần kiểm thử, tách khỏi số liệu vận hành trực tiếp."
         />
       ) : null}
     </Panel>
@@ -173,7 +173,7 @@ export function EvaluationDashboard({ params }) {
         </a>
       </div>
       <Panel
-        title="Chọn đánh giá run"
+        title="Chọn lần đánh giá"
         subtitle="Chỉ đọc registry đã chuẩn hóa, có nguồn SHA256"
         resource={runs}
       >
@@ -190,7 +190,7 @@ export function EvaluationDashboard({ params }) {
               )
             }}
           >
-            <option value="">Chọn run</option>
+            <option value="">Chọn lần thực hiện</option>
             {runs.data?.map((row) => (
               <option key={row.run_id} value={row.run_id}>
                 {row.run_id} · {row.dataset} · {row.run_kind}
@@ -205,20 +205,20 @@ export function EvaluationDashboard({ params }) {
         )}
         {runs.data?.length === 0 && (
           <Empty
-            title="Registry chưa có run"
+            title="Kho bằng chứng chưa có lần thực hiện"
             text="Chưa có kết quả đánh giá được nhập."
           />
         )}
       </Panel>
       {runId && (
-        <Panel title="Kết quả run" resource={detail}>
+        <Panel title="Kết quả lần thực hiện" resource={detail}>
           {run && (
             <>
               <FieldGrid
                 rows={[
                   ["Lần thực hiện ID", run.run_id],
                   ['Dataset', run.dataset],
-                  ['Nguồn run', run.run_kind],
+                  ['Nguồn lần thực hiện', run.run_kind],
                   ['Trạng thái', uiLabel(run.status)],
                   ["Rà soát", uiLabel(run.review_state)],
                   ['Bắt đầu', time(run.started_at)],

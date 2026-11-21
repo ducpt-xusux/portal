@@ -17,3 +17,5 @@ dist/
 backend/data/
 incoming-n91/
 *-credential*.json
+
+.local-preview/

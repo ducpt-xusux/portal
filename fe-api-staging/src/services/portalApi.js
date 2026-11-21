@@ -229,6 +229,8 @@ export function mapEvent(record) {
         ? null
         : string(record.masked_query),
     sql_text_status: string(record.sql_text_status),
+    mask_status: string(record.mask_status),
+    database_status: string(record.database_status),
     policy_version: string(record.policy_version),
     p17_event_class: string(record.p17_event_class),
     stream_sequence: count(record.stream_sequence),
@@ -267,6 +269,7 @@ export function safeProvenance(value) {
       [
         'source_system',
         'source_schema',
+        'collection_mode',
         'source_ref',
         'observed_at',
         'generated_at_utc',
@@ -358,6 +361,8 @@ export function mapCurrentMapping(value) {
       ...[
         'source_mode',
         'source_system',
+        'source_schema',
+        'collection_mode',
         'freshness_state',
         'read_at',
         'last_error_code',
@@ -369,7 +374,7 @@ export function mapCurrentMapping(value) {
 }
 
 export function currentMappingState(mapping, failed = false, now = Date.now()) {
-  if (mapping?.source?.source_mode !== 'LIVE')
+  if (mapping?.source?.source_mode !== 'LIVE' && !isNeutronExport(mapping?.source))
     return { state: 'UNKNOWN', freshness: 'UNKNOWN', href: null }
   const age = now - Date.parse(mapping?.observation_from)
   const ttl = mapping?.ttl_seconds
@@ -526,6 +531,7 @@ export function mapPort(value) {
     project_id: string(port.project_id),
     device_id: string(port.device_id),
     device_owner: string(port.device_owner),
+    revision_number: count(port.revision_number),
     mac_address: string(port.mac_address),
     status: string(port.status),
     fixed_ips: mapIps(port.fixed_ips),
@@ -700,7 +706,7 @@ export function mapSgHistory(value) {
 }
 
 export function workloadNetworkStatus(observation, meta, failed = false, now = Date.now()) {
-  if (['SNAPSHOT', 'REMOTE_READONLY'].includes(meta?.source_mode)) return 'UNKNOWN'
+  if (meta?.source_mode === 'SNAPSHOT' || meta?.source_mode === 'REMOTE_READONLY' && !isNeutronExport(meta)) return 'UNKNOWN'
   const observed = Date.parse(observation?.observed_at)
   const ttl = number(meta?.network_stale_after_seconds) ?? 30
   const age = now - observed
@@ -711,6 +717,10 @@ export function workloadNetworkStatus(observation, meta, failed = false, now = D
       !Number.isFinite(age) || age < -1000) return 'UNKNOWN'
   return ['NORMAL', 'QUARANTINED', 'MISMATCH'].includes(observation.state)
     ? observation.state : 'UNKNOWN'
+}
+
+function isNeutronExport(meta) {
+  return meta?.source_mode === 'REMOTE_READONLY' && meta?.source_schema === 'openstack-inventory-1' && meta?.collection_mode === 'SSH_EXPORT'
 }
 
 export function isVerifiedNetwork(observation, meta, failed = false) {

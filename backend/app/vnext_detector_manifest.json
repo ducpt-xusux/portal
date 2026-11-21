@@ -1,0 +1,137 @@
+{
+  "profile": "n91-vnext-source-evidence-v1",
+  "detectors": [
+    {
+      "id": "CORR-001",
+      "severity": "WARNING",
+      "creates_review_case": true,
+      "criterion": "5 distinct non-compatibility BLOCK requests in source scope"
+    },
+    {
+      "id": "CORR-002",
+      "severity": "HIGH",
+      "creates_review_case": true,
+      "criterion": "3 distinct BLOCK requests with enforced injection rules"
+    },
+    {
+      "id": "CORR-003",
+      "severity": "HIGH",
+      "creates_review_case": true,
+      "criterion": "3 distinct sensitive-object BLOCK requests"
+    },
+    {
+      "id": "CORR-004",
+      "severity": "CRITICAL",
+      "creates_review_case": true,
+      "criterion": "3 BLOCK requests; >=3 signal groups; >=2 distinct rule signatures"
+    },
+    {
+      "id": "CORR-005",
+      "severity": "WARNING",
+      "creates_review_case": false,
+      "criterion": "5 protocol compatibility events; operational only"
+    },
+    {
+      "id": "CORR-006",
+      "severity": "CRITICAL",
+      "creates_review_case": true,
+      "criterion": "1 privilege-management BLOCK (DCL-001)"
+    },
+    {
+      "id": "CORR-007",
+      "severity": "CRITICAL",
+      "creates_review_case": true,
+      "criterion": "1 schema-changing BLOCK (DDL-001)"
+    },
+    {
+      "id": "CORR-008",
+      "severity": "HIGH",
+      "creates_review_case": true,
+      "criterion": "1 DB file-access BLOCK (FILE-001)"
+    },
+    {
+      "id": "CORR-009",
+      "severity": "HIGH",
+      "creates_review_case": true,
+      "criterion": "1 unsafe DML BLOCK (DML-001/002)"
+    },
+    {
+      "id": "CORR-010",
+      "severity": "HIGH",
+      "creates_review_case": true,
+      "criterion": "2 distinct unauthorized write BLOCK requests"
+    },
+    {
+      "id": "CORR-011",
+      "severity": "HIGH",
+      "creates_review_case": false,
+      "criterion": "1 invalid or missing DB identity BLOCK"
+    },
+    {
+      "id": "CORR-012",
+      "severity": "WARNING",
+      "creates_review_case": false,
+      "criterion": "1 unexpected-source BLOCK (CTX-006)"
+    },
+    {
+      "id": "CORR-013",
+      "severity": "HIGH",
+      "creates_review_case": true,
+      "criterion": "1 BLOCK with both CTX-006 and enforced SQL injection"
+    },
+    {
+      "id": "CORR-014",
+      "severity": "HIGH",
+      "creates_review_case": true,
+      "criterion": "2 distinct system enumeration BLOCK requests"
+    },
+    {
+      "id": "CORR-015",
+      "severity": "HIGH",
+      "creates_review_case": true,
+      "criterion": "enumeration before injection/sensitive/privilege in separate requests"
+    },
+    {
+      "id": "CORR-016",
+      "severity": "WARNING",
+      "creates_review_case": false,
+      "criterion": "1 security_test_data table access BLOCK"
+    },
+    {
+      "id": "CORR-017",
+      "severity": "HIGH",
+      "creates_review_case": true,
+      "criterion": "1 multiple-statement BLOCK (PROTO-003)"
+    },
+    {
+      "id": "CORR-018",
+      "severity": "WARNING",
+      "creates_review_case": false,
+      "criterion": "2 distinct oversized SQL BLOCK requests"
+    },
+    {
+      "id": "CORR-019",
+      "severity": "WARNING",
+      "creates_review_case": false,
+      "criterion": "3 distinct monitor-only signal-bearing requests"
+    },
+    {
+      "id": "CORR-020",
+      "severity": "WARNING",
+      "creates_review_case": false,
+      "criterion": "5 distinct verified P14 default-deny BLOCK requests"
+    },
+    {
+      "id": "CORR-021",
+      "severity": "HIGH",
+      "creates_review_case": true,
+      "criterion": "1 BLOCK with injection and sensitive-object rules"
+    },
+    {
+      "id": "CORR-022",
+      "severity": "CRITICAL",
+      "creates_review_case": true,
+      "criterion": "injection/enum/sensitive before DCL/DDL/FILE in separate requests"
+    }
+  ]
+}

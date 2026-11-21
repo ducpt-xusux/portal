@@ -39,6 +39,17 @@ def read_p17(path=P17_PATH):
             if len(rows) > MAX_ROWS:
                 raise ValueError("P17_TOO_LARGE")
             tables[table] = [dict(row) for row in rows]
+        existing = {r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        optional = {
+            'portal_evidence_snapshots_v1': 'snapshot_id,incident_id,stream_id,trigger_event_id,detector_version,detector_sha256,signal_rule,member_count,recorded_evidence_count,recorded_at',
+            'portal_evidence_members_v1': 'snapshot_id,event_id,request_id,stream_sequence,payload_sha256',
+        }
+        for table, columns in optional.items():
+            if table in existing:
+                rows = db.execute('SELECT ' + columns + ' FROM ' + table + ' LIMIT ?', (MAX_ROWS + 1,)).fetchall()
+                if len(rows) > MAX_ROWS:
+                    raise ValueError('P17_TOO_LARGE')
+                tables[table] = [dict(row) for row in rows]
         payload = {"export_version": "portal-p17-snapshot-1", "exported_at": now(),
                    "mode": "SNAPSHOT", "tables": tables}
         if len(json.dumps(payload, ensure_ascii=False).encode("utf-8")) > MAX_P17_BYTES:

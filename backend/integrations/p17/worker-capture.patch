@@ -1,0 +1,23 @@
+--- a/p17_durable.py
++++ b/p17_durable.py
+@@ -20,6 +20,9 @@
+ 
+ from p17_core import Event, EvidenceError, GROUPS, COMPAT, normalize, aware_date, canonical
+ from p17_vnext import ensure_schema as ensure_vnext_schema, observe as observe_vnext, export_trace as export_vnext_trace
++from portal_evidence_capture import record_incident_evidence
++
++_PORTAL_DETECTOR_SHA256 = hashlib.sha256(b"".join(hashlib.sha256((Path(__file__).parent / name).read_bytes()).digest() for name in ("p17_durable.py", "p17_core.py"))).hexdigest()
+ 
+ DEFAULT_DB = '/var/lib/db-firewall-p17/state.sqlite3'
+ DEFAULT_ALERTS = '/var/log/db-firewall-p17/alerts.jsonl'
+@@ -345,6 +348,10 @@
+             matches=correlate_current(db,key,ev)
+             for rule,evidence in sorted(matches.items()):
+                 iid,created=store_incident(db,md['stream_id'],key,ev,rule,evidence)
++                record_incident_evidence(db, incident_id=iid, stream_id=md['stream_id'],
++                    trigger_event_id=ev.event_id, signal_rule=rule, evidence=evidence,
++                    detector_version=Path(__file__).parent.name, detector_sha256=_PORTAL_DETECTOR_SHA256,
++                    recorded_at=iso(now))
+                 if created:
+                     alertid='P17-'+hashlib.sha256(f'{iid}|open'.encode()).hexdigest()[:24]
+                     peak=max((x.risk_score for x in evidence if x.risk_score is not None),default=None)

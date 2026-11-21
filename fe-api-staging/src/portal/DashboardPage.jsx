@@ -247,7 +247,7 @@ export default function DashboardPage({ params = {} }) {
     return (
       <Empty
         title="Chế độ Trang chủ không hợp lệ"
-        text="Chọn LIVE hoặc EVALUATION trên thanh đầu trang."
+        text="Chọn dữ liệu trực tiếp hoặc dữ liệu đánh giá trên thanh đầu trang."
       />
     )
   return (
@@ -536,7 +536,7 @@ function LiveDashboard({ params }) {
         title="Sự kiện bảo mật gần đây"
         subtitle={
           canonical
-            ? "Canonical bản ghi audit đã nhập"
+            ? "Bản ghi nhật ký kiểm toán đã nhập"
             : "sự kiện projection · click sự kiện để xem bằng chứng"
         }
         resource={events}

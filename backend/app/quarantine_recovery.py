@@ -41,7 +41,23 @@ class QuarantineRecovery:
                         fcntl.flock(lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
                     except BlockingIOError:
                         raise QuarantineError(409, "QUARANTINE_BUSY") from None
-                yield
+                elif os.name == 'nt':
+                    import msvcrt
+                    lockfile.seek(0, os.SEEK_END)
+                    if lockfile.tell() == 0:
+                        lockfile.write(b'0')
+                        lockfile.flush()
+                    lockfile.seek(0)
+                    try:
+                        msvcrt.locking(lockfile.fileno(), msvcrt.LK_NBLCK, 1)
+                    except OSError:
+                        raise QuarantineError(409, 'QUARANTINE_BUSY') from None
+                try:
+                    yield
+                finally:
+                    if os.name == 'nt':
+                        lockfile.seek(0)
+                        msvcrt.locking(lockfile.fileno(), msvcrt.LK_UNLCK, 1)
         finally:
             self.lock.release()
 

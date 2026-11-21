@@ -85,7 +85,7 @@ export default function EvidenceMetadataPanel({ evidenceId, onClose }) {
           <h3>Nguồn gốc và giới hạn</h3>
           <ul>
             {data.notes.map((note) => (
-              <li key={note}>{note}</li>
+              <li key={note}>{uiLabel(note)}</li>
             ))}
           </ul>
           <p>

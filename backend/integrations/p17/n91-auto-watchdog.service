@@ -1,0 +1,19 @@
+[Unit]
+Description=N91 durable partial-operation recovery watchdog
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=controller
+Group=controller
+EnvironmentFile=/home/controller/.n91-auto-runtime/runtime.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/home/controller/.n91-auto-runtime/venv/bin/python -m app.auto_response --config /home/controller/.n91-auto-runtime/config.json watchdog
+TimeoutStartSec=90
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/controller/.n91-auto-runtime/state
+PrivateTmp=true
+CapabilityBoundingSet=

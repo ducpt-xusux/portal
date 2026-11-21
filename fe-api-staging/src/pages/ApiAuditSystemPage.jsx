@@ -100,7 +100,7 @@ export default function ApiAuditSystemPage({ tab, ruleId }) {
         <div
           className="segmented"
           role="group"
-          aria-label="Nội dung System "
+          aria-label="Nội dung hệ thống "
         >
           {[
             ['overview', 'Tổng quan audit'],
@@ -210,7 +210,7 @@ export default function ApiAuditSystemPage({ tab, ruleId }) {
                   ['Định dạng nguồn', 'JSONL · UTF-8'],
                   ['Quyền truy cập nguồn', 'Chỉ đọc'],
                   ['Khóa chống trùng', 'event_id'],
-                  ['Probe SQLite', 'Ghi thử trong transaction và rollback'],
+                  ['Kiểm tra kết nối SQLite', 'Ghi thử trong transaction và rollback'],
                 ].map(([name, value]) => (
                   <div key={name}>
                     <dt>{name}</dt>
@@ -232,7 +232,7 @@ export default function ApiAuditSystemPage({ tab, ruleId }) {
                   ['Firewall listener', 'Chưa kết nối'],
                   ['OpenStack / Nova / Neutron', "Ngoài phạm vi "],
                   ['Galera Primary / Synced', "Chưa có kiểm tra"],
-                  ["VM / Security Group", 'Chưa có inventory'],
+                  ["VM / nhóm bảo mật", 'Chưa có inventory'],
                   ['Correlation / isolation', 'Chưa triển khai'],
                 ].map(([name, value]) => (
                   <div key={name}>
@@ -365,7 +365,7 @@ export default function ApiAuditSystemPage({ tab, ruleId }) {
                   <th>ĐIỂM</th>
                   <th>PHÂN LOẠI</th>
                   <th>POLICY / RISK</th>
-                  <th>SỐ EVENT</th>
+                  <th>SỐ SỰ KIỆN</th>
                   <th>Đã bật</th>
                 </tr>
               </thead>

@@ -14,6 +14,7 @@ class QuarantineError(Exception):
 
 
 class QuarantineIdentity(InventoryReader):
+    credential_profile = 'quarantine'
     accepted_roles = (frozenset({"member"}), frozenset({"member", "reader"}))
     role_error_code = "QUARANTINE_MEMBER_SCOPE_REQUIRED"
 
@@ -28,7 +29,9 @@ class WorkloadQuarantine:
 
     def configured(self):
         credential = self.settings.openstack_quarantine_credential_path
-        return bool(self.settings.openstack_enabled and credential and credential != self.settings.openstack_credential_path
+        identity_ready = bool(self.settings.openstack_ssh_relay_config_path or
+                              credential and credential != self.settings.openstack_credential_path)
+        return bool(self.settings.openstack_enabled and identity_ready
                     and self.settings.openstack_quarantine_sg_id
                     and (self.settings.quarantine_project_wide or self.settings.quarantine_allowed_server_ids))
 

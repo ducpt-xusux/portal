@@ -16,6 +16,7 @@ class ConsoleError(Exception):
 
 
 class ConsoleIdentity(InventoryReader):
+    credential_profile = 'console'
     # A separate credential may delegate member-level console creation. Inventory
     # still accepts only reader. Never accept an admin/service token in this path.
     # Keystone can include the reader role implied by member in a token.

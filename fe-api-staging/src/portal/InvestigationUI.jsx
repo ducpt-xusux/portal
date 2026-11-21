@@ -7,6 +7,7 @@ import {
   currentMappingState,
 } from '../services/portalApi'
 import { Badge, display, FieldGrid, useTime } from './PortalUI'
+import { uiLabel } from '../services/uiLanguage'
 
 function useObservationClock() {
   const [, tick] = useState(0)
@@ -60,7 +61,7 @@ const mappingLabels = {
 }
 const mappingReasons = {
   OPENSTACK_CONNECTION_FAILED: 'Chưa kết nối được API OpenStack.',
-  OPENSTACK_NOT_CONFIGURED: 'Backend chưa cấu hình nguồn OpenStack.',
+  OPENSTACK_NOT_CONFIGURED: 'Dịch vụ xử lý chưa cấu hình kết nối OpenStack.',
   MULTIPLE_CURRENT_PORT_MATCHES:
     "IP nguồn xuất hiện trên nhiều port; chưa đủ thông tin để chọn VM.",
   NO_CURRENT_PORT_MATCH_IN_PROJECT:
@@ -85,21 +86,21 @@ export function CurrentMapping({ mapping, error, compact = false }) {
                 : state.state
           }
         >
-          {mappingLabels[state.state]}
+          {compact && state.state === 'MATCHED' && state.freshness === 'FRESH' ? 'Khớp IP' : mappingLabels[state.state]}
         </Badge>
-        <Badge value={state.freshness} />
+        {(!compact || state.freshness !== 'FRESH') && <Badge value={state.freshness} />}
       </div>
       {state.href && (
         <a className="v4-id-link" href={state.href}>
-          {mapping.server_name || mapping.server_id}
+          {mapping.server_name ? uiLabel(mapping.server_name) : mapping.server_id}
           {compact ? '' : " → Mở máy ảo / port"}
         </a>
       )}
-      <small>
+      {!compact && <><small>
         Neutron: {time(mapping?.observed_at)} · TTL{' '}
         {mapping?.ttl_seconds == null ? '—' : `${mapping.ttl_seconds}s`}
       </small>
-      <small>Danh tính lúc sự cố: chưa xác minh</small>
+      <small>Danh tính lúc sự cố: chưa xác minh</small></>}
       {compact && state.state !== 'MATCHED' && (
         <small>
           {mappingReasons[mapping?.reason] ||
@@ -121,7 +122,7 @@ export function CurrentMapping({ mapping, error, compact = false }) {
           )}
           <FieldGrid
             rows={[
-              ['VM tại lần quan sát', display(mapping?.server_name)],
+              ['VM tại lần quan sát', mapping?.server_name ? uiLabel(mapping.server_name) : 'Chưa có dữ liệu'],
               ["Mã máy ảo", display(mapping?.server_id)],
               ['Port', display(mapping?.port_id)],
               ['Project', display(mapping?.project_id)],
@@ -163,7 +164,7 @@ export function SgHistory({ data }) {
   return (
     <div className="v4-sg-history">
       <h3 className="v4-subheading">
-        Security Group trước / trong / sau hành động
+        nhóm bảo mật trước / trong / sau hành động
       </h3>
       <p className="v4-panel-note">
         Các mốc đã ghi nhận là bằng chứng lịch sử; trạng thái hiện tại lấy từ
@@ -217,7 +218,7 @@ export function DecisionChecklist({ data }) {
   const checks = [
     ['qualified', "Bằng chứng đủ điều kiện"],
     ['source_verified', "Đối chiếu nguồn đã xác minh"],
-    ['workload_allowed', "Máy ảo nằm trong lab / allowlist"],
+    ['workload_allowed', "Máy ảo thuộc phạm vi thử nghiệm được cho phép"],
     ['operator_approved', 'Phê duyệt của operator'],
     ['source_fresh', 'Nguồn đánh giá còn mới'],
   ]

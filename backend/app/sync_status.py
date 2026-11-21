@@ -27,7 +27,8 @@ def read_sync_status(path, feed, digest=None):
             error = None
         return {"last_success": item["last_success"], "last_attempt": item.get("last_attempt"),
                 "freshness_state": "STALE" if error else "FRESH", "error_code": error,
-                "pending_bytes": item.get("pending_bytes", 0)}, error
+                "pending_bytes": item.get("pending_bytes", 0),
+                "producer_health": item.get('producer_health') if item.get('producer_health') in {'RUNNING', 'DEGRADED'} else None}, error
     except (OSError, ValueError, KeyError, TypeError, AttributeError, OverflowError):
         return {"last_success": None, "freshness_state": "UNKNOWN",
                 "error_code": "REMOTE_STATUS_UNAVAILABLE"}, "REMOTE_STATUS_UNAVAILABLE"

@@ -10,82 +10,82 @@ import {
   Server,
   ShieldCheck,
   X,
-} from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 const navigation = [
   {
     label: "Trang chủ",
     icon: LayoutDashboard,
-    page: 'dashboard',
-    href: '#/dashboard',
+    page: "dashboard",
+    href: "#/dashboard",
   },
   {
     label: "Sự cố",
     icon: ShieldCheck,
-    page: 'incidents',
-    href: '#/incidents',
+    page: "incidents",
+    href: "#/incidents",
   },
   {
     label: "Sự kiện bảo mật",
     icon: FileClock,
-    page: 'events',
-    href: '#/events',
+    page: "events",
+    href: "#/events",
   },
-  { label: "Máy ảo", icon: Server, page: 'workloads', href: '#/workloads' },
-  { label: "Hệ thống", icon: Activity, page: 'system', href: '#/system' },
-]
+  { label: "Máy ảo", icon: Server, page: "workloads", href: "#/workloads" },
+  { label: "Hệ thống", icon: Activity, page: "system", href: "#/system" },
+];
 
 export default function Sidebar({
   mobileOpen,
   onClose,
-  activePage = 'dashboard',
+  activePage = "dashboard",
   mode,
   user,
 }) {
   const [compact, setCompact] = useState(
-    () => window.matchMedia('(max-width:760px)').matches
-  )
-  const sidebar = useRef(null)
-  const close = useRef(onClose)
-  close.current = onClose
+    () => window.matchMedia("(max-width:760px)").matches,
+  );
+  const sidebar = useRef(null);
+  const close = useRef(onClose);
+  close.current = onClose;
   useEffect(() => {
-    const media = window.matchMedia('(max-width:760px)')
-    const update = () => setCompact(media.matches)
-    media.addEventListener('change', update)
-    return () => media.removeEventListener('change', update)
-  }, [])
+    const media = window.matchMedia("(max-width:760px)");
+    const update = () => setCompact(media.matches);
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
   useEffect(() => {
-    if (!mobileOpen || !compact) return
-    const previous = document.activeElement
-    const overflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    if (!mobileOpen || !compact) return;
+    const previous = document.activeElement;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     const items = () =>
       [
-        ...sidebar.current.querySelectorAll('a[href],button:not(:disabled)'),
-      ].filter((element) => element.getClientRects().length)
-    items()[0]?.focus()
+        ...sidebar.current.querySelectorAll("a[href],button:not(:disabled)"),
+      ].filter((element) => element.getClientRects().length);
+    items()[0]?.focus();
     const key = (event) => {
-      if (event.key === 'Escape') close.current()
-      if (event.key !== 'Tab') return
+      if (event.key === "Escape") close.current();
+      if (event.key !== "Tab") return;
       const targets = items(),
         first = targets[0],
-        last = targets.at(-1)
+        last = targets.at(-1);
       if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault()
-        last?.focus()
+        event.preventDefault();
+        last?.focus();
       } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault()
-        first?.focus()
+        event.preventDefault();
+        first?.focus();
       }
-    }
-    document.addEventListener('keydown', key)
+    };
+    document.addEventListener("keydown", key);
     return () => {
-      document.body.style.overflow = overflow
-      document.removeEventListener('keydown', key)
-      previous?.focus?.()
-    }
-  }, [mobileOpen, compact])
+      document.body.style.overflow = overflow;
+      document.removeEventListener("keydown", key);
+      previous?.focus?.();
+    };
+  }, [mobileOpen, compact]);
   return (
     <>
       {mobileOpen && (
@@ -98,7 +98,7 @@ export default function Sidebar({
       <aside
         ref={sidebar}
         inert={compact && !mobileOpen}
-        className={`sidebar ${mobileOpen ? 'is-open' : ''}`}
+        className={`sidebar ${mobileOpen ? "is-open" : ""}`}
         aria-label="Điều hướng chính"
       >
         <a
@@ -123,7 +123,7 @@ export default function Sidebar({
         </button>
         <div className="workspace-label">
           <Blocks size={15} />
-          <span>OpenStack Private Cloud</span>
+          <span>Đám mây riêng OpenStack</span>
         </div>
         <div className="nav-caption">KHÔNG GIAN LÀM VIỆC</div>
         <nav className="navigation">
@@ -131,8 +131,8 @@ export default function Sidebar({
             <a
               key={label}
               href={href}
-              className={`nav-item ${activePage === page ? 'active' : ''}`}
-              aria-current={activePage === page ? 'page' : undefined}
+              className={`nav-item ${activePage === page ? "active" : ""}`}
+              aria-current={activePage === page ? "page" : undefined}
               onClick={onClose}
             >
               <Icon size={19} strokeWidth={1.8} />
@@ -154,18 +154,18 @@ export default function Sidebar({
           </a>
           <div className="user-card">
             <span className="avatar">
-              {mode === 'v4' && user
+              {mode === "v4" && user
                 ? user.login?.charAt(0).toUpperCase()
-                : 'V'}
+                : "V"}
             </span>
             <div>
               <strong>
-                {mode === 'v4' && user ? user.login : "Không gian quản trị"}
+                {mode === "v4" && user ? user.login : "Chưa đăng nhập"}
               </strong>
               <span>
-                {mode === 'v4' && user
+                {mode === "v4" && user
                   ? user.role
-                  : 'Quyền được xác minh qua API'}
+                  : "Không có phiên người dùng"}
               </span>
             </div>
             <LockKeyhole size={15} />
@@ -173,5 +173,5 @@ export default function Sidebar({
         </div>
       </aside>
     </>
-  )
+  );
 }

@@ -2,24 +2,25 @@ import { ArrowUpRight, RefreshCw } from 'lucide-react'
 import { count } from '../services/portalApi'
 import { useV4Resource } from './IncidentPages'
 import { Badge, Empty, FieldGrid, ObservationAgeBadge, Panel, display, useTime } from './PortalUI'
+import { uiLabel } from '../services/uiLanguage'
 
 const NODE_ERRORS = {
   GALERA_NODE_UNAVAILABLE: 'Chưa nhận được tệp quan sát',
   GALERA_NODE_INVALID: 'Tệp quan sát không hợp lệ',
   WSREP_READ_FAILED: 'Không đọc được wsrep qua socket MariaDB',
   WSREP_TIMEOUT: 'Đọc wsrep quá thời gian',
-  WSREP_SOURCE_UNREACHABLE: 'Controller không kết nối được nguồn qua SSH',
+  WSREP_SOURCE_UNREACHABLE: 'Bộ điều khiển không kết nối được nguồn qua SSH',
   WSREP_FIELDS_MISSING: 'Kết quả wsrep thiếu trường',
   WSREP_CLIENT_UNAVAILABLE: 'Thiếu trình khách MariaDB',
   WSREP_RESULT_INVALID: 'Phản hồi wsrep không hợp lệ',
 }
 
 const BATCH_MESSAGES = {
-  GALERA_PRIMARY_TWO_NODES: 'Hai node báo cùng một cụm Primary có 2 thành viên.',
+  GALERA_PRIMARY_TWO_NODES: 'Hai nút cùng báo thuộc cụm chính có hai thành viên.',
   GALERA_BATCH_STALE: 'Đã quá 45 giây kể từ một hoặc nhiều lần thu thập.',
-  GALERA_BATCH_INCOMPLETE: 'Thiếu kết quả hoặc các node thuộc các lượt đo khác nhau.',
+  GALERA_BATCH_INCOMPLETE: 'Thiếu kết quả hoặc các nút thuộc các lượt đo khác nhau.',
   GALERA_WSREP_INCONCLUSIVE: 'Kết quả wsrep chưa đủ để xác nhận trạng thái cụm.',
-  GALERA_NODES_INCOMPLETE: 'Thiếu kết quả wsrep từ một hoặc nhiều node.',
+  GALERA_NODES_INCOMPLETE: 'Thiếu kết quả wsrep từ một hoặc nhiều nút.',
 }
 
 export default function GaleraPanel({ compact = false, standalone = false }) {
@@ -42,14 +43,14 @@ export default function GaleraPanel({ compact = false, standalone = false }) {
     Number.isFinite(Date.parse(node.observed_at))
   const agreement =
     summary?.consistency === 'MATCHING_AT_OBSERVATIONS'
-      ? 'UUID và cấu hình cluster khớp tại các lần đo'
+      ? 'UUID và cấu hình cụm khớp tại các lần đo'
       : summary?.consistency === 'MISMATCH'
-        ? 'Có khác biệt giữa các node'
+        ? 'Có khác biệt giữa các nút'
         : 'Chưa đủ dữ liệu để đối chiếu'
   return (
     <Panel
-      title="Galera · wsrep từng node"
-      subtitle="Quan sát qua socket nội bộ trên từng máy Galera"
+      title="Cụm cơ sở dữ liệu Galera"
+      subtitle="Trạng thái đồng bộ và khả năng phục vụ của từng nút"
       resource={resource}
       action={
         <div className="v4-proxy-actions">
@@ -59,7 +60,7 @@ export default function GaleraPanel({ compact = false, standalone = false }) {
             onClick={resource.refresh}
           >
             <RefreshCw size={14} />
-            Đọc lại wsrep
+            Đọc lại trạng thái
           </button>
           {compact && (
             <a className="v4-text-link" href="#/system/galera">
@@ -89,7 +90,7 @@ export default function GaleraPanel({ compact = false, standalone = false }) {
           {!standalone && (
             <div className="v4-galera-summary">
               <div>
-                <span>Node có kết quả đo</span>
+                <span>Nút có kết quả đo</span>
                 <strong>
                   {display(count(summary?.observed_nodes))} /{' '}
                   {display(count(summary?.expected_nodes))}
@@ -121,7 +122,7 @@ export default function GaleraPanel({ compact = false, standalone = false }) {
           {standalone && periodic && (
             <p className="v4-proxy-snapshot">
               <Badge value={currentStatus} />
-              <span>{summary?.observed_nodes ?? 0}/{summary?.expected_nodes ?? 3} node trong bản chụp</span>
+              <span>{display(summary?.observed_nodes)}/{display(summary?.expected_nodes)} nút trong bản chụp</span>
               <span>Đo thành công gần nhất {time(resource.meta?.last_successful_sample_at)}</span>
             </p>
           )}
@@ -129,7 +130,7 @@ export default function GaleraPanel({ compact = false, standalone = false }) {
             <p className="v4-inline-warning" role="status">
               {BATCH_MESSAGES[summary?.current_reason] ||
                 BATCH_MESSAGES[resource.meta?.last_error_code] ||
-                'Thiếu kết quả wsrep từ một hoặc nhiều node.'}
+                'Thiếu kết quả wsrep từ một hoặc nhiều nút.'}
             </p>
           )}
           {!compact &&
@@ -139,12 +140,12 @@ export default function GaleraPanel({ compact = false, standalone = false }) {
                   <table className="v4-table v4-galera-table">
                     <thead>
                       <tr>
-                        <th>NODE</th>
+                        <th>NÚT CƠ SỞ DỮ LIỆU</th>
                         <th>TRẠNG THÁI CỤM</th>
-                        <th>SỐ NODE BÁO CÁO</th>
-                        <th>TRẠNG THÁI NODE</th>
-                        <th>WSREP READY / CONNECTED</th>
-                        <th>QUAN SÁT TRÊN NODE</th>
+                        <th>SỐ NÚT BÁO CÁO</th>
+                        <th>TRẠNG THÁI NÚT</th>
+                        <th>SẴN SÀNG / KẾT NỐI CỤM</th>
+                        <th>QUAN SÁT TRÊN NÚT</th>
                         <th>ĐỘ MỚI</th>
                       </tr>
                     </thead>
@@ -173,7 +174,7 @@ export default function GaleraPanel({ compact = false, standalone = false }) {
                               {standalone &&
                               valid(node) &&
                               node.wsrep_cluster_status?.toUpperCase() === 'PRIMARY'
-                                ? 'Primary'
+                                ? 'Cụm chính'
                                 : undefined}
                             </Badge>
                           </td>
@@ -193,7 +194,7 @@ export default function GaleraPanel({ compact = false, standalone = false }) {
                           </td>
                           <td>
                             {valid(node)
-                              ? `${display(node.wsrep_ready)} / ${display(node.wsrep_connected)}`
+                              ? `${uiLabel(node.wsrep_ready)} / ${uiLabel(node.wsrep_connected)}`
                               : '—'}
                           </td>
                           <td>
@@ -249,7 +250,7 @@ export default function GaleraPanel({ compact = false, standalone = false }) {
                               <Badge value="UNKNOWN" />
                             ),
                           ],
-                          ['Lần thử trên node', time(node.attempted_at)],
+                          ['Lần thử trên nút', time(node.attempted_at)],
                           ['Chốt bản chụp', time(node.collected_at)],
                           ["Tham chiếu nguồn", display(node.source_ref)],
                         ]}
@@ -261,7 +262,7 @@ export default function GaleraPanel({ compact = false, standalone = false }) {
             ) : (
               <Empty
                 title="Chưa có kết quả wsrep"
-                text="Chưa nhận được bản chụp từ các node Galera."
+                text="Chưa nhận được bản chụp từ các nút Galera."
               />
             ))}
         </>
