@@ -580,7 +580,7 @@ export function ActionHistory({ serverId, incidentId }) {
 }
 
 export function WorkloadDetail({ id, params = {} }) {
-  const { sessionAuthEnabled } = usePortal();
+  const { sessionAuthEnabled, controllerActionHistoryConfigured } = usePortal();
   const time = useTime();
   const resource = useV4Resource(`/workloads/${encodeURIComponent(id)}`, {
     interval: 15000,
@@ -733,7 +733,7 @@ export function WorkloadDetail({ id, params = {} }) {
           <div className="vm-main-column">
             <PortsPanel vmId={id} selectedPort={params.port_id} />
             <QuarantineJournal serverId={id} selectedOperationId={params.operation_id} />
-            <ActionHistory serverId={id} />
+            {controllerActionHistoryConfigured !== false && <ActionHistory serverId={id} />}
           </div>
           <aside className="vm-side-column">
             <WorkloadQuarantine

@@ -249,6 +249,7 @@ def create_app(settings: Settings | None = None, *, evidence_config: EvidenceCon
             'workload_quarantine_available': bool(
                 app.state.quarantine_ready
             ),
+            'controller_action_history_configured': investigation.controller_reader is not None,
         })
 
     @app.get("/api/v1/system/build", dependencies=[Depends(require_key), Depends(require_read_access)])
@@ -295,8 +296,9 @@ def create_app(settings: Settings | None = None, *, evidence_config: EvidenceCon
         defense_registry_path=settings.defense_source_registry_path,
         defense_archive_dir=settings.defense_archive_dir,
     ))
+    investigation = investigation_service or investigation_sources(settings)
     app.include_router(create_investigation_router(
-        investigation_service or investigation_sources(settings),
+        investigation,
         access_gate=business_session_access_gate if business else observation_investigation_access,
         include_replacements=True,
     ))

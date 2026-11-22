@@ -13,8 +13,9 @@ import ReportEvidencePanel from './ReportEvidencePanel'
 import ReportEventEvidence from './ReportEventEvidence'
 import SystemPage from './SystemPage'
 
-const state = vi.hoisted(() => ({ resources: {} }))
+const state = vi.hoisted(() => ({ resources: {}, controllerActionHistoryConfigured: true }))
 vi.mock('./PortalContext', () => ({ usePortal: () => ({ timezone: 'UTC', sessionAuthEnabled: true,
+  controllerActionHistoryConfigured: state.controllerActionHistoryConfigured,
   workloadQuarantineAvailable: true, auth: { status: 'authenticated', csrfToken: 'TEST-csrf', user: { roles: ['Executor'] } } }), useSourceDisplay: () => ({}) }))
 vi.mock('./IncidentPages', () => ({
   useV4Resource: (path, options = {}) => {
@@ -27,7 +28,10 @@ vi.mock('./IncidentPages', () => ({
   useCursor: () => ({ history: [] }),
 }))
 afterEach(cleanup)
-beforeEach(() => { state.resources = {} })
+beforeEach(() => {
+  state.resources = {}
+  state.controllerActionHistoryConfigured = true
+})
 
 describe('native Proxy UI integration', () => {
   it('renders Galera source data and preserves its sample timestamps on the dashboard and system page', () => {
@@ -128,6 +132,23 @@ describe('native Proxy UI integration', () => {
     expect(row.getAllByText('sg-management')).toHaveLength(1)
     expect(row.getByText('sg-app')).toBeTruthy()
     expect(row.queryByText(group.id)).toBeNull()
+  })
+
+  it('shows the VM journal while skipping the action history when its source is unconfigured', () => {
+    const id = 'TEST-vm'
+    state.resources[`/workloads/${id}`] = { data: mapWorkload({ server_id: id, name: 'TEST-node' }) }
+    state.resources[`/workloads/${id}/journal`] = {
+      data: { operations: [{ operation_id: 'TEST-operation', state: 'RESTORED', ports: [], events: [] }] },
+    }
+    state.resources['/actions'] = { data: [{ action_id: 'TEST-archived-action' }] }
+    state.controllerActionHistoryConfigured = false
+    const view = render(<WorkloadDetail id={id} />)
+    expect(screen.getByText('Nhật ký cách ly và khôi phục')).toBeTruthy()
+    expect(screen.queryByText('TEST-archived-action')).toBeNull()
+
+    state.controllerActionHistoryConfigured = true
+    view.rerender(<WorkloadDetail id={id} />)
+    expect(screen.getByText('TEST-archived-action')).toBeTruthy()
   })
 
   it('shows Nova and network status from a fresh Controller inventory export', () => {
