@@ -76,9 +76,14 @@ class Settings:
     investigation_controller_archive_path: Path | None = None
     investigation_controller_binding_path: Path | None = None
     investigation_controller_binding_sha256: str = ""
+    automatic_response_relay_config_path: Path | None = None
+
+    @property
+    def automatic_response_relay_path(self) -> Path | None:
+        return self.automatic_response_relay_config_path or self.openstack_ssh_relay_config_path
 
     def __post_init__(self):
-        if self.automatic_response_remote and not (self.session_auth_enabled and self.openstack_ssh_relay_config_path):
+        if self.automatic_response_remote and not (self.session_auth_enabled and self.automatic_response_relay_path):
             raise ValueError("Automatic response integration requires SESSION and a configured SSH relay")
         if self.single_account_username and not (self.session_auth_enabled and self.session_local_http):
             raise ValueError("Single-account profile requires local SESSION mode")
@@ -92,7 +97,7 @@ class Settings:
                 self.evidence_index_path, self.evaluation_index_path, self.business_database_path,
                 self.openstack_credential_path, self.openstack_console_credential_path,
                 self.openstack_quarantine_credential_path,
-                self.openstack_ssh_relay_config_path,
+                self.openstack_ssh_relay_config_path, self.automatic_response_relay_config_path,
                 self.proxy_sync_status_path, self.proxy_services_path,
                 self.investigation_policy_path, self.investigation_controller_path,
                 self.investigation_controller_archive_path, self.investigation_controller_binding_path,
@@ -174,6 +179,7 @@ class Settings:
             session_local_http=os.getenv("PORTAL_SESSION_LOCAL_HTTP", "false").lower() == "true",
             single_account_username=os.getenv("PORTAL_SINGLE_ACCOUNT_USERNAME") or None,
             automatic_response_remote=os.getenv("PORTAL_AUTOMATIC_RESPONSE_REMOTE", "false").lower() == "true",
+            automatic_response_relay_config_path=optional_path("PORTAL_AUTOMATIC_RESPONSE_RELAY_CONFIG"),
             investigation_policy_path=optional_path("PORTAL_INVESTIGATION_POLICY"),
             investigation_policy_sha256=os.getenv("PORTAL_INVESTIGATION_POLICY_SHA256", ""),
             investigation_policy_version=os.getenv("PORTAL_INVESTIGATION_POLICY_VERSION", ""),
