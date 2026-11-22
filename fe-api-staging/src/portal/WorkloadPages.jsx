@@ -17,7 +17,6 @@ import {
   RefreshCw,
   Plug2,
   CircleCheck,
-  Info,
 } from "lucide-react";
 import {
   freshness,
@@ -222,10 +221,6 @@ function WorkloadQuarantine({ vm, resource }) {
           {notice.message}
         </p>
       )}
-      <p className="vm-control-footnote">
-        <Info size={15} />
-        Thao tác áp dụng cho tất cả port của VM và được lưu vào nhật ký.
-      </p>
       {confirming && (
         <div
           className="v4-inline-warning"

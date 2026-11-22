@@ -233,6 +233,9 @@
   gap: 14px;
   margin-bottom: 20px;
 }
+.vm-ports-panel > .panel-heading {
+  padding-inline: 0;
+}
 .vm-detail-page .panel-heading h2 {
   color: var(--vm-ink);
   font-size: 1.0625rem;
@@ -306,21 +309,6 @@
 }
 .vm-control-panel .vm-restore-action:not(:disabled):hover {
   background: #086c70;
-}
-.vm-control-panel .vm-control-footnote {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  font-size: 0.8125rem;
-  color: #7b7f7b;
-  border-top: 1px solid #eee6d6;
-  padding-top: 16px;
-  margin: 18px 0 0;
-  line-height: 1.65;
-}
-.vm-control-footnote svg {
-  flex-shrink: 0;
-  margin-top: 3px;
 }
 .vm-action-success {
   display: flex;
