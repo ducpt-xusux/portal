@@ -40,8 +40,9 @@ class NoRedirect(HTTPRedirectHandler):
 
 
 class Transport:
-    def __init__(self):
+    def __init__(self, *, request_timeout=5):
         self.opener = build_opener(ProxyHandler({}), NoRedirect())
+        self.request_timeout = request_timeout
 
     def send(self, method, url, *, body=None, token=None, nova_version=None, revision=None):
         headers = {"Accept": "application/json"}
@@ -56,7 +57,7 @@ class Transport:
         request = Request(url, data=json.dumps(body).encode() if body is not None else None,
                           headers=headers, method=method)
         try:
-            with self.opener.open(request, timeout=5) as response:
+            with self.opener.open(request, timeout=self.request_timeout) as response:
                 raw = response.read(MAX_BYTES + 1)
                 if len(raw) > MAX_BYTES:
                     raise InventoryError("OPENSTACK_RESPONSE_TOO_LARGE")

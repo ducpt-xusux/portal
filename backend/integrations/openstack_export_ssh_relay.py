@@ -39,7 +39,7 @@ def main():
         if settings.keys() != SOURCE_KEYS or not all(isinstance(v, str) for v in settings.values()):
             raise ValueError('Invalid source configuration')
         os.environ.update(settings)
-        data = collect(Settings.from_env())
+        data = collect(Settings.from_env(), request_timeout=9)
         if isinstance(host_projection, str) and Path(host_projection).is_absolute():
             from openstack_compute_hosts import add_compute_hosts
             add_compute_hosts(data, Path(host_projection))

@@ -84,7 +84,8 @@ class SSHTransport:
             try:
                 self.connect()
                 command = 'python3 ' + shlex.quote(self.config['helper_path']) + ' --config ' + shlex.quote(self.config['remote_config_path'])
-                stdin, stdout, stderr = self.client.exec_command(command, timeout=85 if request.get('op') == 'auto_restore' else 20)
+                timeout = {'auto_restore': 85, 'inventory_export': 35}.get(request.get('op'), 20)
+                stdin, stdout, stderr = self.client.exec_command(command, timeout=timeout)
                 stdin.write(json.dumps({**request, 'profile': self.profile}))
                 stdin.channel.shutdown_write()
                 raw = stdout.read(4 * 1024 * 1024 + 65537)
