@@ -174,3 +174,31 @@ def test_compute_host_projection_requires_fresh_same_project_metadata(tmp_path):
     assert [row['compute_host'] for row in rows] == ['compute-1', 'direct-host', None]
     assert rows[0]['compute_host_source'] == 'NOVA_CONTROLLER_READONLY_PROJECTION'
     assert rows[0]['network_state'] == 'QUARANTINED'
+
+
+def test_compute_host_collector_reads_only_the_configured_project(monkeypatch):
+    from integrations.openstack_compute_hosts import collect_hosts
+
+    project = '00000000000000000000000000000001'
+    server = '00000000-0000-0000-0000-000000000002'
+    for key in ('OS_USERNAME', 'OS_PASSWORD', 'OS_USER_DOMAIN_NAME', 'OS_PROJECT_NAME', 'OS_PROJECT_DOMAIN_NAME'):
+        monkeypatch.setenv(key, 'TEST')
+
+    class Nova:
+        tenant = project
+
+        def send(self, method, url, **kwargs):
+            if url == 'http://test.invalid/v3/auth/tokens':
+                assert method == 'POST'
+                return {'token': {'roles': [{'name': 'admin'}]}}, 'TEST-token'
+            assert method == 'GET'
+            assert url == f'http://test.invalid/v2.1/servers/detail?all_tenants=1&project_id={project}&limit=200'
+            assert kwargs['token'] == 'TEST-token'
+            return {'servers': [{'id': server, 'tenant_id': self.tenant, 'OS-EXT-SRV-ATTR:host': 'compute-2'}]}, None
+
+    transport = Nova()
+    endpoints = ('http://test.invalid/v3', 'http://test.invalid/v2.1')
+    assert collect_hosts(project, *endpoints, transport) == {server: 'compute-2'}
+    transport.tenant = 'outside-project'
+    with pytest.raises(ValueError, match='Invalid Nova host report'):
+        collect_hosts(project, *endpoints, transport)

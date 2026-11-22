@@ -10,12 +10,13 @@ from pathlib import Path
 import tempfile
 
 from .config import Settings
-from .openstack_inventory import InventoryReader, MAX_BYTES
+from .openstack_inventory import InventoryReader, MAX_BYTES, Transport
 from .source_json import unique_object
 
 
-def collect(settings):
-    reader = InventoryReader(settings)
+def collect(settings, *, request_timeout=None):
+    transport = Transport(request_timeout=request_timeout) if request_timeout is not None else None
+    reader = InventoryReader(settings, transport=transport)
     items, meta, fingerprint = reader.read()
     return {'schema': 'portal-openstack-export-1', 'items': items, 'ports': reader.cached_ports,
             'meta': meta, 'fingerprint': fingerprint}
