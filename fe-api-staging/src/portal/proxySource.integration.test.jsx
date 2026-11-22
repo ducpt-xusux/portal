@@ -103,13 +103,14 @@ describe('native Proxy UI integration', () => {
   it('renders live VM ports and the Controller operation in their separate panels', () => {
     const id = 'TEST-vm'; const port = { port_id: 'TEST-port', fixed_ips: ['192.0.2.10'], floating_ips: [],
       fixed_ip_details: [], security_groups: [], security_groups_provided: true, network_state: 'QUARANTINED' }
-    state.resources[`/workloads/${id}`] = { data: { server_id: id, name: 'TEST-clone', incident_refs: [], ports: [port],
+    state.resources[`/workloads/${id}`] = { data: { server_id: id, name: 'TEST-clone', compute_host: 'TEST-compute', incident_refs: [], ports: [port],
       network_observation: { state: 'QUARANTINED' } } }
     state.resources[`/workloads/${id}/ports`] = { data: [port] }
     state.resources[`/workloads/${id}/quarantine`] = { data: { allowed: true, state: 'QUARANTINED',
       automatic_response: true, incident_id: 'TEST-incident', policy_version: 'TEST-policy', operation_id: 'TEST-operation' } }
     render(<WorkloadDetail id={id} />)
     expect(screen.getByText('Port 1')).toBeTruthy()
+    expect(screen.getAllByText('TEST-compute')).toHaveLength(2)
     expect(screen.getByText('Ứng phó tự động theo chính sách thử nghiệm')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Khôi phục' }).disabled).toBe(false)
     expect(screen.getByRole('link', { name: 'Xem quyết định, xác minh nguồn và bằng chứng' })
@@ -128,7 +129,7 @@ describe('native Proxy UI integration', () => {
       })],
     }
     render(<WorkloadsPage params={{}} />)
-    const row = within(screen.getByRole('row', { name: /Attack/ }))
+    const row = within(screen.getByRole('row', { name: /attack/ }))
     expect(row.getAllByText('sg-management')).toHaveLength(1)
     expect(row.getByText('sg-app')).toBeTruthy()
     expect(row.queryByText(group.id)).toBeNull()
@@ -180,7 +181,7 @@ describe('native Proxy UI integration', () => {
       source: { source_mode: 'LIVE', read_at: observed, stale_after_seconds: 45, freshness_state: 'FRESH' },
     }
     const view = render(<CurrentMapping compact mapping={mapping} />)
-    expect(screen.getByRole('link', { name: 'Attack' }).getAttribute('href')).toBe('#/workloads/TEST-vm?port_id=TEST-port')
+    expect(screen.getByRole('link', { name: 'attack' }).getAttribute('href')).toBe('#/workloads/TEST-vm?port_id=TEST-port')
     expect(screen.queryByText(/Khớp IP/)).toBeNull()
 
     view.rerender(<CurrentMapping compact mapping={{ ...mapping, state: 'NO_MATCH' }} />)

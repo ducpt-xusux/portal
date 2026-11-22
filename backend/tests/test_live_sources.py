@@ -149,3 +149,28 @@ def test_session_inventory_never_replaces_live_port_state_with_export_hints(monk
     assert result[0]['network_state']=='QUARANTINED'
     assert result[0]['ports'][0]['revision_number']==8
     assert result[0]['ports'][0]['security_group_ids']==['TEST-quarantine']
+
+
+def test_compute_host_projection_requires_fresh_same_project_metadata(tmp_path):
+    from integrations.openstack_compute_hosts import SCHEMA, add_compute_hosts
+
+    observed = datetime.now(timezone.utc)
+    path = tmp_path / 'compute-hosts.json'
+    rows = [
+        {'server_id': 'target', 'project_id': 'project', 'compute_host': None, 'network_state': 'QUARANTINED'},
+        {'server_id': 'direct', 'project_id': 'project', 'compute_host': 'direct-host'},
+        {'server_id': 'outside', 'project_id': 'outside-project', 'compute_host': None},
+    ]
+    snapshot = {'meta': {'project_id': 'project'}, 'items': rows}
+    projection = {'schema': SCHEMA, 'project_id': 'project',
+                  'hosts': {'target': 'compute-1', 'direct': 'compute-2', 'outside': 'compute-3'}}
+
+    path.write_text(json.dumps({**projection, 'observed_at': (observed - timedelta(minutes=1)).isoformat()}))
+    add_compute_hosts(snapshot, path)
+    assert rows[0]['compute_host'] is None
+
+    path.write_text(json.dumps({**projection, 'observed_at': observed.isoformat()}))
+    add_compute_hosts(snapshot, path)
+    assert [row['compute_host'] for row in rows] == ['compute-1', 'direct-host', None]
+    assert rows[0]['compute_host_source'] == 'NOVA_CONTROLLER_READONLY_PROJECTION'
+    assert rows[0]['network_state'] == 'QUARANTINED'
