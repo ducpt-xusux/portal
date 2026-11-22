@@ -21,13 +21,26 @@ export default function usePortalResource(
   useEffect(() => {
     if (!enabled || !path) return
     const controller = new AbortController()
-    setState((previous) =>
-      previous.key === key
-        ? { ...previous, loading: true }
-        : { key, data: null, meta: null, error: null, loading: true }
-    )
-    portalRequest(`${path}${query}`, { signal: controller.signal })
-      .then((payload) => {
+    let timer
+
+    function scheduleNext() {
+      if (!interval || controller.signal.aborted) return
+      timer = setTimeout(() => {
+        if (document.hidden) scheduleNext()
+        else load()
+      }, interval)
+    }
+
+    async function load() {
+      setState((previous) =>
+        previous.key === key
+          ? { ...previous, loading: true }
+          : { key, data: null, meta: null, error: null, loading: true }
+      )
+      try {
+        const payload = await portalRequest(`${path}${query}`, {
+          signal: controller.signal,
+        })
         const data = transformRef.current
           ? transformRef.current(payload.data)
           : payload.data
@@ -39,8 +52,7 @@ export default function usePortalResource(
             error: null,
             loading: false,
           })
-      })
-      .catch((error) => {
+      } catch (error) {
         if (!controller.signal.aborted)
           setState((previous) => ({
             key,
@@ -55,16 +67,17 @@ export default function usePortalResource(
             error,
             loading: false,
           }))
-      })
-    return () => controller.abort()
-  }, [path, query, key, tick, enabled])
-  useEffect(() => {
-    if (!enabled || !path || !interval) return
-    const timer = setInterval(() => {
-      if (!document.hidden) refresh()
-    }, interval)
-    return () => clearInterval(timer)
-  }, [path, interval, enabled, refresh])
+      } finally {
+        scheduleNext()
+      }
+    }
+
+    load()
+    return () => {
+      controller.abort()
+      clearTimeout(timer)
+    }
+  }, [path, query, key, tick, enabled, interval])
   const visible =
     state.key === key && enabled
       ? state
