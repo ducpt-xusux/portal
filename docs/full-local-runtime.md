@@ -61,6 +61,17 @@ export, audit, quarantine and restore behind the existing session/CSRF/cloud gat
 
 ## SSH transport
 
+When Proxy cannot reliably query the OpenStack API endpoints directly, run
+`backend/integrations/openstack_export_ssh_relay.py` as a fixed-command SSH
+exporter on Controller with the existing reader application credential. Set
+`OPENSTACK_INVENTORY_EXPORT_PATH` to a dedicated Portal-writable JSON path and
+`OPENSTACK_INVENTORY_EXPORT_SSH_CONFIG` to a pinned relay configuration for that
+command. Portal refreshes the real inventory in the background and preserves
+Controller observation timestamps, the last successful sample and source errors.
+The exporter accepts only the single reader-role inventory request. The existing
+VM quarantine and restore service still verifies current Neutron state directly
+using its separately configured identity and transport.
+
 Install `backend/integrations/openstack_ssh_relay.py` as a private operator-owned
 file on Controller. It has no network listener. SSH exec runs one bounded request
 with JSON on stdin; no request/credential/token is printed to application logs.

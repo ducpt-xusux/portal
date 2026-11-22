@@ -77,6 +77,7 @@ class Settings:
     investigation_controller_binding_path: Path | None = None
     investigation_controller_binding_sha256: str = ""
     automatic_response_relay_config_path: Path | None = None
+    openstack_inventory_export_ssh_config_path: Path | None = None
 
     @property
     def automatic_response_relay_path(self) -> Path | None:
@@ -85,6 +86,21 @@ class Settings:
     def __post_init__(self):
         if self.automatic_response_remote and not (self.session_auth_enabled and self.automatic_response_relay_path):
             raise ValueError("Automatic response integration requires SESSION and a configured SSH relay")
+        if self.openstack_inventory_export_ssh_config_path:
+            output = self.openstack_inventory_export_path
+            if not self.openstack_enabled or output is None:
+                raise ValueError("SSH inventory collection requires an enabled inventory and an export path")
+            protected = (
+                self.audit_path, self.database_path, self.business_database_path, self.p17_snapshot_path,
+                self.p17_vnext_snapshot_path, self.openstack_credential_path,
+                self.openstack_quarantine_credential_path, self.openstack_console_credential_path,
+                self.openstack_ssh_relay_config_path, self.automatic_response_relay_path,
+                self.openstack_inventory_export_ssh_config_path,
+            )
+            if any(output.resolve() == path.resolve() or (
+                output.is_file() and path.is_file() and output.samefile(path)
+            ) for path in protected if path is not None):
+                raise ValueError("SSH inventory collection requires a dedicated export file")
         if self.single_account_username and not (self.session_auth_enabled and self.session_local_http):
             raise ValueError("Single-account profile requires local SESSION mode")
         if any(str(UUID(server_id)) != server_id for server_id in self.quarantine_allowed_server_ids):
@@ -98,6 +114,7 @@ class Settings:
                 self.openstack_credential_path, self.openstack_console_credential_path,
                 self.openstack_quarantine_credential_path,
                 self.openstack_ssh_relay_config_path, self.automatic_response_relay_config_path,
+                self.openstack_inventory_export_ssh_config_path, self.openstack_inventory_export_path,
                 self.proxy_sync_status_path, self.proxy_services_path,
                 self.investigation_policy_path, self.investigation_controller_path,
                 self.investigation_controller_archive_path, self.investigation_controller_binding_path,
@@ -152,6 +169,7 @@ class Settings:
             openstack_credential_path=absolute_path(os.environ["OPENSTACK_CREDENTIAL_PATH"]) if os.getenv("OPENSTACK_CREDENTIAL_PATH") else None,
             openstack_ssh_relay_config_path=optional_path('OPENSTACK_SSH_RELAY_CONFIG'),
             openstack_inventory_export_path=optional_path("OPENSTACK_INVENTORY_EXPORT_PATH"),
+            openstack_inventory_export_ssh_config_path=optional_path("OPENSTACK_INVENTORY_EXPORT_SSH_CONFIG"),
             workload_journal_export_path=optional_path("WORKLOAD_JOURNAL_EXPORT_PATH"),
             workload_network_history_export_path=optional_path('WORKLOAD_NETWORK_HISTORY_EXPORT_PATH'),
             report_evidence_path=optional_path('PORTAL_REPORT_EVIDENCE_PATH'),

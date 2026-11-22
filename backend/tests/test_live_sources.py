@@ -72,6 +72,66 @@ def test_inventory_export_does_not_renew_observation_or_accept_other_project(tmp
         InventoryExportReader(cfg).read()
 
 
+def test_ssh_inventory_keeps_a_verified_sample_when_the_next_read_fails(tmp_path, monkeypatch):
+    from app import inventory_export
+
+    now = datetime.now(timezone.utc)
+    project = '12345678-1234-1234-1234-123456789abc'
+    observed = (now - timedelta(seconds=2)).isoformat()
+    payload = {'schema': 'portal-openstack-export-1', 'items': [], 'ports': [], 'meta': {
+        'source_schema': 'openstack-inventory-1', 'project_id': project, 'scope': 'SINGLE_PROJECT_READONLY',
+        'last_success': observed, 'last_attempt': observed}}
+
+    class Relay:
+        fail = False
+
+        def rpc(self, request):
+            assert request == {'op': 'inventory_export'}
+            assert not reader.lock.locked()
+            if self.fail:
+                raise InventoryError('OPENSTACK_CONNECTION_FAILED')
+            return payload, None
+
+    relay = Relay()
+    monkeypatch.setattr(inventory_export, 'SSHTransport', lambda path, profile: relay)
+    path = tmp_path / 'inventory.json'
+    cfg = Settings(tmp_path / 'audit', tmp_path / 'cache', openstack_enabled=True,
+                   openstack_project_id=project, openstack_inventory_export_path=path,
+                   openstack_inventory_export_ssh_config_path=tmp_path / 'relay.json')
+    reader = InventoryExportReader(cfg, clock=lambda: now)
+    reader.sample()
+    first = path.read_bytes()
+    assert reader.read()[1]['last_success'] == observed
+    assert reader.read()[1]['freshness_state'] == 'FRESH'
+
+    payload['meta']['project_id'] = 'different-project'
+    with pytest.raises(InventoryError, match='OPENSTACK_EXPORT_UNAVAILABLE'):
+        reader.sample()
+    assert path.read_bytes() == first
+
+    relay.fail = True
+    with pytest.raises(InventoryError, match='OPENSTACK_CONNECTION_FAILED'):
+        reader.sample()
+    meta = reader.read()[1]
+    assert meta['last_success'] == observed
+    assert meta['freshness_state'] == 'STALE'
+    assert meta['last_error_code'] == 'OPENSTACK_CONNECTION_FAILED'
+
+    relay.fail = False
+    payload['meta'].update(project_id=project, last_success=now.isoformat(), last_attempt=now.isoformat())
+    reader.sample()
+    assert reader.read()[1]['last_success'] == now.isoformat()
+    assert reader.read()[1]['freshness_state'] == 'FRESH'
+
+
+def test_ssh_inventory_cannot_publish_over_the_portal_database(tmp_path):
+    database = tmp_path / 'cache.db'
+    with pytest.raises(ValueError, match='dedicated export file'):
+        Settings(tmp_path / 'audit', database, openstack_enabled=True,
+                 openstack_inventory_export_path=database,
+                 openstack_inventory_export_ssh_config_path=tmp_path / 'relay.json')
+
+
 def test_session_inventory_never_replaces_live_port_state_with_export_hints(monkeypatch):
     from app.inventory_export import SessionInventoryReader
     from app.openstack_inventory import InventoryReader
