@@ -130,6 +130,27 @@ describe('native Proxy UI integration', () => {
     expect(row.queryByText(group.id)).toBeNull()
   })
 
+  it('shows Nova and network status from a fresh Controller inventory export', () => {
+    const observed = new Date().toISOString()
+    state.resources['/workloads'] = {
+      meta: { source_mode: 'REMOTE_READONLY', source_schema: 'openstack-inventory-1',
+        collection_mode: 'SSH_EXPORT', freshness_state: 'FRESH', read_at: observed, data_as_of: observed,
+        stale_after_seconds: 45, network_stale_after_seconds: 45, refresh_seconds: 8 },
+      data: [mapWorkload({ server_id: 'TEST-vm', name: 'TEST-node', nova_status: 'ACTIVE',
+        network_observation: { observed_at: observed, state: 'NORMAL', verification: 'LIVE_NEUTRON_READ' } })],
+    }
+    const view = render(<WorkloadsPage params={{}} />)
+    expect(screen.getByText('Đang hoạt động')).toBeTruthy()
+    const row = within(screen.getByRole('row', { name: /TEST-node/ }))
+    expect(row.getByText('Bình thường')).toBeTruthy()
+    expect(screen.getByText('Nguồn OpenStack')).toBeTruthy()
+
+    state.resources['/workloads'].meta.freshness_state = 'STALE'
+    view.rerender(<WorkloadsPage params={{}} />)
+    expect(screen.queryByText('Đang hoạt động')).toBeNull()
+    expect(row.getAllByText('Dữ liệu cũ')).toHaveLength(2)
+  })
+
   it('shows the VM link alone for a fresh match in the incident list', () => {
     const observed = new Date().toISOString()
     const mapping = {
