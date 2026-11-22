@@ -109,6 +109,11 @@ Không tạo người dùng Portal trong kho này. Không dùng OpenStack admin 
 Relay Controller thêm mục `automatic_response` với `python`, `source`, `config`
 trỏ đúng Python/release/config đã triển khai. Local thêm
 `PORTAL_AUTOMATIC_RESPONSE_REMOTE=true` vào cấu hình SESSION hiện có.
+Khi Portal trên Proxy gọi OpenStack trực tiếp, đặt `PORTAL_AUTOMATIC_RESPONSE_RELAY_CONFIG`
+trỏ đến cấu hình SSH riêng cho Controller. Dùng khóa dịch vụ chỉ dành cho Proxy
+với `restrict` và lệnh cố định chạy relay bằng `--automatic-response-only`.
+Khóa này chỉ dùng để đọc quyết định, đọc nhật ký và khôi phục đúng máy thử nghiệm.
+Các kết nối Nova, Neutron và Keystone trực tiếp tiếp tục dùng cấu hình hiện có.
 API `/api/v1/system/automatic-response` yêu cầu phiên đăng nhập. Khôi phục vẫn
 qua API workload hiện hữu, kiểm tra quyền, CSRF, Origin và operation ID.
 

@@ -1,10 +1,14 @@
 import importlib.util
+import io
+import json
 from pathlib import Path
+import sys
 from threading import Lock
 from types import SimpleNamespace
 
 import pytest
 
+from app.config import Settings
 from app.openstack_inventory import InventoryError
 from app.ssh_openstack import SSHTransport
 
@@ -16,6 +20,36 @@ CONFIG = dict(compute_url='http://nova/v2.1', network_url='http://neutron', proj
     project_wide=False, allowed_server_ids=['TEST-vm'])
 PORT = '30000000-0000-4000-8000-000000000001'
 SG = '20000000-0000-4000-8000-000000000001'
+
+
+def test_dedicated_automatic_response_relay_leaves_direct_openstack_intact(tmp_path, monkeypatch):
+    monkeypatch.setenv('PORTAL_SESSION_AUTH', 'true')
+    monkeypatch.setenv('PORTAL_AUTOMATIC_RESPONSE_REMOTE', 'true')
+    monkeypatch.delenv('OPENSTACK_SSH_RELAY_CONFIG', raising=False)
+    relay_config = tmp_path / 'auto-relay.json'
+    monkeypatch.setenv('PORTAL_AUTOMATIC_RESPONSE_RELAY_CONFIG', str(relay_config))
+    settings = Settings.from_env()
+    assert settings.automatic_response_relay_path == relay_config
+    assert settings.openstack_ssh_relay_config_path is None
+    monkeypatch.delenv('PORTAL_AUTOMATIC_RESPONSE_RELAY_CONFIG')
+    monkeypatch.setenv('OPENSTACK_SSH_RELAY_CONFIG', str(relay_config))
+    assert Settings.from_env().automatic_response_relay_path == relay_config
+
+
+@pytest.mark.parametrize('op,profile', [('authenticate', 'quarantine'), ('request', 'quarantine'),
+                                       ('auto_status', 'reader')])
+def test_restricted_relay_rejects_other_operations(tmp_path, monkeypatch, capsys, op, profile):
+    cfg = tmp_path / 'relay.json'
+    cfg.write_text(json.dumps({'profiles': {'reader': None, 'quarantine': None}}))
+    monkeypatch.setattr(sys, 'argv', ['relay', '--config', str(cfg), '--automatic-response-only'])
+    monkeypatch.setattr(sys, 'stdin', SimpleNamespace(buffer=io.BytesIO(
+        json.dumps({'op': op, 'profile': profile}).encode())))
+    def unexpected_call(*args, **kwargs):
+        pytest.fail('Restricted relay must not use generic OpenStack credentials')
+    monkeypatch.setattr(relay, 'authenticate', unexpected_call)
+    monkeypatch.setattr(relay, 'checked_request', unexpected_call)
+    assert relay.main() is None
+    assert json.loads(capsys.readouterr().out)['error']['code'] == 'OPENSTACK_RELAY_REQUEST_REJECTED'
 
 
 @pytest.mark.parametrize('profile,method,url,body', [

@@ -117,6 +117,7 @@ def checked_request(config, request):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=Path, required=True)
+    parser.add_argument('--automatic-response-only', action='store_true')
     args = parser.parse_args()
     result = {}
     try:
@@ -124,10 +125,13 @@ def main():
         if len(raw) > 65536:
             raise Rejected()
         request = json.loads(raw, object_pairs_hook=unique_object)
+        automatic_request = request['op'] in {'auto_status', 'auto_journal', 'auto_restore'}
+        if args.automatic_response_only and (not automatic_request or request['profile'] != 'quarantine'):
+            raise Rejected()
         config = json.loads(args.config.read_bytes(), object_pairs_hook=unique_object)
         if request['profile'] not in config['profiles']:
             raise Rejected()
-        if request['op'] in {'auto_status', 'auto_journal', 'auto_restore'}:
+        if automatic_request:
             if request['op'] == 'auto_restore' and request['profile'] != 'quarantine':
                 raise Rejected()
             allowed = {'op', 'profile', 'server_id'} | ({'actor_id', 'operation_id', 'request_id'} if request['op'] == 'auto_restore' else set())

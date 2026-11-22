@@ -68,7 +68,7 @@ def validate_business_database(config, settings, evidence):
         evidence.index_path, settings.evaluation_index_path, settings.proxy_sync_status_path,
         settings.openstack_credential_path, settings.openstack_console_credential_path,
         settings.openstack_quarantine_credential_path,
-        settings.openstack_ssh_relay_config_path,
+        settings.openstack_ssh_relay_config_path, settings.automatic_response_relay_config_path,
         settings.investigation_policy_path, settings.investigation_controller_path,
         settings.investigation_controller_archive_path, settings.investigation_controller_binding_path,
         settings.evaluation_observations_path, settings.system_observations_path,
@@ -114,7 +114,7 @@ def create_app(settings: Settings | None = None, *, evidence_config: EvidenceCon
     automatic = None
     if settings.automatic_response_remote:
         from .auto_remote import RemoteAutomaticResponse, CombinedQuarantineRecovery
-        automatic = RemoteAutomaticResponse(settings.openstack_ssh_relay_config_path)
+        automatic = RemoteAutomaticResponse(settings.automatic_response_relay_path)
         recovery = CombinedQuarantineRecovery(recovery, automatic)
 
     async def poll():
