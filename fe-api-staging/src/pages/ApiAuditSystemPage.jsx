@@ -100,7 +100,7 @@ export default function ApiAuditSystemPage({ tab, ruleId }) {
         <div
           className="segmented"
           role="group"
-          aria-label="Nội dung System "
+          aria-label="Nội dung hệ thống "
         >
           {[
             ['overview', 'Tổng quan audit'],
@@ -210,7 +210,7 @@ export default function ApiAuditSystemPage({ tab, ruleId }) {
                   ['Định dạng nguồn', 'JSONL · UTF-8'],
                   ['Quyền truy cập nguồn', 'Chỉ đọc'],
                   ['Khóa chống trùng', 'event_id'],
-                  ['Probe SQLite', 'Ghi thử trong transaction và rollback'],
+                  ['Kiểm tra kết nối SQLite', 'Ghi thử trong transaction và rollback'],
                 ].map(([name, value]) => (
                   <div key={name}>
                     <dt>{name}</dt>
@@ -257,11 +257,11 @@ export default function ApiAuditSystemPage({ tab, ruleId }) {
               <table className="events-table">
                 <thead>
                   <tr>
-                    <th>POLICY</th>
-                    <th>RISK</th>
-                    <th>RUNTIME MODE</th>
-                    <th>EVENTS</th>
-                    <th>LẦN CUỐI</th>
+                    <th>Chính sách</th>
+                    <th>Rủi ro</th>
+                    <th>Chế độ áp dụng</th>
+                    <th>Số sự kiện</th>
+                    <th>Lần cuối</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -306,10 +306,10 @@ export default function ApiAuditSystemPage({ tab, ruleId }) {
             <table className="events-table">
               <thead>
                 <tr>
-                  <th>TRƯỜNG</th>
-                  <th>KIỂU / FORMAT</th>
-                  <th>BẮT BUỘC</th>
-                  <th>GIÁ TRỊ CHO PHÉP</th>
+                  <th>Trường</th>
+                  <th>Kiểu / định dạng</th>
+                  <th>Bắt buộc</th>
+                  <th>Giá trị cho phép</th>
                 </tr>
               </thead>
               <tbody>
@@ -360,12 +360,12 @@ export default function ApiAuditSystemPage({ tab, ruleId }) {
             <table className="events-table">
               <thead>
                 <tr>
-                  <th>RULE</th>
-                  <th>MÔ TẢ TRONG AUDIT</th>
-                  <th>ĐIỂM</th>
-                  <th>PHÂN LOẠI</th>
-                  <th>POLICY / RISK</th>
-                  <th>SỐ EVENT</th>
+                  <th>Quy tắc</th>
+                  <th>Mô tả trong nhật ký</th>
+                  <th>Điểm</th>
+                  <th>Phân loại</th>
+                  <th>Chính sách / rủi ro</th>
+                  <th>Số sự kiện</th>
                   <th>Đã bật</th>
                 </tr>
               </thead>

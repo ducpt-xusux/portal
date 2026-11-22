@@ -1,6 +1,10 @@
-import { uiLabel, uiRoleList } from '../../services/uiLanguage.js'
-import { useEffect, useId, useState } from 'react'
-import { investigationApi } from './investigationApi.js'
+import ReportEventEvidence from "../../portal/ReportEventEvidence";
+import { Badge } from "../../portal/PortalUI";
+import { EventInvestigationLinks } from "../../portal/InvestigationFlow";
+import { useDetailView, compactFields } from "../../portal/DetailView";
+import { uiLabel, uiRoleList } from "../../services/uiLanguage.js";
+import { useEffect, useId, useState } from "react";
+import { investigationApi } from "./investigationApi.js";
 import {
   canonicalLink,
   compareEvents,
@@ -10,33 +14,35 @@ import {
   policyDrift,
   TABS,
   traceModel,
-} from './investigationModel.js'
-import './investigation.css'
+} from "./investigationModel.js";
+import "./investigation.css";
 
 const show = (value) =>
-  value === null || value === undefined || value === ''
-    ? 'UNAVAILABLE'
-    : typeof value === 'boolean'
-      ? String(value)
-      : value
+  value === null || value === undefined || value === ""
+    ? "Chưa có dữ liệu"
+    : typeof value === "boolean"
+      ? uiLabel(value)
+      : typeof value === 'string' ? uiLabel(value) : value;
 function Fields({ rows }) {
+  const { compact } = useDetailView();
+  const visible = compact ? compactFields(rows) : rows;
   return (
     <dl className="n91-fields">
-      {rows.map(([label, value]) => (
+      {visible.map(([label, value]) => (
         <div key={label}>
           <dt>{uiLabel(label)}</dt>
           <dd>{show(value)}</dd>
         </div>
       ))}
     </dl>
-  )
+  );
 }
 function Notice({ children }) {
   return (
     <p className="n91-notice" role="status">
       {children}
     </p>
-  )
+  );
 }
 function Provenance({ source }) {
   return (
@@ -45,10 +51,10 @@ function Provenance({ source }) {
         .filter(([, v]) => v !== undefined)
         .map(([k, v]) => [
           k,
-          typeof v === 'object' && v !== null ? "Xem thông tin bằng chứng" : v,
+          typeof v === "object" && v !== null ? "Xem thông tin bằng chứng" : v,
         ])}
     />
-  )
+  );
 }
 function useResource(loader, keys) {
   const [state, setState] = useState({
@@ -56,11 +62,11 @@ function useResource(loader, keys) {
     data: null,
     error: null,
     meta: null,
-  })
-  const [revision, retry] = useState(0)
+  });
+  const [revision, retry] = useState(0);
   useEffect(() => {
-    const controller = new AbortController()
-    setState({ loading: true, data: null, error: null, meta: null })
+    const controller = new AbortController();
+    setState({ loading: true, data: null, error: null, meta: null });
     Promise.resolve()
       .then(() => loader(controller.signal))
       .then((result) => {
@@ -70,45 +76,45 @@ function useResource(loader, keys) {
             data: result.data,
             error: null,
             meta: result.meta,
-          })
+          });
       })
       .catch((error) => {
         if (!controller.signal.aborted)
           setState({
             loading: false,
             data: null,
-            error: error?.code || 'SOURCE_UNAVAILABLE',
+            error: error?.code || "SOURCE_UNAVAILABLE",
             meta: null,
-          })
-      })
-    return () => controller.abort()
-  }, [...keys, revision]) // All caller identity/API dependencies are explicit.
-  return { ...state, retry: () => retry((n) => n + 1) }
+          });
+      });
+    return () => controller.abort();
+  }, [...keys, revision]); // All caller identity/API dependencies are explicit.
+  return { ...state, retry: () => retry((n) => n + 1) };
 }
 function Resource({ resource }) {
   return resource.loading ? (
     <Notice>Đang tải</Notice>
   ) : resource.error ? (
     <Notice>
-      Chưa có dữ liệu · {resource.error}{' '}
+      Chưa có dữ liệu · {resource.error}{" "}
       <button type="button" onClick={resource.retry}>
         Đọc lại
       </button>
     </Notice>
   ) : resource.meta ? (
     <p className="n91-caption">
-      {uiLabel(resource.meta.freshness_state)} · Thông tin theo phạm vi nguồn đã đọc · yêu cầu{' '}
-      {resource.meta.request_id}
+      {uiLabel(resource.meta.freshness_state)} · Thông tin theo phạm vi nguồn đã
+      đọc · yêu cầu {resource.meta.request_id}
     </p>
-  ) : null
+  ) : null;
 }
 
 export function SevenStageTrace({ trace }) {
-  let stages
+  let stages;
   try {
-    stages = traceModel(trace)
+    stages = traceModel(trace);
   } catch {
-    return <Notice>Chưa có dữ liệu · TRACE_STAGE_INVALID</Notice>
+    return <Notice>Chưa có dữ liệu · TRACE_STAGE_INVALID</Notice>;
   }
   return (
     <div className="n91-investigation">
@@ -126,7 +132,7 @@ export function SevenStageTrace({ trace }) {
               {show(stage.source_ref)} · {show(stage.verification)}
             </small>
             {stage.reason_codes.length > 0 && (
-              <p>{stage.reason_codes.map(uiLabel).join(' · ')}</p>
+              <p>{stage.reason_codes.map(uiLabel).join(" · ")}</p>
             )}
             {stage.facts.length > 0 && (
               <details>
@@ -134,7 +140,7 @@ export function SevenStageTrace({ trace }) {
                 <Fields
                   rows={stage.facts.map((f) => [
                     f.name,
-                    f.status === 'PRESENT' || f.status === 'RECONSTRUCTED'
+                    f.status === "PRESENT" || f.status === "RECONSTRUCTED"
                       ? show(f.value_summary)
                       : f.status,
                   ])}
@@ -146,11 +152,11 @@ export function SevenStageTrace({ trace }) {
       </ol>
       {trace?.limitations?.map((line, i) => (
         <p className="n91-caption" key={i}>
-          {line}
+          {uiLabel(line)}
         </p>
       ))}
     </div>
-  )
+  );
 }
 
 export function EventDetailSixTabs({
@@ -159,30 +165,61 @@ export function EventDetailSixTabs({
   traceResource = null,
   api = investigationApi,
 }) {
-  const [tab, setTab] = useState('Overview'),
-    uid = useId()
-  let event
+  const { compact } = useDetailView();
+  const [tab, setTab] = useState("Overview"),
+    uid = useId();
+  let event;
   try {
-    event = eventModel(raw)
+    event = eventModel(raw);
   } catch {
-    return <Notice>Chưa có dữ liệu · CANONICAL_STREAM_EVENT_REQUIRED</Notice>
+    return <Notice>Chưa có dữ liệu · CANONICAL_STREAM_EVENT_REQUIRED</Notice>;
   }
   const stage = (() => {
     try {
-      return traceModel(trace)[0]
+      return traceModel(trace)[0];
     } catch {
-      return null
+      return null;
     }
-  })()
-  const context = event.source_provenance.context || 'HISTORICAL'
+  })();
+  const visibleTabs = TABS.filter(
+    (name) => !compact || !["Parser", "Trace"].includes(name) || tab === name,
+  );
+  const context = event.source_provenance.context || "HISTORICAL";
   return (
     <section className="n91-investigation" aria-label="Điều tra sự kiện">
-      <Notice>
-        {context} · {event.stream_id} / {event.event_id} ·{' '}
-        {event.source_provenance.verification || 'UNAVAILABLE'}
-      </Notice>
+      <div className="portal-event-summary">
+        <div>
+          <span>Quyết định</span>
+          <Badge value={event.decision} />
+        </div>
+        <div>
+          <span>IP nguồn</span>
+          <strong>{event.source_ip || "—"}</strong>
+        </div>
+        <div>
+          <span>Tài khoản CSDL</span>
+          <strong>{event.db_user || "—"}</strong>
+        </div>
+        <div>
+          <span>Điểm rủi ro</span>
+          <strong>
+            {event.risk.status === "OK" ? (event.risk.score ?? "—") : "—"}
+            <small> / 100</small>
+          </strong>
+        </div>
+      </div>
+      <details className="portal-event-provenance">
+        <summary>Nguồn kiểm toán · {uiLabel(context)}</summary>
+        <p>
+          Stream: <code>{event.stream_id}</code>
+        </p>
+        <p>
+          Event: <code>{event.event_id}</code>
+        </p>
+        <p>{uiLabel(event.source_provenance.verification || "UNAVAILABLE")}</p>
+      </details>
       <div role="tablist" aria-label="Chi tiết sự kiện" className="n91-tabs">
-        {TABS.map((name, index) => (
+        {visibleTabs.map((name, index) => (
           <button
             key={name}
             type="button"
@@ -194,19 +231,19 @@ export function EventDetailSixTabs({
             onClick={() => setTab(name)}
             onKeyDown={(e) => {
               const next =
-                e.key === 'ArrowRight'
-                  ? (index + 1) % TABS.length
-                  : e.key === 'ArrowLeft'
-                    ? (index + TABS.length - 1) % TABS.length
-                    : e.key === 'Home'
+                e.key === "ArrowRight"
+                  ? (index + 1) % visibleTabs.length
+                  : e.key === "ArrowLeft"
+                    ? (index + visibleTabs.length - 1) % visibleTabs.length
+                    : e.key === "Home"
                       ? 0
-                      : e.key === 'End'
-                        ? TABS.length - 1
-                        : null
+                      : e.key === "End"
+                        ? visibleTabs.length - 1
+                        : null;
               if (next !== null) {
-                e.preventDefault()
-                setTab(TABS[next])
-                e.currentTarget.parentElement.children[next].focus()
+                e.preventDefault();
+                setTab(visibleTabs[next]);
+                e.currentTarget.parentElement.children[next].focus();
               }
             }}
           >
@@ -220,8 +257,11 @@ export function EventDetailSixTabs({
         aria-labelledby={`${uid}-${tab}`}
         tabIndex={0}
       >
-        {tab === 'Overview' && (
+        {tab === "Overview" && (
           <>
+            <ReportEventEvidence event={event} />
+            <details className="panel portal-provenance">
+              <summary>Kết quả thực thi và mốc kiểm toán</summary>
             <Fields
               rows={[
                 ["Quyết định · ", uiLabel(event.decision)],
@@ -240,68 +280,71 @@ export function EventDetailSixTabs({
                 ["Nhập vào Portal lúc (UTC)", event.imported_at],
               ]}
             />
-            <p className="n91-caption">
-              decision khác Kết quả chặn được ghi nhận. Risk không cấp quyền
-              cách ly.
-            </p>
-            <h3>SQL · {event.sql_text_status}</h3>
-            <pre>{event.masked_query || 'WITHHELD'}</pre>
+            {event.masked_query && (
+              <>
+                <h3>Truy vấn đã che</h3>
+                <pre>{event.masked_query}</pre>
+              </>
+            )}
             <Fields rows={Object.entries(event.time_basis)} />
+            </details>
           </>
         )}
-        {tab === 'Parser' && (
+        {tab === "Parser" && (
           <>
             <Notice>
-              {stage?.status || 'UNAVAILABLE'} · Parser chỉ có dữ liệu do nguồn
-              xuất; không tính AST từ SQL.
+              {uiLabel(stage?.status || "UNAVAILABLE")} · Phân tích cú pháp chỉ dùng dữ liệu do nguồn
+              cung cấp; không tự dựng cây cú pháp SQL.
             </Notice>
             {stage?.facts?.length > 0 ? (
               <Fields
                 rows={stage.facts.map((f) => [
                   f.name,
-                  f.status === 'PRESENT' ? f.value_summary : f.status,
+                  f.status === "PRESENT" ? f.value_summary : f.status,
                 ])}
               />
             ) : (
               <p>
-                parse_ok / analysis_complete / statement_types / tables /
-                columns: chưa có dữ liệu
+                Kết quả phân tích, mức đầy đủ, loại câu lệnh, bảng và
+                cột: chưa có dữ liệu
               </p>
             )}
           </>
         )}
-        {tab === 'Rules' && (
+        {tab === "Rules" && (
           <>
             <Fields
               rows={[
                 ["Phiên bản chính sách", event.policy_version],
-                ["Khớp", event.matched_rules.join(' · ') || null],
-                ["Chặn", event.blocking_rules.join(' · ') || null],
-                ["Giám sát", event.monitor_rules.join(' · ') || null],
+                ["Khớp", event.matched_rules.join(" · ") || null],
+                ["Chặn", event.blocking_rules.join(" · ") || null],
+                ["Giám sát", event.monitor_rules.join(" · ") || null],
               ]}
             />
-            <p>Monitor match không tự chứng minh BLOCK.</p>
-            {event.blocking_rules.includes('CTX-006') && (
-              <Notice>CTX-006 · Phạm vi dữ liệu deny. Không tự gắn nhãn SQLi.</Notice>
+            <p>Quy tắc giám sát khớp chưa chứng minh truy vấn đã bị chặn.</p>
+            {event.blocking_rules.includes("CTX-006") && (
+              <Notice>
+                CTX-006 · Truy cập ngoài phạm vi dữ liệu cho phép. Không tự kết luận là tấn công chèn mã SQL.
+              </Notice>
             )}
             <ul>
               {event.reasons.map((reason, i) => (
-                <li key={i}>{reason}</li>
+                <li key={i}>{uiLabel(reason)}</li>
               ))}
             </ul>
             <RulesExplorer api={api} event={event} compact />
           </>
         )}
-        {tab === 'Risk' && (
+        {tab === "Risk" && (
           <>
             <Fields
               rows={[
-                ["Trạng thái rủi ro", uiLabel(event.risk.status)],
+                ["Trạng thái tính điểm", event.risk.status === "OK" ? "Đã tính điểm" : uiLabel(event.risk.status)],
                 ["Điểm từ nguồn", event.risk.score],
                 ["Mức độ ", uiLabel(event.risk.severity)],
                 ["Điểm gốc", event.raw_score],
                 [
-                  'explanation_available',
+                  "explanation_available",
                   Boolean(event.score_breakdown?.length),
                 ],
               ]}
@@ -311,7 +354,7 @@ export function EventDetailSixTabs({
                 <table>
                   <thead>
                     <tr>
-                      <th>Quy tắc / Nguồn</th>
+                      <th>Quy tắc / nguồn</th>
                       <th>Điểm</th>
                       <th>Lý do</th>
                     </tr>
@@ -321,7 +364,7 @@ export function EventDetailSixTabs({
                       <tr key={i}>
                         <td>{c.rule_id || c.source}</td>
                         <td>{show(c.score)}</td>
-                        <td>{show(c.reason)}</td>
+                        <td>{c.reason ? uiLabel(c.reason) : "—"}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -329,18 +372,19 @@ export function EventDetailSixTabs({
               </div>
             ) : (
               <Notice>
-                Chi tiết điểm Chưa có dữ liệu · không tính lại điểm hoặc áp ngưỡng risk.
+                Chi tiết điểm Chưa có dữ liệu · không tính lại điểm hoặc áp
+                ngưỡng rủi ro.
               </Notice>
             )}
           </>
         )}
-        {tab === 'Trace' && (
+        {tab === "Trace" && (
           <>
             {traceResource && <Resource resource={traceResource} />}
             <SevenStageTrace trace={trace} />
           </>
         )}
-        {tab === 'Evidence' && (
+        {tab === "Evidence" && (
           <>
             <Fields
               rows={[
@@ -348,20 +392,18 @@ export function EventDetailSixTabs({
                 ["Mã sự kiện", event.event_id],
                 ["Mã yêu cầu", event.request_id],
                 [
-                  'Incident membership',
-                  "Chưa có dữ liệu · không JOIN theo IP/time",
+                  "Liên kết bằng chứng với sự cố",
+                  "Xem kết quả đối chiếu trong mục Tiếp tục điều tra sự kiện",
                 ],
               ]}
             />
             <Provenance source={event.source_provenance} />
-            <p>
-              Mã băm chỉ xác nhận tính toàn vẹn của nội dung.
-            </p>
+            <p>Mã băm chỉ xác nhận tính toàn vẹn của nội dung.</p>
           </>
         )}
       </div>
     </section>
-  )
+  );
 }
 
 export function EventInvestigation({
@@ -371,15 +413,18 @@ export function EventInvestigation({
 }) {
   const resource = useResource(
     (signal) => api.event(eventId, streamId, { signal }),
-    [api, eventId, streamId]
-  )
+    [api, eventId, streamId],
+  );
   const trace = useResource(
     (signal) => api.trace(eventId, streamId, { signal }),
-    [api, eventId, streamId]
-  )
+    [api, eventId, streamId],
+  );
   return (
     <div className="n91-investigation">
       <Resource resource={resource} />
+      {resource.data?.event_id === eventId && resource.data?.stream_id === streamId && (
+        <EventInvestigationLinks event={resource.data} />
+      )}
       {resource.data && (
         <EventDetailSixTabs
           key={`${streamId}:${eventId}`}
@@ -390,28 +435,32 @@ export function EventInvestigation({
         />
       )}
     </div>
-  )
+  );
 }
 
 export function EventCompare({ left, right }) {
-  let comparison
+  let comparison;
   try {
-    comparison = compareEvents(left, right)
+    comparison = compareEvents(left, right);
   } catch {
-    return <Notice>Chưa có dữ liệu · Chọn hai kiểm toán chuẩn luồng/sự kiện IDs.</Notice>
+    return (
+      <Notice>
+        Chưa có dữ liệu · Chọn hai kiểm toán chuẩn luồng/sự kiện IDs.
+      </Notice>
+    );
   }
   const fields = [
-    ['Nguồn IP', (e) => e.source_ip],
+    ["Nguồn IP", (e) => e.source_ip],
     ["Tài khoản cơ sở dữ liệu", (e) => e.db_user],
     ["Chính sách decision", (e) => e.decision],
     ["Hành động áp dụng", (e) => e.effective_action],
     ["Trạng thái rủi ro", (e) => e.risk.status],
-    ['Risk score', (e) => e.risk.score],
+    ["Risk score", (e) => e.risk.score],
     ["mức độ", (e) => e.risk.severity],
     ["Phiên bản chính sách", (e) => e.policy_version],
-    ["Chặn", (e) => e.blocking_rules.join(' · ')],
-    ["Giám sát", (e) => e.monitor_rules.join(' · ')],
-  ]
+    ["Chặn", (e) => e.blocking_rules.join(" · ")],
+    ["Giám sát", (e) => e.monitor_rules.join(" · ")],
+  ];
   return (
     <section className="n91-investigation" aria-label="APP Clone compare">
       <h3>APP / Clone · ID-based compare</h3>
@@ -424,15 +473,15 @@ export function EventCompare({ left, right }) {
         <table>
           <thead>
             <tr>
-              <th>Nguồn fact</th>
+              <th>Nguồn bằng chứng</th>
               <th>
-                APP selection{' '}
+                APP selection{" "}
                 <a href={canonicalLink(comparison.left)}>
                   {comparison.left.stream_id} / {comparison.left.event_id}
                 </a>
               </th>
               <th>
-                Clone selection{' '}
+                Clone selection{" "}
                 <a href={canonicalLink(comparison.right)}>
                   {comparison.right.stream_id} / {comparison.right.event_id}
                 </a>
@@ -450,31 +499,33 @@ export function EventCompare({ left, right }) {
           </tbody>
         </table>
       </div>
-      {comparison.context_denial && <Notice>CTX-006 · Phạm vi dữ liệu deny</Notice>}
+      {comparison.context_denial && (
+        <Notice>CTX-006 · Phạm vi dữ liệu deny</Notice>
+      )}
       {comparison.limitations.map((line) => (
         <p className="n91-caption" key={line}>
           {line}
         </p>
       ))}
     </section>
-  )
+  );
 }
 
 export function EventComparePicker({ api = investigationApi }) {
   const [selection, setSelection] = useState(null),
     [draft, setDraft] = useState({
-      leftStream: '',
-      leftEvent: '',
-      rightStream: '',
-      rightEvent: '',
-    })
+      leftStream: "",
+      leftEvent: "",
+      rightStream: "",
+      rightEvent: "",
+    });
   return (
     <section className="n91-investigation">
       <form
         className="n91-form"
         onSubmit={(e) => {
-          e.preventDefault()
-          setSelection({ ...draft })
+          e.preventDefault();
+          setSelection({ ...draft });
         }}
       >
         {Object.keys(draft).map((name) => (
@@ -499,22 +550,22 @@ export function EventComparePicker({ api = investigationApi }) {
         />
       )}
     </section>
-  )
+  );
 }
 function LoadedCompare({ selection: s, api }) {
   const left = useResource(
     (signal) => api.event(s.leftEvent, s.leftStream, { signal }),
-    [api, s.leftEvent, s.leftStream]
-  )
+    [api, s.leftEvent, s.leftStream],
+  );
   const right = useResource(
     (signal) => api.event(s.rightEvent, s.rightStream, { signal }),
-    [api, s.rightEvent, s.rightStream]
-  )
+    [api, s.rightEvent, s.rightStream],
+  );
   const matches =
     left.data?.stream_id === s.leftStream &&
     left.data?.event_id === s.leftEvent &&
     right.data?.stream_id === s.rightStream &&
-    right.data?.event_id === s.rightEvent
+    right.data?.event_id === s.rightEvent;
   return (
     <>
       <Resource resource={left} />
@@ -527,7 +578,7 @@ function LoadedCompare({ selection: s, api }) {
           <Notice>Chưa có dữ liệu · CANONICAL_IDENTITY_MISMATCH</Notice>
         ))}
     </>
-  )
+  );
 }
 
 export function RulesExplorer({
@@ -535,16 +586,16 @@ export function RulesExplorer({
   event = null,
   compact = false,
 }) {
-  const resource = useResource((signal) => api.policies({ signal }), [api])
+  const resource = useResource((signal) => api.policies({ signal }), [api]);
   const [ruleId, select] = useState(null),
-    [filter, setFilter] = useState('')
-  const catalog = resource.data
+    [filter, setFilter] = useState("");
+  const catalog = resource.data;
   const mismatch =
     catalog &&
     policyDrift(
       { policy_version: catalog.policy_version, policy_sha256: catalog.sha256 },
-      event
-    )
+      event,
+    );
   const rows =
     Array.isArray(catalog?.rules) && !mismatch
       ? catalog.rules.filter(
@@ -552,18 +603,18 @@ export function RulesExplorer({
             (!compact || event?.matched_rules.includes(r.rule_id)) &&
             `${r.rule_id} ${r.category}`
               .toLowerCase()
-              .includes(filter.toLowerCase())
+              .includes(filter.toLowerCase()),
         )
-      : []
+      : [];
   return (
     <section className="n91-investigation">
       <h3>Quy tắc Explorer · pinned bản chụp</h3>
       <Resource resource={resource} />
       {mismatch && (
         <Notice>
-          CURRENT_VERSION_MISMATCH · Sự kiện {event.policy_version} / catalog{' '}
-          {catalog.policy_version}. Không thay quy tắc bản chụp của sự kiện bằng quy tắc
-          hiện tại.
+          CURRENT_VERSION_MISMATCH · Sự kiện {event.policy_version} / catalog{" "}
+          {catalog.policy_version}. Không thay quy tắc bản chụp của sự kiện bằng
+          quy tắc hiện tại.
         </Notice>
       )}
       {catalog && (
@@ -571,13 +622,13 @@ export function RulesExplorer({
           <Fields
             rows={[
               ["Phiên bản chính sách", catalog.policy_version],
-              ['Bytes SHA256', catalog.sha256],
-              ['Captured UTC', catalog.captured_at],
-              ['Rule count · catalog', catalog.rules.length],
+              ["Bytes SHA256", catalog.sha256],
+              ["Captured UTC", catalog.captured_at],
+              ["Rule count · catalog", catalog.rules.length],
             ]}
           />
           <label>
-            Quy tắc / nhóm{' '}
+            Quy tắc / nhóm{" "}
             <input
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
@@ -588,7 +639,7 @@ export function RulesExplorer({
             <table>
               <thead>
                 <tr>
-                  <th>Rule</th>
+                  <th>Quy tắc</th>
                   <th>Nhóm</th>
                   <th>Tác dụng</th>
                   <th>Nguồn</th>
@@ -622,15 +673,16 @@ export function RulesExplorer({
         <RuleDetail key={ruleId} ruleId={ruleId} api={api} event={event} />
       )}
     </section>
-  )
+  );
 }
 function RuleDetail({ ruleId, api, event }) {
   const resource = useResource(
     (signal) => api.rule(ruleId, { signal }),
-    [api, ruleId]
-  )
-  const rule = resource.data
-  if (policyDrift(rule, event)) return <Notice>CURRENT_VERSION_MISMATCH</Notice>
+    [api, ruleId],
+  );
+  const rule = resource.data;
+  if (policyDrift(rule, event))
+    return <Notice>CURRENT_VERSION_MISMATCH</Notice>;
   return (
     <article>
       <Resource resource={resource} />
@@ -642,15 +694,15 @@ function RuleDetail({ ruleId, api, event }) {
           <Fields
             rows={[
               ["Nhóm", rule.category],
-              ['Priority', uiLabel(rule.priority)],
-              ['Enabled', rule.enabled],
-              ['Description', rule.description],
+              ["Priority", uiLabel(rule.priority)],
+              ["Enabled", rule.enabled],
+              ["Description", rule.description],
               ["Phiên bản chính sách", rule.policy_version],
               ["Chính sách SHA256", rule.policy_sha256],
               ["Nguồn", rule.source_ref],
             ]}
           />
-          {['all_conditions', 'any_conditions'].map((key) => (
+          {["all_conditions", "any_conditions"].map((key) => (
             <div key={key}>
               <h4>{key}</h4>
               {rule[key]?.length ? (
@@ -671,7 +723,7 @@ function RuleDetail({ ruleId, api, event }) {
         </>
       )}
     </article>
-  )
+  );
 }
 
 export function IncidentTimeline({ timeline }) {
@@ -679,8 +731,8 @@ export function IncidentTimeline({ timeline }) {
     <section className="n91-investigation">
       <Fields
         rows={[
-          ["sự cố status", timeline?.incident_status],
-          ["Hiện tại response state", timeline?.response_state || 'UNKNOWN'],
+          ["Trạng thái sự cố", timeline?.incident_status],
+          ["Trạng thái phản ứng hiện tại", timeline?.response_state || "UNKNOWN"],
         ]}
       />
       <ol className="n91-trace">
@@ -701,26 +753,26 @@ export function IncidentTimeline({ timeline }) {
         </p>
       ))}
     </section>
-  )
+  );
 }
 
 export function SgLifecycle({ data }) {
-  const [now, tick] = useState(Date.now())
+  const [now, tick] = useState(Date.now());
   useEffect(() => {
-    const timer = setInterval(() => tick(Date.now()), 5000)
-    return () => clearInterval(timer)
-  }, [])
-  const current = lifecycleState(data, now)
+    const timer = setInterval(() => tick(Date.now()), 5000);
+    return () => clearInterval(timer);
+  }, []);
+  const current = lifecycleState(data, now);
   return (
     <section className="n91-investigation">
-      <h3>SG BEFORE / DURING / AFTER / hiện tại</h3>
+      <h3>Security Group trước, trong và sau cách ly</h3>
       <Notice>
-        {data?.source?.execution_mode || 'UNAVAILABLE'} · Lịch sử Controller
+        {data?.source?.execution_mode || "UNAVAILABLE"} · Lịch sử bộ điều khiển
         bằng chứng khác hiện tại Neutron read-back.
       </Notice>
       <div className="n91-sg-grid">
-        {['BEFORE', 'DURING', 'AFTER'].map((phase) => {
-          const snapshot = data?.history?.[phase]
+        {["BEFORE", "DURING", "AFTER"].map((phase) => {
+          const snapshot = data?.history?.[phase];
           return (
             <article key={phase}>
               <h4>{uiLabel(phase)} · Lịch sử</h4>
@@ -734,7 +786,7 @@ export function SgLifecycle({ data }) {
                 <p>Chưa có dữ liệu · giai đoạn not đã quan sát</p>
               )}
             </article>
-          )
+          );
         })}
         <article>
           <h4>CURRENT · {uiLabel(current.state)}</h4>
@@ -751,8 +803,8 @@ export function SgLifecycle({ data }) {
       </div>
       <Fields
         rows={[
-          ['Incident', data?.incident_id],
-          ['Cycle', data?.cycle_id],
+          ["Incident", data?.incident_id],
+          ["Cycle", data?.cycle_id],
           ["Lịch sử hành động state", data?.action?.action_state],
         ]}
       />
@@ -764,20 +816,20 @@ export function SgLifecycle({ data }) {
         <summary>Timestamp, đồng hồ và căn cứ thời gian</summary>
         <Fields
           rows={[
-            ['containment.quarantined_at_utc', data?.action?.started_at],
-            ['containment.restored_at_utc', data?.action?.finished_at],
+            ["containment.quarantined_at_utc", data?.action?.started_at],
+            ["containment.restored_at_utc", data?.action?.finished_at],
           ]}
         />
         {data?.clock_marks?.map((mark, i) => (
           <p key={i}>
-            <strong>{uiLabel(mark.kind)}</strong> · {mark.timestamp} · {mark.clock_id} ·{' '}
-            {mark.time_basis} · {mark.source_ref}
+            <strong>{uiLabel(mark.kind)}</strong> · {mark.timestamp} ·{" "}
+            {mark.clock_id} · {mark.time_basis} · {mark.source_ref}
           </p>
         ))}
       </details>
       {data?.arm_context?.length > 0 && (
         <details>
-          <summary>ARM context · không direct Incident bằng chứng</summary>
+          <summary>Bối cảnh kích hoạt · chưa phải bằng chứng liên kết trực tiếp với sự cố</summary>
           {data.arm_context.map((r, i) => (
             <p key={i}>
               {uiLabel(r.kind)} · {r.timestamp} · {r.link_quality}
@@ -791,7 +843,7 @@ export function SgLifecycle({ data }) {
         </p>
       ))}
     </section>
-  )
+  );
 }
 function GroupList({ groups }) {
   return !Array.isArray(groups) ? (
@@ -805,38 +857,38 @@ function GroupList({ groups }) {
       ))}
     </ul>
   ) : (
-    <p>Đã quan sát empty SG set</p>
-  )
+    <p>Bản ghi không có Security Group</p>
+  );
 }
 export function LoadedSgLifecycle({ actionId, api = investigationApi }) {
   const resource = useResource(
     (signal) => api.lifecycle(actionId, { signal }),
-    [api, actionId]
-  )
+    [api, actionId],
+  );
   return (
     <>
       <Resource resource={resource} />
       {resource.data && <SgLifecycle data={resource.data} />}
     </>
-  )
+  );
 }
 export function IncidentInvestigation({ incidentId, api = investigationApi }) {
   const trace = useResource(
     (signal) => api.incidentTrace(incidentId, { signal }),
-    [api, incidentId]
-  )
+    [api, incidentId],
+  );
   const timeline = useResource(
     (signal) => api.timeline(incidentId, { signal }),
-    [api, incidentId]
-  )
+    [api, incidentId],
+  );
   return (
     <section className="n91-investigation">
       <h3>Luồng xử lý</h3>
       <Resource resource={trace} />
       <SevenStageTrace trace={trace.data} />
-      <h3>Incident / hành động timeline</h3>
+      <h3>Dòng thời gian sự cố và xử lý</h3>
       <Resource resource={timeline} />
       {timeline.data && <IncidentTimeline timeline={timeline.data} />}
     </section>
-  )
+  );
 }

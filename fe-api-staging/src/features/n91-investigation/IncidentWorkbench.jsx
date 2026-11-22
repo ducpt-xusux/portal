@@ -1,7 +1,9 @@
-import { uiLabel, uiRoleList } from '../../services/uiLanguage.js'
-import { useId, useRef } from 'react'
-import { usePortal } from '../../portal/PortalContext'
-import { EvidenceExports } from '../../portal/ReviewEvidence'
+import { DetailToggle, useDetailView } from "../../portal/DetailView";
+import { signalName, uiLabel } from "../../services/uiLanguage.js";
+import { useId, useRef } from "react";
+import { ArrowLeft, ChevronDown, RefreshCw } from "lucide-react";
+import { usePortal } from "../../portal/PortalContext";
+import { EvidenceExports } from "../../portal/ReviewEvidence";
 import {
   Badge,
   CopyId,
@@ -10,26 +12,27 @@ import {
   Panel,
   display,
   useTime,
-} from '../../portal/PortalUI'
-import { IncidentBusinessPanel } from '../n91-business'
-import { incidentHref } from '../../services/incidentLinks.js'
+} from "../../portal/PortalUI";
+import { IncidentBusinessPanel } from "../n91-business";
+import { analysisEventHref, incidentHref } from "../../services/incidentLinks.js";
 import {
   WORKBENCH_TABS,
   canReadWorkbench,
   eventHref,
   workbenchTab,
-} from './workbenchModel.js'
-import { useWorkbench } from './useWorkbench.js'
-import { ResponseHistoryView } from './ResponseHistory.jsx'
-import './workbench.css'
+} from "./workbenchModel.js";
+import { useWorkbench } from "./useWorkbench.js";
+import { ResponseHistoryView } from "./ResponseHistory.jsx";
+import AutomaticResponsePanel from "../../portal/AutomaticResponsePanel";
+import "./workbench.css";
 
 const labels = {
-  overview: 'Tổng quan',
+  overview: "Tổng quan",
   timeline: "Dòng thời gian",
-  detection: "Căn cứ phát hiện",
-  response: "Xử lý và Security Group",
+  detection: "Bằng chứng",
+  response: "Ứng phó",
   notes: "Ghi chú xử lý",
-}
+};
 function Reasons({ values }) {
   return values.length ? (
     <ul className="n91-wb-reasons">
@@ -39,9 +42,33 @@ function Reasons({ values }) {
         </li>
       ))}
     </ul>
-  ) : null
+  ) : null;
 }
 function Unavailable({ title, section }) {
+  if (section.availability === "AVAILABLE")
+    return (
+      <section>
+        <h3>{title}</h3>
+        <dl className="v4-fields">
+          <div>
+            <dt>Phiên bản bộ phát hiện</dt>
+            <dd>{uiLabel(section.detector_version)}</dd>
+          </div>
+          <div>
+            <dt>SHA-256 mã nguồn bộ phát hiện</dt>
+            <dd>{section.detector_sha256}</dd>
+          </div>
+          <div>
+            <dt>Mã bản chụp bằng chứng</dt>
+            <dd>{section.snapshot_id}</dd>
+          </div>
+          <div>
+            <dt>Bộ phát hiện ghi nhận lúc</dt>
+            <dd>{section.recorded_at}</dd>
+          </div>
+        </dl>
+      </section>
+    );
   return (
     <section className="n91-wb-unavailable">
       <h3>{title}</h3>
@@ -49,18 +76,21 @@ function Unavailable({ title, section }) {
       <p>Chưa có dữ liệu nguồn đủ ngữ nghĩa để kết luận.</p>
       <Reasons values={section.reason_codes} />
     </section>
-  )
+  );
 }
 function ProcessingHistory({ section }) {
-  if (section.schema_version === 'portal-response-history-1')
-    return <ResponseHistoryView history={section} />
+  if (section.schema_version === "portal-response-history-1")
+    return <ResponseHistoryView history={section} />;
   return (
     <>
       <Unavailable title="Lịch sử xử lý" section={section} />
-      <a href="#/incidents?response_history=1">Mở lịch sử xử lý từ Controller</a>
+      <a href="#/incidents?response_history=1">
+        Mở lịch sử xử lý từ bộ điều khiển
+      </a>
     </>
-  )
+  );
 }
+
 export function WorkbenchGate({ id, message }) {
   return (
     <div className="n91-workbench">
@@ -68,40 +98,41 @@ export function WorkbenchGate({ id, message }) {
       <PageHeading title="Điều tra sự cố" description={id} />
       <div className="n91-wb-notice" role="status">
         {message}
-        <p>
-          Bạn có thể mở trang sự cố cơ bản.
-        </p>
+        <p>Bạn có thể mở trang sự cố cơ bản.</p>
         <a href={incidentHref(id)}>Xem thông tin sự cố cơ bản</a>
       </div>
     </div>
-  )
+  );
 }
 function Sources({ meta }) {
-  const time = useTime()
+  const time = useTime();
   return (
-    <Panel title="Nguồn & phạm vi">
-      <p>
-        Lịch sử · {uiLabel(meta.source_context)} · phạm vi dữ liệu chưa đầy đủ. Thời điểm đọc
-        không thay cho thời điểm nguồn quan sát.
-      </p>
+    <details className="panel portal-provenance">
+      <summary>Nguồn và phạm vi của hồ sơ</summary>
+      <FieldGrid showAll rows={[
+        ["Phạm vi", uiLabel(meta.source_context)],
+        ["Đọc lúc", time(meta.read_at)],
+        ["Bộ phát hiện ghi nhận đến", time(meta.data_as_of)],
+      ]} />
       <div className="n91-wb-sources">
         {meta.sources.map((s) => (
           <details key={s.source_system}>
             <summary>
-              {uiLabel(s.source_system)} <Badge value={s.availability} />{' '}
+              {uiLabel(s.source_system)} <Badge value={s.availability} />{" "}
               <Badge value={s.freshness_state} />
             </summary>
             <FieldGrid
+              showAll
               rows={[
-                ['Đọc lúc', time(s.read_at)],
-                ['Nguồn quan sát lúc', time(s.observed_at)],
-                ['Chụp lúc', time(s.captured_at)],
-                ['Dữ liệu đến', time(s.data_as_of)],
+                ["Đọc lúc", time(s.read_at)],
+                ["Nguồn quan sát lúc", time(s.observed_at)],
+                ["Chụp lúc", time(s.captured_at)],
+                ["Dữ liệu đến", time(s.data_as_of)],
                 ["Phạm vi dữ liệu", uiLabel(s.context)],
-                ["Cấu trúc dữ liệu", display(s.source_schema)],
-                ["Tham chiếu nguồn", display(s.source_ref)],
+                ["Cấu trúc dữ liệu", uiLabel(s.source_schema)],
+                ["Tham chiếu nguồn", uiLabel(s.source_ref)],
                 ["Phiên bản dữ liệu", display(s.generation)],
-                ['Lỗi nguồn', display(s.error_code)],
+                ["Lỗi nguồn", display(s.error_code)],
               ]}
             />
             <Reasons values={s.reason_codes} />
@@ -109,73 +140,110 @@ function Sources({ meta }) {
         ))}
       </div>
       <details>
-        <summary>Giới hạn & trường còn thiếu</summary>
+        <summary>Giới hạn từng nguồn và trường thiếu</summary>
         <Reasons values={meta.missing_fields} />
         <ul>
           {meta.limitations.map((s) => (
-            <li key={s}>{s}</li>
+            <li key={s}>{uiLabel(s)}</li>
           ))}
         </ul>
       </details>
-    </Panel>
-  )
+    </details>
+  );
 }
 function Counts({ data }) {
-  const m = data.event_members
+  const { compact } = useDetailView();
+  const m = data.event_members;
   return (
     <div className="n91-wb-counts">
       <div>
-        <span>Số bằng chứng P17 ghi nhận</span>
+        <span>Số bằng chứng bộ phát hiện ghi nhận</span>
         <strong>{m.authoritative_count}</strong>
       </div>
-      <div>
-        <span>Ứng viên tái dựng</span>
-        <strong>{display(m.total_candidates)}</strong>
-      </div>
+      {!compact && (
+        <div>
+          <span>Ứng viên tái dựng</span>
+          <strong>{display(m.total_candidates)}</strong>
+        </div>
+      )}
       <div>
         <span>Liên kết trực tiếp</span>
-        <strong>{display(m.direct_membership_supported ? m.verified_linked_count : null)}</strong>
+        <strong>
+          {display(
+            m.direct_membership_supported ? m.verified_linked_count : null,
+          )}
+        </strong>
       </div>
-      <div>
-        <span>Khớp số lượng ghi nhận</span>
-        <strong>{display(m.matches_recorded_count)}</strong>
-      </div>
+      {!compact && (
+        <div>
+          <span>Khớp số lượng ghi nhận</span>
+          <strong>{display(m.matches_recorded_count)}</strong>
+        </div>
+      )}
     </div>
-  )
+  );
 }
 function EventCard({ member: e }) {
+  const { compact } = useDetailView();
   const time = useTime(),
     p = e.projection,
-    c = e.canonical
+    c = e.canonical;
+  const analysisUrl = analysisEventHref(e.event_ref);
   return (
     <details className="n91-wb-event">
       <summary>
-        <strong>{e.event_ref.event_id}</strong> · thứ tự {p.stream_sequence} ·{' '}
-        {time(p.occurred_at)} · {uiLabel(e.join_state)}
+        <span>
+          <strong>{Number.isInteger(p.stream_sequence) ? `Truy vấn ${p.stream_sequence}` : e.event_ref.event_id}</strong>
+          <time dateTime={p.occurred_at}>{time(p.occurred_at)}</time>
+        </span>
+        <span className="n91-wb-event-state">
+          <Badge value={p.blocked ? "BLOCK" : "ALLOW"} />
+          <ChevronDown size={15} aria-hidden="true" />
+        </span>
       </summary>
-      <p>
-        <Badge value={p.blocked ? 'BLOCK' : 'ALLOW'} />{' '}
-        <Badge value={e.canonical_availability} />{' '}
-        <Badge value={uiLabel(e.join_state)} />
-      </p>
-      <FieldGrid
-        rows={[
-          ["Yêu cầu ", e.event_ref.request_id],
-          ["Phát sinh ", time(p.occurred_at)],
-          ["Tiếp nhận ", time(p.ingested_at)],
-          ["Thứ tự", p.stream_sequence],
-          ["Trạng thái đánh giá rủi ro", uiLabel(p.risk.status)],
-          ["Điểm rủi ro", display(p.risk.score)],
-          ["Sự kiện class", uiLabel(p.event_class)],
-          ['Được nguồn phân loại để xử lý trực tiếp', display(p.live_eligible)],
-          ['Đủ điều kiện tương quan', uiLabel('UNAVAILABLE')],
-          ["Quy tắc khớp ", p.matched_rules.join(', ') || '—'],
-        ]}
-      />
+      <dl className="n91-wb-event-essential">
+        <div>
+          <dt>Điểm rủi ro</dt>
+          <dd>{Number.isFinite(p.risk.score) ? `${p.risk.score}/100` : "Chưa có điểm"}</dd>
+        </div>
+        <div>
+          <dt>Quy tắc khớp</dt>
+          <dd>
+            {p.matched_rules.length ? (
+              <ul className="n91-wb-rule-list">
+                {p.matched_rules.map((rule) => <li key={rule}><code>{rule}</code></li>)}
+              </ul>
+            ) : "Nguồn chưa ghi quy tắc"}
+          </dd>
+        </div>
+      </dl>
+      <div className="n91-wb-links">
+        {e.canonical_availability === "AVAILABLE" && c && (
+          <a href={eventHref(e.event_ref, "canonical")}>Mở nhật ký kiểm toán</a>
+        )}
+        {analysisUrl && <a href={analysisUrl}>Phân tích truy vấn</a>}
+      </div>
+      {!compact && (
+        <>
+          <details>
+            <summary>Bản ghi phát hiện</summary>
+            <FieldGrid showAll rows={[
+              ["Mã sự kiện", e.event_ref.event_id],
+              ["Mã yêu cầu", e.event_ref.request_id],
+              ["Trạng thái bản ghi kiểm toán", uiLabel(e.canonical_availability)],
+              ["Cách liên kết", uiLabel(e.join_state)],
+              ["Tiếp nhận lúc", time(p.ingested_at)],
+              ["Trạng thái tính điểm", p.risk.status === "OK" ? "Đã tính điểm" : uiLabel(p.risk.status)],
+              ["Loại sự kiện", uiLabel(p.event_class)],
+              ["Được nguồn phân loại để xử lý trực tiếp", display(p.live_eligible)],
+            ]} />
+            <a href={eventHref(e.event_ref, "p17")}>Mở bản ghi phát hiện</a>
+          </details>
       {c && (
         <details>
-          <summary>Bản ghi kiểm toán chuẩn</summary>
+          <summary>Bản ghi kiểm toán</summary>
           <FieldGrid
+            showAll
             rows={[
               ["Yêu cầu kiểm toán chuẩn", display(c.request_id)],
               ["Phát sinh kiểm toán chuẩn", time(c.occurred_at)],
@@ -183,76 +251,54 @@ function EventCard({ member: e }) {
               ["Hành động áp dụng", uiLabel(c.effective_action)],
               ["Kết quả xử lý", uiLabel(c.action_result)],
               ["Chính sách", `${c.policy_id} · ${c.policy_version}`],
-              ['Chế độ vận hành', uiLabel(c.runtime_mode)],
+              ["Chế độ vận hành", uiLabel(c.runtime_mode)],
               [
-                "Trạng thái rủi ro / score",
+                "Trạng thái / điểm rủi ro",
                 `${uiLabel(c.risk.status)} / ${display(c.risk.score)}`,
               ],
-              ["Quy tắc khớp", c.matched_rules.join(', ') || '—'],
-              ["Quy tắc chặn", c.blocking_rules.join(', ') || '—'],
-              ["Quy tắc giám sát", c.monitor_rules.join(', ') || '—'],
+              ["Quy tắc khớp", c.matched_rules.join(", ") || "—"],
+              ["Quy tắc chặn", c.blocking_rules.join(", ") || "—"],
+              ["Quy tắc giám sát", c.monitor_rules.join(", ") || "—"],
             ]}
           />
         </details>
       )}
-      <p className="n91-wb-links">
-        <a href={eventHref(e.event_ref, 'p17')}>Mở sự kiện </a>
-        {e.canonical_availability === 'AVAILABLE' && c && (
-          <a href={eventHref(e.event_ref, 'canonical')}>Mở Nhật ký kiểm toán chuẩn</a>
-        )}
-      </p>
       <details>
         <summary>Liên kết, đối chiếu và mã băm</summary>
         <p>
-          {uiLabel(e.candidate_basis)} · Căn cứ đối chiếu mã băm: {uiLabel(e.hash_comparability)}. Hai
-          mã băm có căn cứ riêng; chưa đủ dữ liệu chứng minh nội dung giống nhau.
+          {uiLabel(e.candidate_basis)} · Căn cứ đối chiếu mã băm:{" "}
+          {uiLabel(e.hash_comparability)}.
+          {e.hash_comparability !== "VERIFIED_EQUAL" &&
+            " Chưa có bằng chứng mã băm khớp gói bản ghi nguồn."}
         </p>
         <FieldGrid
+          showAll
           rows={[
-            ["Hash ", p.payload_sha256],
-            ["Basis ", p.payload_hash_basis],
-            ["Hash kiểm toán chuẩn", display(c?.payload_sha256)],
-            ["Basis kiểm toán chuẩn", display(c?.payload_hash_basis)],
+            ["Mã băm ", p.payload_sha256],
+            ["Căn cứ tính mã băm ", uiLabel(p.payload_hash_basis)],
+            ["Mã băm kiểm toán chuẩn", display(c?.payload_sha256)],
+            ["Căn cứ mã băm kiểm toán chuẩn", c?.payload_hash_basis ? uiLabel(c.payload_hash_basis) : "—"],
           ]}
         />
         <Reasons values={e.reason_codes} />
       </details>
+        </>
+      )}
     </details>
-  )
+  );
 }
 function Members({ data, resource }) {
-  const m = data.event_members
+  const m = data.event_members;
+  const direct = m.membership === "DIRECT_PERSISTED";
   return (
     <>
-      <p>
-        <Badge value={m.membership} /> <code>{uiLabel(m.candidate_basis)}</code>
-      </p>
-      <p>
-        Sự kiện nghi vấn dựng lại từ cửa sổ lịch sử. Liên kết này chưa được xác minh trực tiếp; bản ghi kiểm toán không tự chứng minh liên kết với sự cố.
-      </p>
-      <nav className="n91-wb-pager" aria-label="Phân trang sự kiện nghi vấn">
-        <button
-          className="button secondary"
-          disabled={!resource.history.length || resource.loading}
-          onClick={resource.previous}
-        >
-          ← Trước
-        </button>
-        <span>
-          Trang {resource.history.length + 1} · {m.items.length} sự kiện nghi vấn
-        </span>
-        <button
-          className="button secondary"
-          disabled={!m.has_more || resource.loading || Boolean(resource.error)}
-          onClick={resource.next}
-        >
-          Tiếp →
-        </button>
-      </nav>
+      {!direct && m.available && (
+        <p className="n91-wb-notice">Các truy vấn dưới đây được đối chiếu theo thời gian trong lịch sử.</p>
+      )}
       {!m.available ? (
-        <p role="status">Nguồn không cung cấp membership có thể dựng lại.</p>
+        <p role="status">Nguồn chưa cung cấp danh sách sự kiện liên kết.</p>
       ) : !m.items.length ? (
-        <p role="status">Không có sự kiện nghi vấn trong trang này.</p>
+        <p role="status">Trang này chưa có truy vấn liên quan.</p>
       ) : (
         m.items.map((e) => (
           <EventCard
@@ -261,17 +307,27 @@ function Members({ data, resource }) {
           />
         ))
       )}
+      {(m.has_more || resource.history.length > 0) && (
+        <nav className="n91-wb-pager" aria-label="Phân trang truy vấn">
+          <button className="button secondary" disabled={!resource.history.length || resource.loading} onClick={resource.previous}>
+            ← Trước
+          </button>
+          <span>Trang {resource.history.length + 1}</span>
+          <button className="button secondary" disabled={!m.has_more || resource.loading || Boolean(resource.error)} onClick={resource.next}>
+            Tiếp →
+          </button>
+        </nav>
+      )}
     </>
-  )
+  );
 }
 function Alerts({ alerts }) {
-  const time = useTime()
+  const time = useTime();
   return (
     <section>
-      <h3>Alerts cùng sự cố / luồng</h3>
+      <h3>Cảnh báo liên quan</h3>
       <p>
-        Tổng nguồn: {display(alerts.total_count)} · {uiLabel(alerts.availability)}.
-        Delivered không phải ACK/rà soát.
+        Số cảnh báo nguồn ghi nhận {display(alerts.total_count)} · {uiLabel(alerts.availability)}
       </p>
       {!alerts.items.length ? (
         <p>Chưa có cảnh báo để hiển thị.</p>
@@ -281,16 +337,16 @@ function Alerts({ alerts }) {
             <li key={a.alert_id}>
               <strong>{a.alert_id}</strong>
               <p>
-                <time>{time(a.created_at)}</time> · {a.signal_code} ·{' '}
+                <time>{time(a.created_at)}</time> · {a.signal_code} ·{" "}
                 <Badge value={a.severity} />
               </p>
               <p>
-                Trigger:{' '}
-                <a href={eventHref(a.trigger_event, 'p17')}>
+                Sự kiện kích hoạt{" "}
+                <a href={eventHref(a.trigger_event, "p17")}>
                   {a.trigger_event.event_id}
                 </a>
               </p>
-              <small>{a.link_basis}</small>
+              <small>{uiLabel(a.link_basis)}</small>
             </li>
           ))}
         </ol>
@@ -300,10 +356,10 @@ function Alerts({ alerts }) {
       )}
       <Reasons values={alerts.reason_codes} />
     </section>
-  )
+  );
 }
 function Timeline({ data, resource }) {
-  const time = useTime()
+  const time = useTime();
   return (
     <div className="n91-wb-lanes">
       <section className="n91-wb-lane">
@@ -316,43 +372,49 @@ function Timeline({ data, resource }) {
         <Alerts alerts={data.alerts} />
       </section>
       <section className="n91-wb-lane">
-        <h2>2 · Quyết định</h2>
+        <h2>2 · Đánh giá trong hồ sơ phát hiện</h2>
         <p>
-          Sự cố được tạo lúc {time(data.incident.created_at)} ·{' '}
+          Sự cố được tạo lúc {time(data.incident.created_at)} ·{" "}
           <Badge value={data.incident.status} />
         </p>
-        <p>
-          Nguồn đã xác minh: {display(data.incident.source_verified)} ·
-          Được phép cách ly: {display(data.incident.isolation_authorized)}
-        </p>
-        <Unavailable title="Điều kiện xử lý" section={data.decision} />
+        <Unavailable title="Thông tin đánh giá từ nguồn phát hiện" section={data.decision} />
       </section>
       <section className="n91-wb-lane">
         <h2>3 · Xử lý</h2>
         <ProcessingHistory section={data.response} />
       </section>
     </div>
-  )
+  );
 }
 function Notes({ data, meta }) {
-  const { sessionAuthEnabled } = usePortal()
-  const overlay = data.analyst_case.overlay
-  const context = meta.source_context === 'TEST' ? 'TEST' : 'HISTORICAL'
-  if (sessionAuthEnabled && data.analyst_case.availability === 'AVAILABLE' &&
-      overlay?.execution_mode === context)
-    return <IncidentBusinessPanel id={data.identity.incident_id} streamId={data.identity.stream_id} />
+  const { sessionAuthEnabled } = usePortal();
+  const overlay = data.analyst_case.overlay;
+  const context = meta.source_context === "TEST" ? "TEST" : "HISTORICAL";
+  if (
+    sessionAuthEnabled &&
+    data.analyst_case.availability === "AVAILABLE" &&
+    overlay?.execution_mode === context
+  )
+    return (
+      <IncidentBusinessPanel
+        id={data.identity.incident_id}
+        streamId={data.identity.stream_id}
+      />
+    );
   return (
     <Panel title="Ghi chú xử lý">
       <Badge value="UNAVAILABLE" />
-      <p>{sessionAuthEnabled
-        ? 'Chưa thể mở hồ sơ xử lý của sự cố này.'
-        : 'Chế độ quan sát chỉ đọc. Hồ sơ xử lý cần phiên Portal.'}</p>
+      <p>
+        {sessionAuthEnabled
+          ? "Chưa thể mở hồ sơ xử lý của sự cố này."
+          : "Chế độ quan sát chỉ đọc. Hồ sơ xử lý cần phiên Portal."}
+      </p>
       <Reasons values={data.analyst_case.reason_codes} />
     </Panel>
-  )
+  );
 }
 export function IncidentWorkbench({ id, streamId, params }) {
-  const resource = useWorkbench({ incident_id: id, stream_id: streamId })
+  const resource = useWorkbench({ incident_id: id, stream_id: streamId });
   return (
     <IncidentWorkbenchView
       id={id}
@@ -360,47 +422,59 @@ export function IncidentWorkbench({ id, streamId, params }) {
       params={params}
       resource={resource}
     />
-  )
+  );
 }
 export function IncidentWorkbenchView({ id, streamId, params, resource }) {
+  const { compact } = useDetailView();
   const portal = usePortal(),
     baseId = useId(),
-    tabs = useRef([])
+    tabs = useRef([]);
   const active = workbenchTab(params.wb_tab),
-    payload = resource.payload
-  const time = useTime()
+    payload = resource.payload;
+  const incident = payload?.data.incident;
+  const time = useTime();
+  const visibleTabs = WORKBENCH_TABS.filter(
+    (tab) => !compact || !["timeline", "notes"].includes(tab) || active === tab,
+  );
   const select = (tab) => {
-    const query = new URLSearchParams({ stream_id: streamId, wb_tab: tab })
-    window.location.hash = `/incidents/${encodeURIComponent(id)}?${query}`
-  }
+    const query = new URLSearchParams({ stream_id: streamId, wb_tab: tab });
+    window.location.hash = `/incidents/${encodeURIComponent(id)}?${query}`;
+  };
   if (!canReadWorkbench(portal.auth, portal.sessionAuthEnabled))
     return (
       <WorkbenchGate
         id={id}
         message={
-          portal.auth.status === 'checking'
-            ? 'Đang kiểm tra phiên truy cập.'
-            : "Điều tra sự cố cần quyền đọc bằng chứng. Viewer tiếp tục dùng trang sự cố cũ."
+          portal.auth.status === "checking"
+            ? "Đang kiểm tra phiên truy cập."
+            : "Cần quyền đọc bằng chứng để mở hồ sơ điều tra."
         }
       />
-    )
-  const denied = [401, 403].includes(resource.error?.status)
+    );
+  const denied = [401, 403].includes(resource.error?.status);
   return (
     <div className="n91-workbench" aria-busy={resource.loading}>
-      <a className="incident-back" href="#/incidents">
-        ← Sự cố
-      </a>
-      <PageHeading
-        eyebrow={portal.sessionAuthEnabled ? 'ĐIỀU TRA' : 'ĐIỀU TRA · CHỈ ĐỌC'}
-        title="Điều tra sự cố"
-        description={id}
-        resource={resource}
-      >
-        <CopyId value={id} />
-      </PageHeading>
-      <p className="n91-wb-identity">
-        <strong>Stream:</strong> {streamId} · <strong>Incident:</strong> {id}
-      </p>
+      <header className="n91-incident-masthead">
+        <a className="incident-back" href="#/incidents">
+          <ArrowLeft size={15} aria-hidden="true" /> Danh sách sự cố
+        </a>
+        <div className="n91-incident-title-row">
+          <div>
+            <h1>{signalName(incident?.signal_rule) || "Hồ sơ sự cố"}</h1>
+            <div className="n91-incident-context">
+              <span className="n91-incident-code"><code>{id}</code><CopyId value={id} /></span>
+              {incident?.source_ip && <span>IP nguồn <strong>{incident.source_ip}</strong></span>}
+              {incident?.severity && <Badge value={incident.severity} />}
+            </div>
+          </div>
+          <div className="page-actions">
+            <DetailToggle />
+            <button type="button" className="button secondary" disabled={resource.loading} onClick={resource.refresh}>
+              <RefreshCw size={15} className={resource.loading ? "spin" : ""} /> Làm mới
+            </button>
+          </div>
+        </div>
+      </header>
       {resource.notice && (
         <div role="status" className="n91-wb-notice">
           {resource.notice}
@@ -418,7 +492,7 @@ export function IncidentWorkbenchView({ id, streamId, params, resource }) {
           )}
           {denied && (
             <p>
-              Dữ liệu điều tra đã được ẩn.{' '}
+              Dữ liệu điều tra đã được ẩn.{" "}
               <a href={incidentHref(id)}>Xem thông tin sự cố cơ bản</a>
             </p>
           )}
@@ -434,53 +508,16 @@ export function IncidentWorkbenchView({ id, streamId, params, resource }) {
       )}
       {payload && (
         <>
-          <p className="n91-wb-meta">
-            <Badge
-              value={resource.error ? 'STALE' : payload.meta.freshness_state}
-            />{' '}
-            <Badge value="PARTIAL" /> Lịch sử · {uiLabel(payload.meta.source_context)}{' '}
-            · đọc lúc {time(payload.meta.read_at)} · dữ liệu đến{' '}
-            {time(payload.meta.data_as_of)}
-          </p>
-          <Panel title="Thông tin sự cố">
-            <FieldGrid
-              rows={[
-                ["IP nguồn", payload.data.incident.source_ip],
-                ["Tín hiệu ", payload.data.incident.signal_rule],
-                ["Mức độ ", uiLabel(payload.data.incident.severity)],
-                ["Độ tin cậy ", uiLabel(payload.data.incident.confidence)],
-                ["Status ", uiLabel(payload.data.incident.status)],
-                ["Điểm rủi ro cao nhất score", display(payload.data.incident.peak_p15)],
-                [
-                  "Nguồn đã xác minh",
-                  display(payload.data.incident.source_verified),
-                ],
-                [
-                  "Được phép cách ly",
-                  display(payload.data.incident.isolation_authorized),
-                ],
-                ['Lần đầu', time(payload.data.incident.first_seen)],
-                ['Lần cuối', time(payload.data.incident.last_seen)],
-                ["tạo lúc", time(payload.data.incident.created_at)],
-                ["cập nhật lúc", time(payload.data.incident.updated_at)],
-              ]}
-            />
-            <p>
-              Mức độ và điểm là hai đại lượng riêng. HIGH hoặc =100
-              không tự cấp quyền cách ly. Cờ nguồn giữ đúng giá trị đã ghi
-              nhận.
-            </p>
-          </Panel>
           <nav
             className="n91-wb-tabs"
             role="tablist"
             aria-label="Điều tra sự cố"
           >
-            {WORKBENCH_TABS.map((tab, i) => (
+            {visibleTabs.map((tab, i) => (
               <button
                 key={tab}
                 ref={(node) => {
-                  tabs.current[i] = node
+                  tabs.current[i] = node;
                 }}
                 id={`${baseId}-${tab}`}
                 role="tab"
@@ -490,19 +527,19 @@ export function IncidentWorkbenchView({ id, streamId, params, resource }) {
                 onClick={() => select(tab)}
                 onKeyDown={(event) => {
                   const next =
-                    event.key === 'ArrowRight'
-                      ? (i + 1) % 5
-                      : event.key === 'ArrowLeft'
-                        ? (i + 4) % 5
-                        : event.key === 'Home'
+                    event.key === "ArrowRight"
+                      ? (i + 1) % visibleTabs.length
+                      : event.key === "ArrowLeft"
+                        ? (i + visibleTabs.length - 1) % visibleTabs.length
+                        : event.key === "Home"
                           ? 0
-                          : event.key === 'End'
-                            ? 4
-                            : null
+                          : event.key === "End"
+                            ? visibleTabs.length - 1
+                            : null;
                   if (next !== null) {
-                    event.preventDefault()
-                    tabs.current[next]?.focus()
-                    select(WORKBENCH_TABS[next])
+                    event.preventDefault();
+                    tabs.current[next]?.focus();
+                    select(visibleTabs[next]);
                   }
                 }}
               >
@@ -516,33 +553,55 @@ export function IncidentWorkbenchView({ id, streamId, params, resource }) {
             id={`${baseId}-panel`}
             aria-labelledby={`${baseId}-${active}`}
           >
-            {active === 'overview' && (
+            {active === "overview" && (
               <>
+                <Panel title="Phát hiện ban đầu">
+                  <FieldGrid
+                    rows={[
+                      ["Tín hiệu", incident.signal_rule],
+                      ["Độ tin cậy", uiLabel(incident.confidence)],
+                      ["Điểm rủi ro cao nhất", display(incident.peak_p15)],
+                      ["Lần đầu", time(incident.first_seen)],
+                      ["Lần cuối", time(incident.last_seen)],
+                      ["Tạo lúc", time(incident.created_at)],
+                      ["Cập nhật lúc", time(incident.updated_at)],
+                    ]}
+                  />
+                </Panel>
                 <Counts data={payload.data} />
+                <AutomaticResponsePanel incidentId={id} streamId={streamId} summaryOnly />
                 <EvidenceExports
                   incidentId={payload.data.identity.incident_id}
                   streamId={payload.data.identity.stream_id}
                   sessionEnabled={portal.sessionAuthEnabled}
-                  available={!resource.error && payload.meta.freshness_state !== 'STALE'}
+                  available={
+                    !resource.error && payload.meta.freshness_state !== "STALE"
+                  }
                 />
-                <Sources meta={payload.meta} />
                 <Panel title="Tình trạng dữ liệu xử lý">
-                  <Unavailable title="Điều kiện xử lý" section={payload.data.decision} />
-                  {payload.data.response.schema_version
-                    ? <p>Bộ điều khiển · <Badge value={payload.data.response.availability} /></p>
-                    : <Unavailable title="Bộ điều khiển" section={payload.data.response} />}
+                  <Unavailable
+                    title="Đánh giá trong hồ sơ phát hiện"
+                    section={payload.data.decision}
+                  />
+                  {payload.data.response.schema_version ? (
+                    <p>
+                      Bộ điều khiển ·{" "}
+                      <Badge value={payload.data.response.availability} />
+                    </p>
+                  ) : (
+                    <Unavailable
+                      title="Bộ điều khiển"
+                      section={payload.data.response}
+                    />
+                  )}
                 </Panel>
                 {payload.data.defense_registry && (
                   <Panel title="Kho bằng chứng">
                     <p>
-                      {payload.data.defense_registry.run_id} ·{' '}
-                      {payload.data.defense_registry.overall_status} ·{' '}
-                      {payload.data.defense_registry.artifact_count} artifact ·{' '}
-                      {payload.data.defense_registry.archive_count} archive.
-                    </p>
-                    <p>
-                      Thông tin nguồn integrity chưa chứng minh semantic phạm vi dữ liệu. Chưa
-                      đủ nguồn Kiểm chứng chức năng; cần CONTENT_REVIEW.
+                      {payload.data.defense_registry.run_id} ·{" "}
+                      {uiLabel(payload.data.defense_registry.overall_status)} ·{" "}
+                      {payload.data.defense_registry.artifact_count} tài liệu ·{" "}
+                      {payload.data.defense_registry.archive_count} tệp lưu trữ.
                     </p>
                     <Reasons
                       values={payload.data.defense_registry.reason_codes}
@@ -551,37 +610,45 @@ export function IncidentWorkbenchView({ id, streamId, params, resource }) {
                 )}
               </>
             )}
-            {active === 'timeline' && (
+            {active === "timeline" && (
               <>
                 <Counts data={payload.data} />
                 <Timeline data={payload.data} resource={resource} />
               </>
             )}
-            {active === 'detection' && (
-              <Panel title="Căn cứ phát hiện">
-                <Unavailable
-                  title="Cấu hình bộ phát hiện"
-                  section={payload.data.detection}
-                />
+            {active === "detection" && (
+              <Panel title="Truy vấn làm bằng chứng">
                 <Counts data={payload.data} />
                 <Members data={payload.data} resource={resource} />
               </Panel>
             )}
-            {active === 'response' && (
-              <Panel title="Xử lý và Security Group">
-                <Unavailable
-                  title="Quyết định"
-                  section={payload.data.decision}
-                />
-                <ProcessingHistory section={payload.data.response} />
-              </Panel>
+            {active === "response" && (
+              <AutomaticResponsePanel incidentId={id} streamId={streamId}>
+                <details className="panel portal-provenance auto-response-detail">
+                  <summary>Hồ sơ phát hiện và xử lý đã lưu</summary>
+                  <Unavailable title="Phiên bản dùng để phát hiện" section={payload.data.detection} />
+                  <FieldGrid showAll rows={[
+                    ["Xác minh nguồn trong hồ sơ phát hiện", display(incident.source_verified)],
+                    ["Cờ cấp phép trong hồ sơ phát hiện", display(incident.isolation_authorized)],
+                    ["Trạng thái do bộ phát hiện ghi", uiLabel(incident.status)],
+                    ["Cách liên kết bằng chứng", uiLabel(payload.data.event_members.membership)],
+                    ["Căn cứ liên kết", uiLabel(payload.data.event_members.candidate_basis)],
+                  ]} />
+                  <Unavailable
+                    title="Đánh giá trong hồ sơ phát hiện"
+                    section={payload.data.decision}
+                  />
+                  <ProcessingHistory section={payload.data.response} />
+                </details>
+                <Sources meta={payload.meta} />
+              </AutomaticResponsePanel>
             )}
-            {active === 'notes' && (
+            {active === "notes" && (
               <Notes data={payload.data} meta={payload.meta} />
             )}
           </div>
         </>
       )}
     </div>
-  )
+  );
 }

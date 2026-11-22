@@ -24,7 +24,7 @@ const seconds = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 6 })
 
 function Groups({ ids }) {
   if (ids === null) return 'Chưa có quan sát'
-  if (ids.length === 0) return 'Đã quan sát tập SG rỗng'
+  if (ids.length === 0) return 'Bản ghi không có Security Group'
   return (
     <ul>
       {ids.map((id) => <li key={id}><code>{id}</code></li>)}
@@ -63,14 +63,14 @@ export function ResponseHistoryView({ history }) {
   const time = useTime()
   return (
     <section className="n91-wb-response">
-      <h3>Lịch sử xử lý từ Controller</h3>
+      <h3>Lịch sử xử lý từ bộ điều khiển</h3>
       <p><Badge value={history.availability} /> · Nguồn gốc {uiLabel(history.provenance.origin_mode)}</p>
-      <p>Incident do Controller ghi nhận · <code>{history.incident_id}</code></p>
+      <p>Sự cố do bộ điều khiển ghi nhận · <code>{history.incident_id}</code></p>
       {history.binding_source_ref && (
-        <p>Nguồn liên kết P17 · <code>{history.binding_source_ref}</code></p>
+        <p>Nguồn liên kết sự cố · <code>{history.binding_source_ref}</code></p>
       )}
       {history.arm_context && (
-        <p>Owner ARM trong lab · {time(history.arm_context.timestamp)} · <code>{history.arm_context.source_ref}</code></p>
+        <p>Chủ hệ thống kích hoạt trong môi trường thử nghiệm · {time(history.arm_context.timestamp)} · <code>{history.arm_context.source_ref}</code></p>
       )}
       <ul className="n91-wb-reasons">
         {history.reason_codes.map((reason) => <li key={reason}>{uiLabel(reason)}</li>)}
@@ -83,8 +83,8 @@ export function ResponseHistoryView({ history }) {
             ['Port', <code>{cycle.port_id}</code>],
             ['Máy ảo', <code>{cycle.vm_id}</code>],
             ['Project', cycle.project_id ? <code>{cycle.project_id}</code> : 'Chưa xác định'],
-            ['SG cách ly do Controller ghi nhận', cycle.quarantine_sg ? <code>{cycle.quarantine_sg}</code> : 'Chưa có dữ liệu'],
-            ['SG gốc do Controller ghi nhận', <Groups ids={cycle.original_sgs} />],
+            ['Security Group cách ly', cycle.quarantine_sg ? <code>{cycle.quarantine_sg}</code> : 'Chưa có dữ liệu'],
+            ['Security Group gốc', <Groups ids={cycle.original_sgs} />],
           ]} />
           {cycle.clock_marks.length > 0 && (
             <ul>
@@ -121,7 +121,7 @@ export function ResponseHistoryView({ history }) {
       ))}
       <details>
         <summary>Nguồn bằng chứng</summary>
-        <p>Run · <code>{history.provenance.run_id}</code></p>
+        <p>Lần thực hiện · <code>{history.provenance.run_id}</code></p>
         <ul>
           {history.provenance.artifacts.map(({ label, source_ref }) => (
             <li key={source_ref}>{uiLabel(label)} · <code>{source_ref}</code></li>
@@ -191,7 +191,7 @@ export function StandaloneResponseHistory({ initiallyOpen }) {
   return (
     <div className="n91-workbench">
       <button type="button" className="text-button" aria-expanded={open} onClick={() => setOpen(!open)}>
-        {open ? 'Đóng lịch sử xử lý từ Controller' : 'Mở lịch sử xử lý từ Controller'}
+        {open ? 'Đóng lịch sử xử lý từ bộ điều khiển' : 'Mở lịch sử xử lý từ bộ điều khiển'}
       </button>
       {open && <HistoryResource />}
     </div>

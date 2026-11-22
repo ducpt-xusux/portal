@@ -1,7 +1,7 @@
 """Local canonical DTO extension. Frozen v4.1 is intentionally unchanged."""
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt
-from .p16h_normalizer import Metadata, Sequence
+from .p16h_normalizer import Metadata, LiveMetadata, Sequence
 from .schemas import ScoreComponent, Severity
 
 
@@ -25,12 +25,12 @@ class Provenance(DTO):
     collected_at: str | None
     imported_at: str | None
     payload_sha256: str | None
-    payload_hash_basis: Literal["UPSTREAM_UNVERIFIED"] | None
+    payload_hash_basis: Literal["UPSTREAM_UNVERIFIED", "H2B_ENVELOPE_SHA256"] | None
     artifact_sha256: str | None
     original_artifact_sha256: str | None
-    verification: Literal["IMPORTED_UNVERIFIED"]
+    verification: Literal["IMPORTED_UNVERIFIED", "READONLY_COLLECTOR_HASH_CHECKED"]
     human_review: Literal["UNAVAILABLE"]
-    context: Literal["TEST", "EVALUATION", "IMPORTED_UNVERIFIED"] | None
+    context: Literal["TEST", "EVALUATION", "IMPORTED_UNVERIFIED", "LIVE_READONLY"] | None
     coverage_kind: Literal["RECENT_SAMPLE", "NOT_PROVEN"]
     delivery_version: Literal["p16h-local-1"] | None
     event_role: str | None
@@ -55,6 +55,7 @@ class CanonicalEventView(DTO):
     source_ip: str
     db_user: str | None
     database_name: str | None
+    database_status: str | None = None
     mysql_command: str
     decision: Literal["ALLOW", "BLOCK"]
     decision_basis: Literal["P14_POLICY_DECISION"]
@@ -73,7 +74,8 @@ class CanonicalEventView(DTO):
     risk: Risk
     masked_query: str | None
     sql_text_status: Literal["MASKED", "WITHHELD"]
-    source_metadata: Metadata | None
+    mask_status: Literal['MASKED', 'NOT_APPLICABLE', 'ERROR'] | None = None
+    source_metadata: LiveMetadata | Metadata | None
     view_kind: Literal["P16H_CANONICAL_AUDIT"]
     canonical_complete: StrictBool
     p17_event_class: None

@@ -25,6 +25,9 @@ from . import canonical_audit
 from .proxy_services import read_services
 from .galera_snapshot import read_galera
 from .openstack_inventory import InventoryError
+from .workload_journal import read_journal, business_journal
+from .report_evidence import read_report_evidence
+from .p17_vnext_api import load_snapshot as load_vnext, meta as vnext_meta
 from .n91_business.service import BusinessError
 from .workload_quarantine import QuarantineError
 from .incident_mapping import IncidentMapping
@@ -278,7 +281,8 @@ def incident_evidence(request: Request, incident_id: IdPath, limit: Annotated[in
     rows = snapshot.evidence(incident)
     return envelope(request, snapshot, error, {
         "items": [snapshot.event_view(row) for row in (rows or [])[:limit]],
-        "evidence_membership": "RECONSTRUCTED_WINDOW" if rows is not None else "UNAVAILABLE",
+        "evidence_membership": snapshot.membership_basis(incident),
+        'detector_profile': snapshot.recorded_capture(incident),
         "recorded_evidence_count": incident.evidence_count, "reconstructed_request_count": len(rows) if rows is not None else None,
         "matches_recorded_count": len(rows) == incident.evidence_count if rows is not None else None,
         "has_more": len(rows or []) > limit,
@@ -290,6 +294,40 @@ def decision_unavailable(request: Request, incident_id: IdPath):
     snapshot, _ = read(request)
     incident_or_404(snapshot, incident_id)
     fail(503, "P17_3_DECISION_NOT_PROVIDED", "A snapshot is not a live P17.3 decision or action authorization.")
+
+
+def add_recorded_incident_links(request, result):
+    """Annotate the audit list with verified links without changing its records or filters."""
+    items = result["data"]["items"]
+    if not items:
+        return
+    try:
+        snapshot, error = request.app.state.p17_reader.read()
+    except SnapshotError as exc:
+        snapshot, error = None, exc.code
+    if error:
+        result["meta"]["incident_link_error"] = error
+        return
+
+    by_event = {row.event_id: row for row in snapshot.events}
+    persisted = {}
+    linked_incidents = {
+        capture["snapshot_id"]: (capture["incident_id"], capture["signal_rule"])
+        for capture in snapshot.export.tables.portal_evidence_snapshots_v1
+    }
+    for member in snapshot.export.tables.portal_evidence_members_v1:
+        persisted.setdefault(member["event_id"], set()).add(linked_incidents[member["snapshot_id"]])
+    for item in items:
+        projected = by_event.get(item["event_id"])
+        provenance = item["source_provenance"]
+        if (projected and item["stream_id"] == projected.stream_id and item["request_id"]
+                and item["request_id"] == projected.request_id
+                and provenance["payload_hash_basis"] == "H2B_ENVELOPE_SHA256"
+                and provenance["payload_sha256"] == projected.payload_sha256):
+            item["recorded_incidents"] = [
+                {"incident_id": incident_id, "signal_rule": signal_rule}
+                for incident_id, signal_rule in sorted(persisted.get(item["event_id"], ()))
+            ]
 
 
 @router.get("/events")
@@ -310,17 +348,21 @@ def events(
     stream_id: Annotated[str | None, Query(max_length=160)] = None,
     from_: Annotated[AwareDatetime | None, Query(alias="from")] = None,
     to: AwareDatetime | None = None,
+    include_incident_links: bool = False,
 ):
     check_range(from_, to)
     if risk_min is not None and risk_max is not None and risk_min > risk_max:
         fail(400, "INVALID_RISK_RANGE")
     if source == "canonical":
-        return canonical_audit.events(request, limit, cursor, {
+        result = canonical_audit.events(request, limit, cursor, {
             "source_ip": str(source_ip) if source_ip else None, "decision": decision, "rule": rule,
             "incident_ref": incident_ref, "event_class": event_class, "risk_status": risk_status,
             "risk_min": risk_min, "risk_max": risk_max, "db_user": db_user, "stream_id": stream_id,
             "from": iso(from_) if from_ else None, "to": iso(to) if to else None,
         })
+        if include_incident_links:
+            add_recorded_incident_links(request, result)
+        return result
     snapshot, error = read(request)
     member_ids = None
     if incident_ref:
@@ -488,9 +530,8 @@ def system_health(request: Request):
         "last_attempt": now, "source_ref": "sha256:" + snapshot.fingerprint if snapshot else None,
         "last_error_code": error,
     }]
-    components.extend({"component_id": name, "name": name, "status": "UNKNOWN", "observed_at": None,
-                       "last_success": None, "last_attempt": None, "source_ref": None}
-                      for name in ("P17 worker live", "P16H canonical reader", "P17.5 controller", "Nova / Neutron", "Galera"))
+    # Do not fabricate UNKNOWN rows for unrelated services.
+    # Each real component must come from its own authoritative observation source.
     services = read_services(settings.proxy_services_path)
     data = {"components": components + services["components"], "proxy_services_source": services["source"]}
     if snapshot is None:
@@ -519,7 +560,7 @@ def data_sources(request: Request):
                       "source_mode": "REMOTE_READONLY" if remote is not None else "SNAPSHOT", "freshness_state": "STALE" if error else "FRESH",
                       "data_as_of": iso(snapshot.export.exported_at), "last_success": remote.get("last_success") if remote is not None else None if error else utc_now(),
                       "last_attempt": remote.get("last_attempt") if remote is not None else utc_now(), "last_error_code": error})
-    if request.app.state.settings.proxy_sync_status_path is not None and not (
+    if request.app.state.settings.proxy_sync_status_path is not None and settings.p16h_import_context != 'LIVE_READONLY' and not (
         request.app.state.settings.v4_audit_enabled and request.app.state.settings.mode == "snapshot"
     ):
         audit, audit_error = read_sync_status(request.app.state.settings.proxy_sync_status_path, "audit")
@@ -539,6 +580,17 @@ def data_sources(request: Request):
         items.append(read_services(request.app.state.settings.proxy_services_path)["source"])
     if request.app.state.settings.galera_snapshot_dir is not None:
         items.append(read_galera(request.app.state.settings.galera_snapshot_dir)["meta"])
+    if settings.openstack_enabled:
+        try:
+            _, inventory_meta, _ = request.app.state.openstack_inventory.read()
+            items.append(inventory_meta)
+        except InventoryError as exc:
+            items.append({'source_system':'Nova / Neutron', 'freshness_state':'UNAVAILABLE', 'last_error_code':exc.code})
+    if settings.p17_vnext_snapshot_path:
+        try:
+            items.append(vnext_meta(request, load_vnext(settings.p17_vnext_snapshot_path)))
+        except HTTPException as exc:
+            items.append({'source_system':'P17 VNext', 'freshness_state':'UNAVAILABLE', 'last_error_code':exc.detail['code']})
     if registry_path is not None:
         try:
             registry, registry_sha = DefenseRegistry(registry_path).read()
@@ -554,6 +606,18 @@ def data_sources(request: Request):
     if has_independent_status_sources(settings):
         return status_report(request, {"items": items})
     return envelope(request, snapshot, error, {"items": items})
+
+
+@source_status_router.get('/system/report-evidence')
+def report_evidence(request: Request):
+    try:
+        data = read_report_evidence(request.app.state.settings.report_evidence_path)
+    except (OSError, ValueError):
+        fail(503, 'REPORT_EVIDENCE_UNAVAILABLE')
+    return {'data':data, 'meta':{'request_id':request.state.request_id,'read_at':utc_now(),
+        'source_system':'REVIEWED_REPORT_EVIDENCE',
+        'source_schema':'portal-report-evidence-1','source_mode':'REVIEWED_OBSERVATIONS',
+        'freshness_state':'HISTORICAL'}, 'error':None}
 
 
 @router.get("/workloads")
@@ -598,7 +662,7 @@ def workload_read(request):
 def attach_network_history(request, items, meta):
     try:
         history = request.app.state.openstack_inventory.network_history([item["server_id"] for item in items])
-    except sqlite3.Error:
+    except (sqlite3.Error, InventoryError):
         meta["network_history_error"] = "WORKLOAD_NETWORK_HISTORY_UNAVAILABLE"
         return
     for item in items:
@@ -620,6 +684,39 @@ def workload_ports(request: Request, server_id: IdPath):
     result = workload_detail(request, server_id)
     result["data"] = {"items": result["data"]["ports"]}
     return result
+
+
+@router.get('/workloads/{server_id}/journal')
+def workload_journal(request: Request, server_id: IdPath):
+    settings = request.app.state.settings
+    try:
+        data = read_journal(settings.workload_journal_export_path, settings.openstack_project_id, server_id)
+        business = getattr(request.state, 'business_gate_service', None)
+        if business:
+            local = business_journal(business, settings.openstack_project_id, server_id, utc_now())
+            if data:
+                ids = {row['operation_id'] for row in local['operations']}
+                local['operations'].extend(row for row in data['operations'] if row['operation_id'] not in ids)
+                local['operations'].sort(key=lambda row: row['started_at'], reverse=True)
+            data = local
+        automatic = getattr(request.app.state, 'automatic_response', None)
+        if automatic and server_id == 'fa34f3e8-50ff-467e-a7db-a5cd92613682':
+            remote = automatic.journal()
+            if data:
+                ids = {row['operation_id'] for row in data['operations']}
+                data['operations'].extend(row for row in remote['operations'] if row['operation_id'] not in ids)
+                data['operations'].sort(key=lambda row: row['started_at'], reverse=True)
+            else:
+                data = remote
+    except BusinessError as error:
+        fail(error.status, error.code)
+    except (OSError, ValueError, TypeError, KeyError, InventoryError):
+        fail(503, 'WORKLOAD_JOURNAL_UNAVAILABLE')
+    if data is None:
+        fail(503, 'WORKLOAD_JOURNAL_NOT_CONFIGURED')
+    return {'data': data, 'meta': {'request_id': request.state.request_id, 'read_at': utc_now(),
+            'source_system': data['source_system'], 'source_mode': 'REMOTE_READONLY',
+            'data_as_of': data['collected_at'], 'freshness_state': 'HISTORICAL'}, 'error': None}
 
 
 class QuarantineRequest(BaseModel):

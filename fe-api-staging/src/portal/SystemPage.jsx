@@ -1,207 +1,174 @@
-import { uiLabel, uiRoleList } from '../services/uiLanguage.js'
-import { RulesExplorer } from '../features/n91-investigation/Investigation'
-import { Activity, Database, Layers, Network } from 'lucide-react'
-import { BusinessAdminPanel } from '../features/n91-business'
-import EvaluationSystemTabs from '../features/n91-evaluation/EvaluationSystemTabs'
-import { freshness, readCollection } from '../services/portalApi'
-import { useV4Resource } from './IncidentPages'
-import ProxyServicesPanel from './ProxyServicesPanel'
-import GaleraPanel from './GaleraPanel'
-import DemoCoveragePage from './DemoCoveragePage'
-import { usePortal } from './PortalContext'
+import { useEffect } from "react";
+import { sourceReadTimestamp } from "../services/proxyPresentation";
+import { uiLabel, uiRoleList } from "../services/uiLanguage.js";
+import { RulesExplorer } from "../features/n91-investigation/Investigation";
+import { Activity, Database, Layers, Network, RefreshCw } from "lucide-react";
+import { BusinessAdminPanel } from "../features/n91-business";
+import EvaluationSystemTabs from "../features/n91-evaluation/EvaluationSystemTabs";
+import { freshness, readCollection } from "../services/portalApi";
+import { useV4Resource } from "./IncidentPages";
+import ProxyServicesPanel from "./ProxyServicesPanel";
+import GaleraPanel from "./GaleraPanel";
+import ReportEvidencePanel from "./ReportEvidencePanel";
+import AutomaticResponsePanel from "./AutomaticResponsePanel";
+import DemoCoveragePage from "./DemoCoveragePage";
+import { usePortal } from "./PortalContext";
 import {
   Badge,
   Empty,
   FieldGrid,
   ObservationAgeBadge,
   PageHeading,
-  Panel,
+  ResourceNotice,
+  SourceStatus,
   display,
   useTime,
-} from './PortalUI'
-
-function ComponentsPanel() {
-  const time = useTime()
-  const resource = useV4Resource('/system/health', {
-    interval: 15000,
-    transform: (data) =>
-      readCollection(data, 'components').filter(
-        (row) => row.scope !== 'SYSTEMD_STATUS_ONLY'
-      ),
-  })
-  return (
-    <Panel
-      title="Trạng thái dịch vụ"
-      subtitle="Trạng thái từng thành phần theo nguồn quan sát"
-      resource={resource}
-    >
-      {resource.data &&
-        (resource.data.length ? (
-          <div className="v4-service-grid">
-            {resource.data.map((item, index) => (
-              <article
-                className="v4-service-card"
-                key={item.component_id || index}
-              >
-                <div>
-                  <Activity size={17} />
-                  <h3>{display(item.name || item.component_id)}</h3>
-                  <Badge
-                    value={
-                      freshness(resource.meta, Boolean(resource.error)) ===
-                      'FRESH'
-                        ? item.status
-                        : 'UNKNOWN'
-                    }
-                  />
-                </div>
-                <FieldGrid
-                  rows={[
-                    ['Quan sát', time(item.observed_at)],
-                    ['Thành công gần nhất', time(item.last_success)],
-                    ['Lần thử gần nhất', time(item.last_attempt)],
-                    ["Tham chiếu nguồn", display(item.source_ref)],
-                  ]}
-                />
-              </article>
-            ))}
-          </div>
-        ) : (
-          <Empty title="Chưa có kết quả kiểm tra" />
-        ))}
-    </Panel>
-  )
-}
+} from "./PortalUI";
 
 function PoliciesPanel() {
-  return <RulesExplorer />
+  return <RulesExplorer />;
+}
+
+function SourceCard({ source, reportStale }) {
+  const time = useTime();
+  const observation = source.observation_freshness_state;
+  const coverage = source.coverage_state;
+  const collection = source.freshness_state;
+  const asOf = observation ? source.observation_to : source.data_as_of;
+  let status = collection;
+  if (reportStale) status = "STALE";
+  else if (observation && (source.collection_mode !== "PERIODIC" || collection === "FRESH")) {
+    status = coverage === "PARTIAL" && observation === "FRESH" ? coverage : observation;
+  }
+  const readAt = (field) => {
+    const timestamp = sourceReadTimestamp(source, field);
+    return timestamp === "NO_SEPARATE_TIMESTAMP" ? "Không có mốc riêng" : time(timestamp);
+  };
+  return (
+    <article className="system-source-card">
+      <header className="system-source-heading">
+        <h3>{uiLabel(source.source_system)}</h3>
+        {!reportStale && observation === status && observation
+          ? <ObservationAgeBadge value={status} />
+          : <Badge value={status} />}
+      </header>
+      <p className="system-source-observed">
+        <span>Dữ liệu đến</span>
+        {asOf ? <time dateTime={asOf}>{time(asOf)}</time> : <span>{time(null)}</span>}
+      </p>
+      <details className="system-source-diagnostics">
+        <summary>Chi tiết nguồn</summary>
+        <FieldGrid showAll rows={[
+          ["Cấu trúc dữ liệu", uiLabel(source.source_schema)],
+          ["Đọc thành công", readAt("last_success")],
+          ["Lần thử đọc", readAt("last_attempt")],
+          ...(observation ? [["Tình trạng đọc nguồn", uiLabel(collection)]] : []),
+          ...(observation ? [["Hiệu lực quan sát", <ObservationAgeBadge value={observation} />]] : []),
+          ...(coverage ? [["Mức độ bao phủ", uiLabel(coverage)]] : []),
+          ...(source.last_error_code ? [["Mã lỗi", <code>{source.last_error_code}</code>]] : []),
+        ]} />
+      </details>
+    </article>
+  );
 }
 
 function SourcesPanel() {
-  const time = useTime()
-  const build = useV4Resource('/system/build')
-  const resource = useV4Resource('/system/data-sources', {
+  const time = useTime();
+  const build = useV4Resource("/system/build");
+  const resource = useV4Resource("/system/data-sources", {
     interval: 15000,
-    transform: (data) => readCollection(data, 'sources'),
-  })
+    transform: (data) => readCollection(data, "sources"),
+  });
+  const reportStale = freshness(resource.meta, Boolean(resource.error)) === "STALE";
   return (
-    <Panel
-      title="Nguồn và tình trạng cập nhật"
-      subtitle="Thời điểm Portal đọc nguồn và thời điểm thu được dữ liệu"
-      resource={resource}
-    >
-      {build.data && (
-        <p className="v4-proxy-snapshot">
-          Bản Portal {build.data.build_sha?.slice(0, 12) || 'chưa xác minh'}
-          {build.data.build_utc && <> · Build lúc {time(build.data.build_utc)}</>}
-        </p>
+    <section className="system-sources" aria-labelledby="system-sources-heading" aria-busy={resource.loading || undefined}>
+      <header className="system-sources-header">
+        <h2 id="system-sources-heading">Tình trạng nguồn dữ liệu</h2>
+        <button type="button" className="button secondary" disabled={resource.loading} onClick={resource.refresh}>
+          <RefreshCw size={15} /> Làm mới
+        </button>
+      </header>
+      <ResourceNotice resource={resource} noun="tình trạng nguồn" />
+      {resource.data && (resource.data.length ? (
+        <div className="system-source-grid">
+          {resource.data.map((source, index) => (
+            <SourceCard key={source.source_system || index} source={source} reportStale={reportStale} />
+          ))}
+        </div>
+      ) : (
+        <Empty title="Chưa có quan sát nguồn" text="Nguồn chưa trả về danh sách." />
+      ))}
+      {(resource.meta || build.data) && (
+        <footer className="system-source-footer">
+          {build.data && (
+            <details className="system-source-diagnostics">
+              <summary>Phiên bản Portal</summary>
+              <FieldGrid showAll rows={[
+                ["Mã bản dựng", <code>{display(build.data.build_sha)}</code>],
+                ["Thời điểm tạo bản dựng", time(build.data.build_utc)],
+                ["Có chỉnh sửa chưa ghi vào Git", display(build.data.working_tree_dirty)],
+              ]} />
+            </details>
+          )}
+          <SourceStatus resource={resource} detailsOnly />
+        </footer>
       )}
-      {resource.data &&
-        (resource.data.length ? (
-          <div className="table-scroll">
-            <table className="v4-table">
-              <thead>
-                <tr>
-                  <th>NGUỒN / CẤU TRÚC DỮ LIỆU</th>
-                  <th>TÌNH TRẠNG CẬP NHẬT</th>
-                  <th>ĐỌC THÀNH CÔNG</th>
-                  <th>LẦN THỬ ĐỌC</th>
-                  <th>DỮ LIỆU ĐẾN</th>
-                  <th>MÃ LỖI</th>
-                </tr>
-              </thead>
-              <tbody>
-                {resource.data.map((source, index) => (
-                  <tr key={source.source_system || index}>
-                    <td>
-                      {uiLabel(source.source_system)}
-                      <small>{display(source.source_schema)}</small>
-                    </td>
-                    <td>
-                      {source.observation_freshness_state ? (
-                        <>
-                          {source.collection_mode === 'PERIODIC' && <Badge value={source.freshness_state} />}{' '}
-                          <ObservationAgeBadge value={source.observation_freshness_state} />{' '}
-                          <Badge value={source.coverage_state} />
-                        </>
-                      ) : (
-                        <Badge
-                          value={
-                            freshness(resource.meta, Boolean(resource.error)) === 'FRESH'
-                              ? source.freshness_state
-                              : 'STALE'
-                          }
-                        />
-                      )}
-                    </td>
-                    <td>{time(source.last_success)}</td>
-                    <td>{time(source.last_attempt)}</td>
-                    <td>{time(source.observation_freshness_state ? source.observation_to : source.data_as_of)}</td>
-                    <td>{display(source.last_error_code)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <Empty title="Chưa có quan sát nguồn" />
-        ))}
-    </Panel>
-  )
+    </section>
+  );
 }
 
-export default function SystemPage({ tab = 'health' }) {
-  const { sessionAuthEnabled, auth } = usePortal()
+export default function SystemPage({ tab = "health" }) {
+  const { sessionAuthEnabled, auth } = usePortal();
+  useEffect(() => {
+    if (["policies", "evaluation", "demo-coverage"].includes(tab))
+      window.location.hash = "/system/health";
+  }, [tab]);
   const tabs = [
-    ['health', "Tổng quan", Activity],
-    ['galera', 'Galera', Database],
-    ['policies', "Chính sách và quy tắc", Layers],
-    ['sources', "Nguồn dữ liệu", Network],
-    ['demo-coverage', "Kiểm chứng chức năng", Layers],
-    ['evaluation', "Đánh giá và khôi phục", Layers],
-  ]
+    ["health", "Dịch vụ Proxy", Activity],
+    ["galera", "Cụm Galera", Database],
+    ["sources", "Nguồn dữ liệu", Network],
+    ["report-evidence", "Bằng chứng báo cáo", Layers],
+    ["automatic-response", "Ứng phó tự động", Activity],
+  ];
   if (
     sessionAuthEnabled &&
     (auth.businessCapabilities?.portal_admin ||
-      auth.user?.roles.includes('Auditor'))
+      auth.user?.roles.includes("Auditor"))
   ) {
-    tabs.push(['portal-business', "Quản trị Portal", Layers])
+    tabs.push(["portal-business", "Quản trị Portal", Layers]);
   }
-  const selected = tabs.some(([key]) => key === tab) ? tab : 'health'
+  const selected = tabs.some(([key]) => key === tab) ? tab : "health";
   const panels = {
     health: (
       <>
         <ProxyServicesPanel system />
-        <ComponentsPanel />
-        <GaleraPanel />
       </>
     ),
     galera: <GaleraPanel standalone />,
     policies: <PoliciesPanel />,
     sources: <SourcesPanel />,
-    'demo-coverage': <DemoCoveragePage />,
+    "report-evidence": <ReportEvidencePanel />,
+    "automatic-response": <AutomaticResponsePanel />,
+    "demo-coverage": <DemoCoveragePage />,
     evaluation: sessionAuthEnabled ? (
       <EvaluationSystemTabs />
     ) : (
-      <p role="status">
-        Đăng nhập để xem dữ liệu đánh giá và khôi phục.
-      </p>
+      <p role="status">Đăng nhập để xem dữ liệu đánh giá và khôi phục.</p>
     ),
-    'portal-business': <BusinessAdminPanel />,
-  }
+    "portal-business": <BusinessAdminPanel />,
+  };
   return (
     <>
       <PageHeading
-        eyebrow="GIÁM SÁT HỆ THỐNG"
         title="Hệ thống"
       />
-      <nav className="v4-system-tabs" aria-label="Nội dung System">
+      <nav className="v4-system-tabs" aria-label="Nội dung hệ thống">
         {tabs.map(([key, label, Icon]) => (
           <a
             key={key}
             href={`#/system/${key}`}
-            className={selected === key ? 'active' : ''}
-            aria-current={selected === key ? 'page' : undefined}
+            className={selected === key ? "active" : ""}
+            aria-current={selected === key ? "page" : undefined}
           >
             <Icon size={16} />
             {label}
@@ -210,5 +177,5 @@ export default function SystemPage({ tab = 'health' }) {
       </nav>
       {panels[selected]}
     </>
-  )
+  );
 }

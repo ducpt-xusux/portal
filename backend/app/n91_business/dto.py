@@ -153,7 +153,7 @@ class EvidenceProjection(DTO):
     signal_rule: Literal['CORR-001', 'CORR-002', 'CORR-003', 'CORR-004', 'CORR-005']
     complete: Literal[False]
     has_more: bool
-    evidence_membership: Literal['RECONSTRUCTED_WINDOW', 'UNAVAILABLE']
+    evidence_membership: Literal['RECONSTRUCTED_WINDOW', 'DIRECT_PERSISTED', 'UNAVAILABLE']
     recorded_evidence_count: int
     candidate_count: int | None
     exported_event_count: int

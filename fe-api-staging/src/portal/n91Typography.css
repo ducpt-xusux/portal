@@ -1,0 +1,9 @@
+/* Shared N91 typography for all Portal pages, not just Dashboard. */
+.v4-app { font-family: Inter, 'Inter Variable', system-ui, sans-serif; font-size:14px; line-height:1.48; font-style:normal; }
+.v4-app h1, .v4-app .v4-page-heading h1 {font-size:clamp(24px,2vw,29px);font-weight:750;line-height:1.22;letter-spacing:-.025em}
+.v4-app h2, .v4-app .panel-heading h2 {font-size:17px;font-weight:700;line-height:1.32}
+.v4-app h3, .v4-app .v4-subheading {font-size:15px;font-weight:700}
+.v4-app .v4-table th, .v4-app .v4-fields dt, .v4-app .eyebrow, .v4-app small {font-size:12px}
+.v4-app button, .v4-app input, .v4-app select, .v4-app textarea{font:inherit;font-size:13px}
+.v4-app .v4-table td{font-size:13px}
+.v4-app .v4-caption,.v4-app .v4-source-status {font-size:12px}

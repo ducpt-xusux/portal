@@ -231,13 +231,13 @@ def test_endpoint_requires_executor_and_csrf_and_writes_audit(tmp_path, setup):
         assert db.execute("SELECT count(*) FROM admin_audit WHERE action='WORKLOAD_RESTORE' AND outcome='SUCCESS'").fetchone()[0] == 1
 
 
-@pytest.mark.parametrize("scenario", ["ttl", "revision_conflict", "interrupted_write", "manual_only", "disabled_pending"])
+@pytest.mark.parametrize("scenario", ["ttl", "revision_conflict", "interrupted_write", "interrupted_write_manual", "manual_only", "disabled_pending"])
 def test_expired_operation_survives_service_recreation(tmp_path, setup, monkeypatch, scenario):
     from app.quarantine_recovery import QuarantineRecovery
     from app.store import Store
 
     neutron, cloud, _ = setup
-    if scenario == "manual_only":
+    if scenario in {"manual_only", "interrupted_write_manual"}:
         cloud.settings = replace(cloud.settings, quarantine_ttl_seconds=0)
     neutron.ports[PORTS[0]]["security_groups"] = [OLD, OLD_2]
     now = datetime.now(timezone.utc)
@@ -250,7 +250,7 @@ def test_expired_operation_survives_service_recreation(tmp_path, setup, monkeypa
     store.initialize()
     actor = SimpleNamespace(user_id="executor", roles=["Executor"])
     recovery = QuarantineRecovery(cloud, audit, store)
-    if scenario == "interrupted_write":
+    if scenario in {"interrupted_write", "interrupted_write_manual"}:
         send = neutron.send
 
         def interrupted_send(method, url, **kwargs):

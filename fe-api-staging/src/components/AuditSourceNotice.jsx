@@ -32,7 +32,7 @@ export default function AuditSourceNotice({ meta, error, hasCache = false }) {
               : source?.mode === 'snapshot'
                 ? "Nguồn nội bộ là log bạn cung cấp. Chưa theo dõi log trên Proxy."
                 : source
-                  ? 'Backend đọc file audit được cấu hình; trạng thái này chưa xác nhận sức khỏe Firewall hoặc Galera.'
+                  ? 'Dịch vụ xử lý đọc tệp nhật ký đã cấu hình; trạng thái này chưa xác nhận sức khỏe Firewall hoặc Galera.'
                   : 'Không sử dụng dữ liệu demo làm phương án thay thế.')}
         </p>
         {meta?.timestamp && (

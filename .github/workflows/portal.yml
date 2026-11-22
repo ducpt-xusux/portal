@@ -21,6 +21,8 @@ jobs:
         working-directory: fe-api-staging
       - run: node --test "src/**/*.test.js"
         working-directory: fe-api-staging
+      - run: npm run test:ui
+        working-directory: fe-api-staging
       - run: npm run build -- --outDir ../deploy/.proxy-web-build
         working-directory: fe-api-staging
       - run: |

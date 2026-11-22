@@ -1,91 +1,86 @@
 import {
   Activity,
-  ArrowUpRight,
   Blocks,
   ChevronRight,
-  CircleHelp,
   FileClock,
   LayoutDashboard,
-  LockKeyhole,
   Server,
   ShieldCheck,
   X,
-} from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 const navigation = [
   {
     label: "Trang chủ",
     icon: LayoutDashboard,
-    page: 'dashboard',
-    href: '#/dashboard',
-  },
-  {
-    label: "Sự cố",
-    icon: ShieldCheck,
-    page: 'incidents',
-    href: '#/incidents',
+    page: "dashboard",
+    href: "#/dashboard",
   },
   {
     label: "Sự kiện bảo mật",
     icon: FileClock,
-    page: 'events',
-    href: '#/events',
+    page: "events",
+    href: "#/events",
   },
-  { label: "Máy ảo", icon: Server, page: 'workloads', href: '#/workloads' },
-  { label: "Hệ thống", icon: Activity, page: 'system', href: '#/system' },
-]
+  {
+    label: "Sự cố",
+    icon: ShieldCheck,
+    page: "incidents",
+    href: "#/incidents",
+  },
+  { label: "Máy ảo", icon: Server, page: "workloads", href: "#/workloads" },
+  { label: "Hệ thống", icon: Activity, page: "system", href: "#/system" },
+];
 
 export default function Sidebar({
   mobileOpen,
   onClose,
-  activePage = 'dashboard',
-  mode,
-  user,
+  activePage = "dashboard",
 }) {
   const [compact, setCompact] = useState(
-    () => window.matchMedia('(max-width:760px)').matches
-  )
-  const sidebar = useRef(null)
-  const close = useRef(onClose)
-  close.current = onClose
+    () => window.matchMedia("(max-width:760px)").matches,
+  );
+  const sidebar = useRef(null);
+  const close = useRef(onClose);
+  close.current = onClose;
   useEffect(() => {
-    const media = window.matchMedia('(max-width:760px)')
-    const update = () => setCompact(media.matches)
-    media.addEventListener('change', update)
-    return () => media.removeEventListener('change', update)
-  }, [])
+    const media = window.matchMedia("(max-width:760px)");
+    const update = () => setCompact(media.matches);
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
   useEffect(() => {
-    if (!mobileOpen || !compact) return
-    const previous = document.activeElement
-    const overflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    if (!mobileOpen || !compact) return;
+    const previous = document.activeElement;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     const items = () =>
       [
-        ...sidebar.current.querySelectorAll('a[href],button:not(:disabled)'),
-      ].filter((element) => element.getClientRects().length)
-    items()[0]?.focus()
+        ...sidebar.current.querySelectorAll("a[href],button:not(:disabled)"),
+      ].filter((element) => element.getClientRects().length);
+    items()[0]?.focus();
     const key = (event) => {
-      if (event.key === 'Escape') close.current()
-      if (event.key !== 'Tab') return
+      if (event.key === "Escape") close.current();
+      if (event.key !== "Tab") return;
       const targets = items(),
         first = targets[0],
-        last = targets.at(-1)
+        last = targets.at(-1);
       if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault()
-        last?.focus()
+        event.preventDefault();
+        last?.focus();
       } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault()
-        first?.focus()
+        event.preventDefault();
+        first?.focus();
       }
-    }
-    document.addEventListener('keydown', key)
+    };
+    document.addEventListener("keydown", key);
     return () => {
-      document.body.style.overflow = overflow
-      document.removeEventListener('keydown', key)
-      previous?.focus?.()
-    }
-  }, [mobileOpen, compact])
+      document.body.style.overflow = overflow;
+      document.removeEventListener("keydown", key);
+      previous?.focus?.();
+    };
+  }, [mobileOpen, compact]);
   return (
     <>
       {mobileOpen && (
@@ -98,7 +93,7 @@ export default function Sidebar({
       <aside
         ref={sidebar}
         inert={compact && !mobileOpen}
-        className={`sidebar ${mobileOpen ? 'is-open' : ''}`}
+        className={`sidebar ${mobileOpen ? "is-open" : ""}`}
         aria-label="Điều hướng chính"
       >
         <a
@@ -111,7 +106,7 @@ export default function Sidebar({
             <ShieldCheck size={25} strokeWidth={1.8} />
           </span>
           <span className="brand-word">
-            DBSEC<span>CỔNG QUẢN TRỊ BẢO MẬT</span>
+            DBSEC<span>Cổng quản trị bảo mật</span>
           </span>
         </a>
         <button
@@ -123,55 +118,30 @@ export default function Sidebar({
         </button>
         <div className="workspace-label">
           <Blocks size={15} />
-          <span>OpenStack Private Cloud</span>
+          <span>Đám mây riêng OpenStack</span>
         </div>
-        <div className="nav-caption">KHÔNG GIAN LÀM VIỆC</div>
-        <nav className="navigation">
+        <nav className="navigation" aria-label="Các trang của Portal">
           {navigation.map(({ label, icon: Icon, page, href }) => (
             <a
               key={label}
               href={href}
-              className={`nav-item ${activePage === page ? 'active' : ''}`}
-              aria-current={activePage === page ? 'page' : undefined}
+              className={`nav-item ${activePage === page ? "active" : ""}`}
+              aria-current={activePage === page ? "page" : undefined}
               onClick={onClose}
             >
               <Icon size={19} strokeWidth={1.8} />
               <span>{label}</span>
-              {activePage === page && <span className="nav-active-dot" />}
             </a>
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <div className="environment-card">
-            <a href="#/system" onClick={onClose}>
-              Kiểm tra nguồn <ArrowUpRight size={15} />
-            </a>
-          </div>
           <a className="sidebar-help" href="#/system/sources" onClick={onClose}>
             <Activity size={17} />
-            <span>Trạng thái nguồn dữ liệu</span>
+            <span>Nguồn dữ liệu</span>
             <ChevronRight size={15} />
           </a>
-          <div className="user-card">
-            <span className="avatar">
-              {mode === 'v4' && user
-                ? user.login?.charAt(0).toUpperCase()
-                : 'V'}
-            </span>
-            <div>
-              <strong>
-                {mode === 'v4' && user ? user.login : "Không gian quản trị"}
-              </strong>
-              <span>
-                {mode === 'v4' && user
-                  ? user.role
-                  : 'Quyền được xác minh qua API'}
-              </span>
-            </div>
-            <LockKeyhole size={15} />
-          </div>
         </div>
       </aside>
     </>
-  )
+  );
 }

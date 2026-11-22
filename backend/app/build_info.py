@@ -29,6 +29,8 @@ def load_build_info(path):
                 result[key] = iso(TypeAdapter(AwareDatetime).validate_python(value))
             else:
                 result[key] = value if re.fullmatch(r"[a-f0-9]{40}|[a-f0-9]{64}", value) else None
+        if type(manifest.get('working_tree_dirty')) is bool:
+            result['working_tree_dirty'] = manifest['working_tree_dirty']
         return result
     except (OSError, ValueError, RecursionError):
         return empty

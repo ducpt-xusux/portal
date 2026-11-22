@@ -8,7 +8,7 @@ const observations = {
   ALLOW: 'Máy ứng dụng gửi truy vấn thành công và audit ghi nhận ALLOW.',
   BLOCK: 'Audit ghi nhận yêu cầu bị chặn.',
   CORR002_CANDIDATES: 'Ba yêu cầu riêng biệt được đối chiếu với sự cố CORR-002.',
-  LAB_QUARANTINE: 'Controller ghi nhận cách ly trong lab. Probe TCP của máy clone bị timeout trong khoảng này.',
+  LAB_QUARANTINE: 'bộ điều khiển ghi nhận cách ly trong lab. Probe TCP của máy clone bị timeout trong khoảng này.',
   LAB_RESTORE: 'Hai bản chụp đúng port xác nhận bộ Security Group gốc đã được khôi phục.',
   FIXTURES_PENDING: 'Đã nhập danh mục ca kiểm thử.',
   AUDIT_MASKED: 'Audit ghi nhận trạng thái đã che nội dung cho ba yêu cầu.',
@@ -35,7 +35,7 @@ const reasons = {
   P19_SOURCE_NOT_CONNECTED: 'Chưa có kết quả nghiệm thu có thẩm quyền.',
 }
 const metricLabels = {
-  node_observations: 'Node có bản chụp',
+  node_observations: 'Nút có bản chụp',
   event_sequences: 'Thứ tự sự kiện',
   window_seconds: 'Cửa sổ quan sát (giây)',
   tcp_timeouts: 'Mẫu TCP timeout trong lúc cách ly',

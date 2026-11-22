@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { uiLabel, uiRoleList } from './uiLanguage.js'
+import { uiErrorMessage, uiLabel, uiRoleList } from './uiLanguage.js'
 import { demoSceneLabel } from './demoSceneLabels.js'
 
 test('UI statuses are translated without modifying transport values', () => {
@@ -17,8 +17,19 @@ test('UI statuses are translated without modifying transport values', () => {
 })
 
 test('unknown IDs remain exact, including inherited Object names', () => {
-  for (const value of ['INC-TEST-1', '192.0.2.1', 'constructor', '__proto__', 'toString', 'db-firewall-p17.service'])
+  for (const value of ['INC-TEST-1', '192.0.2.1', 'constructor', '__proto__', 'toString', 'db-firewall-other.service'])
     assert.equal(uiLabel(value), value)
+})
+
+test('report and source labels explain values without changing hashes, SQL or source keys', () => {
+  const evidence = { BACKUP_SHA256: 'a'.repeat(64), GALERA_2_TLS_VERSION: 'TLSv1.3',
+    PRODUCTION_RPO: 'NOT_MEASURED', APP_READER_PRIVILEGES: 'GRANT SELECT ON `p17-test`.* TO `reader`' }
+  assert.equal(uiLabel('GALERA_2_TLS_VERSION'), 'Galera 2 · Phiên bản TLS')
+  assert.equal(uiLabel(evidence.PRODUCTION_RPO), 'Chưa đo')
+  assert.equal(uiLabel(evidence.BACKUP_SHA256), evidence.BACKUP_SHA256)
+  assert.equal(uiLabel(evidence.APP_READER_PRIVILEGES), evidence.APP_READER_PRIVILEGES)
+  assert.equal(uiLabel('db-firewall-p17.service'), 'Bộ phát hiện hành vi · dịch vụ systemd')
+  assert.match(uiErrorMessage({ code: 'AUTO_CONTROLLER_UNAVAILABLE' }), /SSH.*hạn khóa/)
 })
 
 test('role labels and investigation stages remain presentation-only', () => {

@@ -46,7 +46,7 @@ class HistoryProvenance(DTO):
     registry_generation: Hash
     origin_mode: OriginMode
     scope: Literal['LAB', 'UNKNOWN']
-    source_context: Literal['TEST', 'IMPORTED_UNVERIFIED']
+    source_context: Literal['TEST', 'IMPORTED_UNVERIFIED', 'LIVE_READONLY']
     artifacts: Annotated[list[ArtifactRef], Field(min_length=1, max_length=6)]
 
 

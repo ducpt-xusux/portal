@@ -18,7 +18,7 @@ from .aggregate_models import (
     AlertsSection, AnalystCase, CanonicalProjection, DependentSection, EventMember,
     EventReference, EventRisk, Identity, InvestigationData, InvestigationMeta,
     InvestigationResponse, MembersPage, P17Projection, RecordedIncident, RegistrySummary, ScopedAlert,
-    SourceAvailability,
+    SourceAvailability, RecordedDetection,
 )
 from .sources import SourceError
 from .response_history import read_history
@@ -181,9 +181,9 @@ class InvestigationAggregate:
             return AlertsSection(availability='UNAVAILABLE', items=[], total_count=None,
                                  reason_codes=['P17_ALERT_SOURCE_INVALID'])
 
-    def member(self, snapshot, row, canonical_row, canonical_source):
-        reasons = ['LEGACY_DETECTOR_PROFILE_UNPINNED', 'DIRECT_MEMBERSHIP_NOT_PROVIDED']
-        canonical, state, join = None, 'UNAVAILABLE', 'RECONSTRUCTED_WINDOW'
+    def member(self, snapshot, row, canonical_row, canonical_source, direct=False):
+        reasons = [] if direct else ['LEGACY_DETECTOR_PROFILE_UNPINNED', 'DIRECT_MEMBERSHIP_NOT_PROVIDED']
+        canonical, state, join = None, 'UNAVAILABLE', 'DIRECT_PERSISTED' if direct else 'RECONSTRUCTED_WINDOW'
         comparability = 'UNAVAILABLE'
         if canonical_row is not None:
             try:
@@ -202,8 +202,15 @@ class InvestigationAggregate:
                     reasons.append('CANONICAL_SOURCE_IP_MISMATCH')
                     state, join, canonical = 'MISMATCH', 'MISMATCH', None
                 if canonical is not None:
-                    comparability = 'NOT_PROVEN' if canonical.payload_sha256 else 'UNAVAILABLE'
-                    reasons.append('PAYLOAD_HASH_BASIS_NOT_PROVEN')
+                    if canonical.payload_hash_basis == 'H2B_ENVELOPE_SHA256':
+                        if canonical.payload_sha256 != row.payload_sha256.lower():
+                            state, join, canonical, comparability = 'MISMATCH', 'MISMATCH', None, 'MISMATCH'
+                            reasons.append('PAYLOAD_HASH_MISMATCH')
+                        else:
+                            comparability = 'VERIFIED_EQUAL'
+                    else:
+                        comparability = 'NOT_PROVEN' if canonical.payload_sha256 else 'UNAVAILABLE'
+                        reasons.append('PAYLOAD_HASH_BASIS_NOT_PROVEN')
             except (SourceError, ValueError, KeyError, TypeError, ValidationError):
                 state, join, canonical = 'MISMATCH', 'MISMATCH', None
                 reasons.append('CANONICAL_RECORD_INVALID_OR_MISMATCH')
@@ -219,7 +226,8 @@ class InvestigationAggregate:
                 status=row.risk_status, score=row.risk_score if row.risk_status == 'OK' else None),
             payload_sha256=row.payload_sha256.lower()), canonical=canonical,
             canonical_availability=state, join_state=join, reason_codes=reasons,
-            hash_comparability=comparability)
+            hash_comparability=comparability, candidate_basis='PERSISTED_P17_SNAPSHOT' if direct else 'LEGACY_UNPINNED',
+            eligible_for_corr=True if direct else None)
 
     def read(self, request, incident_id, stream_id, limit, cursor):
         now = self.clock()
@@ -235,10 +243,12 @@ class InvestigationAggregate:
         if len(matches) != 1:
             raise SourceError('INVESTIGATION_IDENTITY_CONFLICT', 409)
         incident = matches[0]
+        capture = snapshot.recorded_capture(incident)
         candidates = snapshot.evidence(incident)
         available = candidates is not None
         candidates = sorted(candidates or [], key=lambda row: (row.event_ms, row.stream_sequence, row.event_id))
-        context = 'TEST' if request.app.state.settings.p16h_import_context == 'TEST' else 'IMPORTED_UNVERIFIED'
+        configured_context = request.app.state.settings.p16h_import_context
+        context = configured_context if configured_context in {'TEST', 'LIVE_READONLY'} else 'IMPORTED_UNVERIFIED'
         scope = digest(json.dumps([stream_id, incident_id, limit, context, 'LEGACY_UNPINNED']))
         after = self.decode_cursor(cursor, scope)
         remaining = [row for row in candidates if after is None or
@@ -254,16 +264,18 @@ class InvestigationAggregate:
         more = len(remaining) > limit
         next_cursor = self.cursors.encode(scope, source_generation,
             [page[-1].event_ms, page[-1].stream_sequence, page[-1].event_id]) if more else None
-        members = [self.member(snapshot, row, canonical_rows.get(row.event_id), canonical_source) for row in page]
+        members = [self.member(snapshot, row, canonical_rows.get(row.event_id), canonical_source, bool(capture)) for row in page]
         case, business_source = self.analyst_case(request, incident, now, context)
         alerts = self.alerts(snapshot, incident, error, now)
         primary_freshness = 'STALE' if error else 'HISTORICAL' if snapshot.remote_status is None else 'FRESH'
+        p17_data_as_of = max((row.received_utc for row in snapshot.events), default=None)
         p17_source = SourceAvailability(source_system='P17', availability='PARTIAL' if error else 'AVAILABLE',
             freshness_state=primary_freshness, read_at=now,
+            data_as_of=p17_data_as_of,
             captured_at=snapshot.export.exported_at,
             source_ref='sha256:' + snapshot.fingerprint, generation=snapshot.cursor_fingerprint,
             source_schema=snapshot.metadata['schema'], context=context, error_code=error,
-            reason_codes=['DATA_AS_OF_NOT_PROVIDED', 'OBSERVATION_TIME_NOT_PROVIDED'])
+            reason_codes=['OBSERVATION_TIME_NOT_PROVIDED'] + ([] if p17_data_as_of else ['DATA_AS_OF_NOT_PROVIDED']))
         controller_error = 'CONTROLLER_SEMANTIC_PROJECTION_NOT_PROVIDED'
         response = None
         if self.service is not None and self.service.response_history_reader is not None:
@@ -273,6 +285,8 @@ class InvestigationAggregate:
                 controller_error = exc.code
         missing = ['detection.detector_profile', 'decision.evaluation',
                    'event_members.direct_membership', 'canonical.coverage_complete']
+        if capture:
+            missing = [key for key in missing if key not in {'detection.detector_profile', 'event_members.direct_membership'}]
         if response is None:
             response = DependentSection(reason_codes=[controller_error])
             controller_source = absent('CONTROLLER', now, controller_error)
@@ -302,26 +316,27 @@ class InvestigationAggregate:
                 last_seen=ms_iso(incident.last_ms), created_at=incident.created_utc, updated_at=incident.updated_utc),
             event_members=MembersPage(available=available, items=members, authoritative_count=incident.evidence_count,
                 total_candidates=len(candidates) if available else None,
-                verified_linked_count=0 if available else None,
-                membership='RECONSTRUCTED_WINDOW' if available else 'UNAVAILABLE',
+                verified_linked_count=len(candidates) if capture else 0 if available else None,
+                direct_membership_supported=bool(capture),
+                membership=snapshot.membership_basis(incident),
+                candidate_basis='PERSISTED_P17_SNAPSHOT' if capture else 'LEGACY_UNPINNED',
                 matches_recorded_count=len(candidates) == incident.evidence_count if available else None,
                 limit=limit, has_more=more, next_cursor=next_cursor), alerts=alerts,
-            detection=DependentSection(reason_codes=[detector_profile_reason(snapshot.metadata),
-                'LEGACY_CANDIDATES_UNPINNED']),
+            detection=RecordedDetection(**{key: capture[key] for key in ('detector_version', 'detector_sha256', 'snapshot_id', 'recorded_at')}) if capture else DependentSection(reason_codes=[detector_profile_reason(snapshot.metadata), 'LEGACY_CANDIDATES_UNPINNED']),
             decision=DependentSection(reason_codes=['P17_3_DECISION_NOT_PROVIDED']),
             response=response,
             analyst_case=case, defense_registry=registry)
         meta = InvestigationMeta(request_id=request.state.request_id, read_at=now,
-            data_as_of=None, source_context=context,
+            data_as_of=p17_data_as_of, source_context=context,
             freshness_state=primary_freshness,
             sources=[p17_source, canonical_source, registry_source, business_source,
                      absent('P17_3', now, 'P17_3_DECISION_NOT_PROVIDED'),
                      controller_source],
             missing_fields=missing, next_cursor=next_cursor,
-            limitations=['Provisional handoff contract; no direct membership authority supplied.',
-                'Legacy candidate window is unpinned; eligible_for_corr is unavailable.',
-                'Registry metadata integrity does not create semantic evidence or response authorization.',
-                'Canonical payload hashes have an unverified upstream basis; no payload equality claim.',
+            limitations=([] if capture else ['Legacy candidate membership was not persisted by this worker version.',
+                'Legacy candidate window is unpinned; eligible_for_corr is unavailable.']) + [
+                'Registry metadata integrity does not create response authorization.',
+                'Canonical journal retention limits historical Event coverage.',
                 'Historical records and current OpenStack observations are independent; no current SG synthesized.'])
         return InvestigationResponse(data=data, meta=meta)
 

@@ -169,7 +169,7 @@ export default function ApiDashboardPage() {
                 <dd>{stale ? 'Chưa xác nhận lại' : payload.health.sqlite}</dd>
               </div>
               <div>
-                <dt>Incident / isolation</dt>
+                <dt>Sự cố / Cách ly</dt>
                 <dd>Chưa kết nối</dd>
               </div>
               <div>
@@ -206,12 +206,12 @@ export default function ApiDashboardPage() {
           <table className="events-table">
             <thead>
               <tr>
-                <th>THỜI GIAN</th>
-                <th>NGUỒN / DB USER</th>
-                <th>QUERY · MASKED</th>
-                <th>SEVERITY / SCORE</th>
-                <th>QUYẾT ĐỊNH</th>
-                <th>CHI TIẾT</th>
+                <th>Thời gian</th>
+                <th>Nguồn / tài khoản cơ sở dữ liệu</th>
+                <th>Truy vấn đã che</th>
+                <th>Mức độ / điểm rủi ro</th>
+                <th>Quyết định</th>
+                <th>Chi tiết</th>
               </tr>
             </thead>
             <tbody>

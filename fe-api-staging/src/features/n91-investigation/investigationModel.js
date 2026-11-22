@@ -39,7 +39,9 @@ export function eventModel(raw) {
   const validRisk = risk.status === 'OK'
   const score = finite(risk.score)
   return {
+    view_kind: 'P16H_CANONICAL_AUDIT',
     event_id: string(raw.event_id),
+    stream_sequence: Number.isInteger(raw.stream_sequence) && raw.stream_sequence >= 0 ? raw.stream_sequence : null,
     stream_id: string(raw.stream_id),
     request_id: string(raw.request_id),
     occurred_at: string(raw.occurred_at),
@@ -57,6 +59,8 @@ export function eventModel(raw) {
     source_ip: string(raw.source_ip),
     db_user: string(raw.db_user),
     database_name: string(raw.database_name),
+    database_status: string(raw.database_status),
+    mask_status: string(raw.mask_status),
     mysql_command: string(raw.mysql_command),
     policy_version: string(raw.policy_version),
     policy_config_hash: string(object(raw.source_metadata).policy_config_hash),
@@ -77,7 +81,7 @@ export function eventModel(raw) {
     reasons: strings(raw.reasons),
     masked_query:
       raw.sql_text_status === 'MASKED' ? string(raw.masked_query) : null,
-    sql_text_status: raw.sql_text_status === 'MASKED' ? 'MASKED' : 'WITHHELD',
+    sql_text_status: ['MASKED', 'WITHHELD'].includes(raw.sql_text_status) ? raw.sql_text_status : null,
     risk: {
       status: string(risk.status),
       score:

@@ -97,7 +97,7 @@ function ApiEventDetail({ eventId }) {
       </a>
       <div className="page-heading">
         <div>
-          <div className="eyebrow">EVENT DETAIL · AUDIT API</div>
+          <div className="eyebrow">CHI TIẾT SỰ KIỆN KIỂM TOÁN</div>
           <h1>
             Chi tiết security sự kiện
           </h1>
@@ -447,13 +447,13 @@ function ApiEventList() {
           <table className="audit-table">
             <thead>
               <tr>
-                <th>SỰ KIỆN / THỜI GIAN</th>
-                <th>NGUỒN / DB USER</th>
-                <th>QUERY · MASKED</th>
-                <th>MATCHED RULES</th>
-                <th>SEVERITY / SCORE</th>
-                <th>QUYẾT ĐỊNH</th>
-                <th>ACTION / RESULT</th>
+                <th>Sự kiện / thời gian</th>
+                <th>Nguồn / tài khoản cơ sở dữ liệu</th>
+                <th>Truy vấn đã che</th>
+                <th>Quy tắc khớp</th>
+                <th>Mức độ / điểm rủi ro</th>
+                <th>Quyết định</th>
+                <th>Hành động / kết quả</th>
                 <th>
                   <span className="sr-only">Chi tiết</span>
                 </th>

@@ -29,6 +29,7 @@ def audit_read(request):
         db.execute("BEGIN")
         stats = db.execute("SELECT COUNT(*), MIN(timestamp), MAX(timestamp), MAX(event_id), MAX(imported_at) FROM p16h_audit_index_v1").fetchone()
         canonical_count = db.execute("SELECT COUNT(*) FROM p16h_events_v1").fetchone()[0]
+        retained_counts = dict(db.execute('SELECT policy_decision,COUNT(*) FROM p16h_audit_index_v1 GROUP BY policy_decision'))
         stored_context = db.execute("SELECT context FROM p16h_store_context_v1 WHERE id=1").fetchone()
         if canonical_count and (not stored_context or stored_context[0] != request.app.state.settings.p16h_import_context):
             fail(503, "P16H_STORE_CONTEXT_MISMATCH")
@@ -46,12 +47,23 @@ def audit_read(request):
             "canonical_history_complete": False,
             "import_status": {key: source[key] for key in ("invalid_records", "duplicate_records", "conflicting_records", "pending_bytes")},
             "available_records": stats[0], "first_event_at": stats[1], "last_event_at": stats[2],
+            "retained_counts": {'allow': retained_counts.get('ALLOW', 0), 'block': retained_counts.get('BLOCK', 0)},
             "last_ingest_at": stats[4],
             "last_sync_at": source["last_sync_at"],
+            "last_success": source["last_sync_at"],
+            "last_attempt": source["last_attempt_at"],
             "ingest_pending_bytes": source["pending_bytes"],
             "next_cursor": None,
         }
-        if canonical_count:
+        if source.get('transport'):
+            meta.update(last_success=source['transport'].get('last_success'), last_attempt=source['transport'].get('last_attempt'))
+        if canonical_count and settings_context(request) == 'LIVE_READONLY':
+            meta.update(source_schema='portal-p16h-live-1', coverage_kind='RECENT_SAMPLE',
+                        coverage_note='Retained Canonical collector records; upstream retention limits history.',
+                        import_context='LIVE_READONLY', population_kind='CANONICAL_COLLECTOR',
+                        collection_mode='SSH_POLL', source_mode='REMOTE_READONLY',
+                        producer_health=source.get('transport', {}).get('producer_health'))
+        elif canonical_count:
             meta.update(source_schema="portal-p16h-import-1+audit-v1.0", coverage_kind="RECENT_SAMPLE",
                         coverage_note="Imported offline profile; retained sample only; producer HEALTH unavailable.",
                         producer_health="UNAVAILABLE", producer_error_code="P16H_HEALTH_NOT_CONNECTED",
@@ -67,6 +79,10 @@ def audit_read(request):
         yield db, meta, fingerprint
 
 
+def settings_context(request):
+    return request.app.state.settings.p16h_import_context
+
+
 def envelope(data, meta, **extra):
     return {"data": data, "meta": {**meta, **extra}, "error": None}
 
@@ -77,6 +93,7 @@ def event_view(record, imported_at=None):
     metadata = delivery.get("metadata", {})
     source = delivery.get("source", {})
     projected = record.get("query_text_withheld", False)
+    live = delivery.get('schema_version') == 'portal-p16h-live-1'
     result = {
         "event_id": record["event_id"], "stream_id": delivery.get("stream_id"), "request_id": metadata.get("request_id"),
         "stream_sequence": delivery.get("stream_sequence"),
@@ -91,6 +108,7 @@ def event_view(record, imported_at=None):
                                   if projected else "SOURCE_NOT_PROVIDED; ingested_at has no verified upstream semantic"),
         "source_ip": record["client_ip"], "db_user": record["db_user"],
         "database_name": record["session_database"], "mysql_command": record["mysql_command"],
+        "database_status": metadata.get('privacy', {}).get('database_status') if isinstance(metadata.get('privacy'), dict) else None,
         "decision": record["policy_decision"], "decision_basis": "P14_POLICY_DECISION",
         "effective_action": record["effective_action"], "runtime_mode": record["runtime_mode"],
         "would_block": record["would_block"],
@@ -103,6 +121,7 @@ def event_view(record, imported_at=None):
                  "version": record["risk_version"]},
         "masked_query": record["query_masked"] if record["query_mask_status"] == "MASKED" and not projected else None,
         "sql_text_status": "MASKED" if record["query_mask_status"] == "MASKED" and not projected else "WITHHELD",
+        'mask_status': record['query_mask_status'],
         "source_metadata": metadata if delivery else None,
         "view_kind": "P16H_CANONICAL_AUDIT", "canonical_complete": not projected,
         "p17_event_class": None, "incident_refs": [], "incident_membership": "UNAVAILABLE",
@@ -111,10 +130,10 @@ def event_view(record, imported_at=None):
                               "source_ref": source.get("artifact_id", "audit:event:" + record["event_id"]),
                               "source_host": source.get("source_host"), "source_run_id": source.get("source_run_id"),
                               "collected_at": source.get("collected_at"), "imported_at": imported_at,
-                              "payload_sha256": delivery.get("payload_sha256"), "payload_hash_basis": "UPSTREAM_UNVERIFIED" if delivery.get("payload_sha256") else None,
+                              "payload_sha256": delivery.get("payload_sha256"), "payload_hash_basis": ('H2B_ENVELOPE_SHA256' if live else "UPSTREAM_UNVERIFIED") if delivery.get("payload_sha256") else None,
                               "artifact_sha256": source.get("artifact_sha256"),
                               "original_artifact_sha256": source.get("original_artifact_sha256"),
-                              "verification": "IMPORTED_UNVERIFIED", "human_review": "UNAVAILABLE",
+                              "verification": 'READONLY_COLLECTOR_HASH_CHECKED' if live else "IMPORTED_UNVERIFIED", "human_review": "UNAVAILABLE",
                               "context": delivery.get("context"), "coverage_kind": "RECENT_SAMPLE" if delivery else "NOT_PROVEN",
                               "delivery_version": delivery.get("delivery_version"), "event_role": delivery.get("event_role"),
                               "journal_stream_id": delivery.get("journal_stream_id"), "journal_sequence": delivery.get("journal_sequence"),

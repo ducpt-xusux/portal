@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlsplit
+import re
 
 
 @dataclass(frozen=True)
@@ -13,8 +14,13 @@ class BusinessConfig:
     session_seconds: int = 3600
     cookie_name: str = 'portal_session'
     body_limit: int = 16_384
+    single_account_username: str | None = None
 
     def __post_init__(self):
+        if self.single_account_username is not None and (
+            not self.allow_insecure_loopback or not re.fullmatch(r'[a-z][a-z0-9_.-]{2,63}', self.single_account_username)
+        ):
+            raise ValueError('Single-account profile requires a named local account')
         if self.context not in {'TEST', 'PORTAL'}:
             raise ValueError('Invalid business context')
         if not 60 <= self.session_seconds <= 43_200:

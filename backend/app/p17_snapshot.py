@@ -9,7 +9,7 @@ from pathlib import Path
 import threading
 from typing import Literal
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, StrictInt, ValidationError
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, StrictInt, ValidationError, field_validator
 
 from .schemas import iso, utc_now
 from .sync_status import read_sync_status
@@ -92,6 +92,35 @@ class Tables(Record):
     processed_events: list[EventRow] = Field(max_length=MAX_ROWS)
     incidents: list[IncidentRow] = Field(max_length=MAX_ROWS)
     outbox: list[OutboxRow] = Field(max_length=MAX_ROWS)
+    portal_evidence_snapshots_v1: list[dict] = Field(default_factory=list, max_length=MAX_ROWS)
+    portal_evidence_members_v1: list[dict] = Field(default_factory=list, max_length=MAX_ROWS)
+
+    @field_validator('portal_evidence_snapshots_v1', 'portal_evidence_members_v1')
+    @classmethod
+    def sanitize_evidence_rows(cls, rows, info):
+        model = CaptureRow if info.field_name == 'portal_evidence_snapshots_v1' else CaptureMemberRow
+        return [model.model_validate(row).model_dump(mode='json') for row in rows]
+
+
+class CaptureRow(Record):
+    snapshot_id: str = Field(pattern=r'^[a-f0-9]{64}$')
+    incident_id: str = Field(min_length=1, max_length=160)
+    stream_id: str = Field(min_length=1, max_length=160)
+    trigger_event_id: str = Field(min_length=1, max_length=160)
+    detector_version: str = Field(min_length=1, max_length=160)
+    detector_sha256: str = Field(pattern=r'^[a-f0-9]{64}$')
+    signal_rule: str = Field(pattern=r'^CORR-00[1-5]$')
+    member_count: StrictInt = Field(ge=1)
+    recorded_evidence_count: StrictInt = Field(ge=0)
+    recorded_at: AwareDatetime
+
+
+class CaptureMemberRow(Record):
+    snapshot_id: str = Field(pattern=r'^[a-f0-9]{64}$')
+    event_id: str = Field(min_length=1, max_length=160)
+    request_id: str = Field(min_length=1, max_length=160)
+    stream_sequence: StrictInt = Field(ge=0)
+    payload_sha256: str = Field(pattern=r'^[a-f0-9]{64}$')
 
 
 class Export(Record):
@@ -172,6 +201,28 @@ class Snapshot:
                 if not isinstance(alert, dict):
                     raise ValueError("Outbox schema mismatch")
                 alert_ids.add(row.alert_id)
+            captures = {row['snapshot_id']: row for row in tables.portal_evidence_snapshots_v1}
+            if len(captures) != len(tables.portal_evidence_snapshots_v1):
+                raise ValueError('Duplicate evidence capture')
+            event_index = {row.event_id: row for row in tables.processed_events}
+            members = {}
+            for row in tables.portal_evidence_members_v1:
+                capture = captures[row['snapshot_id']]
+                event = event_index[row['event_id']]
+                if (capture['stream_id'] != event.stream_id or row['request_id'] != event.request_id or
+                    row['stream_sequence'] != event.stream_sequence or row['payload_sha256'] != event.payload_sha256):
+                    raise ValueError('Evidence identity mismatch')
+                members.setdefault(row['snapshot_id'], []).append(row['event_id'])
+            for key, capture in captures.items():
+                incident = next((row for row in tables.incidents if row.incident_id == capture['incident_id']), None)
+                if (capture['incident_id'] not in incident_ids or capture['stream_id'] != stream or
+                    capture['trigger_event_id'] not in ids or
+                    incident is None or capture['signal_rule'] != incident.signal_rule or
+                    capture['recorded_evidence_count'] > incident.evidence_count or
+                    not re.fullmatch('[a-f0-9]{64}', capture['detector_sha256']) or
+                    len(members.get(key, [])) != capture['member_count'] or
+                    len(set(members.get(key, []))) != capture['member_count']):
+                    raise ValueError('Evidence capture mismatch')
             return cls(export, hashlib.sha256(raw).hexdigest(), metadata, rules)
         except (ValueError, TypeError, KeyError, UnicodeError, ValidationError, OverflowError) as exc:
             raise SnapshotError("P17_SOURCE_INVALID") from exc
@@ -188,7 +239,11 @@ class Snapshot:
         return next((x for x in self.incidents if x.incident_id == incident_id), None)
 
     def evidence(self, incident):
-        """Reconstruct links only. Never create incidents, counts, scores or decisions."""
+        """Use persisted snapshots when present; otherwise label legacy reconstruction."""
+        capture = self.recorded_capture(incident)
+        if capture:
+            ids = {row['event_id'] for row in self.export.tables.portal_evidence_members_v1 if row['snapshot_id'] == capture['snapshot_id']}
+            return sorted((row for row in self.events if row.event_id in ids), key=lambda row: (row.event_ms, row.stream_sequence))
         if incident.signal_rule not in {"CORR-002", "CORR-003"}:
             return None
         window = 60000 if incident.signal_rule == "CORR-002" else 120000
@@ -200,6 +255,13 @@ class Snapshot:
             and incident.last_ms - window < row.event_ms <= incident.last_ms
             and set(self.rules[row.event_id]) & group), key=lambda row: (row.event_ms, row.stream_sequence))
 
+    def recorded_capture(self, incident):
+        captures = [row for row in self.export.tables.portal_evidence_snapshots_v1 if row['incident_id'] == incident.incident_id]
+        return max(captures, key=lambda row: (row['member_count'], row['recorded_at'], row['snapshot_id']), default=None)
+
+    def membership_basis(self, incident):
+        return 'DIRECT_PERSISTED' if self.recorded_capture(incident) else 'RECONSTRUCTED_WINDOW' if self.evidence(incident) is not None else 'UNAVAILABLE'
+
     def incident_view(self, row):
         evidence = self.evidence(row)
         return {
@@ -209,10 +271,11 @@ class Snapshot:
             "created_at": iso(row.created_utc), "updated_at": iso(row.updated_utc),
             "evidence_count": row.evidence_count, "p15_peak_score": row.peak_p15,
             "severity": row.severity, "confidence": row.confidence, "incident_status": row.status,
+            'detector_profile': self.recorded_capture(row),
             "source_verified_recorded": bool(row.source_verified),
             "isolation_authorized_recorded": bool(row.isolation_authorized),
             "response_state": "UNKNOWN", "review_state": None,
-            "evidence_membership": "RECONSTRUCTED_WINDOW" if evidence is not None else "UNAVAILABLE",
+            "evidence_membership": self.membership_basis(row),
             "mapping": {"verified": False, "source_ip": row.client_ip, "observed_at": None,
                         "reason": "OPENSTACK_MAPPING_NOT_PROVIDED"},
         }
@@ -228,7 +291,8 @@ class Snapshot:
             "matched_rules": list(self.rules[row.event_id]), "blocking_rules": None,
             "risk": {"score": row.risk_score if row.risk_status == "OK" else None, "status": row.risk_status, "severity": None},
             "masked_query": None, "policy_version": None, "p17_event_class": row.event_class,
-            "incident_refs": refs, "incident_membership": "RECONSTRUCTED_WINDOW" if refs else "UNAVAILABLE",
+            "incident_refs": refs, "incident_membership": ('DIRECT_PERSISTED' if all(
+                self.recorded_capture(self.get_incident(ref)) for ref in refs) else 'RECONSTRUCTED_WINDOW') if refs else "UNAVAILABLE",
             "view_kind": "P17_EVENT_PROJECTION", "canonical_complete": False,
             "source_provenance": {"source_system": "p17-proxy-reader" if self.remote_status is not None else "p17-snapshot", "source_schema": self.metadata["schema"],
                                   "source_ref": f"p17:{row.stream_id}:event:{row.event_id}",
@@ -306,6 +370,8 @@ def snapshot_meta(snapshot, error=None, **extra):
         "data_state": ("STALE" if error else "CURRENT") if remote else "HISTORICAL",
         "access_mode": "LOCAL_REMOTE_READONLY" if remote else "LOCAL_SNAPSHOT_READONLY",
         "transport": snapshot.remote_status, "collection_mode": "SSH_POLL" if remote else "FILE_EXPORT",
+        "last_success": snapshot.remote_status.get('last_success') if remote else None,
+        "last_attempt": snapshot.remote_status.get('last_attempt') if remote else None,
         "freshness_state": "STALE" if error else "FRESH", "stale_after_seconds": 30,
         "last_error_code": error, "stream_id": snapshot.metadata["stream_id"],
         "canonical_history_complete": False, "next_cursor": None, **extra,

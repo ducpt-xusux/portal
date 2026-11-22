@@ -68,8 +68,8 @@ def business_evidence_loader(reader, context, source_context):
         candidates = snapshot.evidence(incident)
         count = len(candidates) if candidates is not None else None
         has_more = count is not None and count > EVIDENCE_EXPORT_LIMIT
-        reasons = ['DIRECT_MEMBERSHIP_NOT_PROVIDED', detector_profile_reason(snapshot.metadata),
-                   'P17_PROJECTION_ONLY']
+        reasons = ['P17_PROJECTION_ONLY'] if snapshot.recorded_capture(incident) else [
+            'DIRECT_MEMBERSHIP_NOT_PROVIDED', detector_profile_reason(snapshot.metadata), 'P17_PROJECTION_ONLY']
         if count is None:
             reasons.append('CANDIDATE_WINDOW_UNAVAILABLE')
         elif count != incident.evidence_count:
@@ -105,7 +105,7 @@ def business_evidence_loader(reader, context, source_context):
             reasons.append('UNSAFE_REFERENCE_FIELDS_OMITTED')
         return EvidenceProjection(incident_id=incident_id, stream_id=stream_id,
             signal_rule=incident.signal_rule, complete=False, has_more=has_more,
-            evidence_membership='UNAVAILABLE' if count is None else 'RECONSTRUCTED_WINDOW',
+            evidence_membership=snapshot.membership_basis(incident),
             recorded_evidence_count=incident.evidence_count, candidate_count=count,
             exported_event_count=len(items), event_limit=EVIDENCE_EXPORT_LIMIT,
             reason_codes=reasons, source_system='P17', source_schema='p17-incident-durable-1',

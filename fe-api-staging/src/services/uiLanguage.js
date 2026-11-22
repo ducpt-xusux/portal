@@ -1,5 +1,78 @@
 // Presentation labels only. Never use translated labels as API values or keys.
+import { fieldLabels, sourceErrors, valueLabels } from './uiGlossary.js'
+const normalizedFields = Object.fromEntries(Object.entries(fieldLabels).map(([key, value]) => [key.trim().toLowerCase(), value]))
+const signalNames = {
+  'CORR-001': 'Vi phạm chính sách lặp lại',
+  'CORR-002': 'Dấu hiệu chèn mã SQL lặp lại',
+  'CORR-003': 'Truy cập dữ liệu nhạy cảm lặp lại',
+  'CORR-004': 'Kết hợp nhiều kỹ thuật',
+  'CORR-005': 'Lỗi tương thích giao thức lặp lại',
+  'CORR-012': 'Truy cập từ nguồn không được phép',
+  'CORR-013': 'Chèn mã SQL từ nguồn không được phép',
+  'CORR-014': 'Dò tìm cấu trúc lặp lại',
+  'CORR-015': 'Dò tìm rồi thử hành vi nguy hiểm',
+  'CORR-022': 'Chuỗi hành vi tăng mức nguy hiểm',
+}
+export function signalName(code) {
+  return Object.hasOwn(signalNames, code) ? signalNames[code] : null
+}
 const labels = {
+  administrative: 'Quản trị',
+  allow: 'Cho phép',
+  authorization: 'Phân quyền',
+  identity: 'Định danh nguồn',
+  injection: 'Dấu hiệu chèn SQL',
+  policy: 'Chính sách',
+  reconnaissance: 'Thăm dò',
+  'Administrative SHOW statement detected': 'Phát hiện lệnh SHOW dùng cho quản trị',
+  'Approved health query': 'Truy vấn kiểm tra hoạt động được phép',
+  'Approved reader workload': 'Truy vấn thuộc phạm vi đọc được phép',
+  'Approved writer read workload': 'Tài khoản ghi được phép thực hiện truy vấn đọc này',
+  'Approved order status update': 'Cập nhật trạng thái đơn hàng được phép',
+  'Reader attempted a write operation': 'Tài khoản chỉ đọc đã yêu cầu ghi dữ liệu',
+  'Query originated from an unexpected source': 'Truy vấn đến từ nguồn ngoài phạm vi cho phép',
+  'System schema enumeration or access': 'Có truy vấn liệt kê hoặc truy cập cấu trúc dữ liệu hệ thống',
+  'Tautological predicate detected': 'Phát hiện điều kiện luôn đúng',
+  'Constant-true predicate within compound WHERE': 'Phát hiện điều kiện luôn đúng trong mệnh đề WHERE kết hợp',
+  'Request was blocked by the P14 default-deny policy': 'Yêu cầu bị chặn theo chính sách chặn mặc định',
+  REVIEWED_REPORT_EVIDENCE: 'Bằng chứng đã đối chiếu nguồn',
+  LIVE_READONLY: 'Nguồn thật, chỉ đọc',
+  READONLY_COLLECTOR_HASH_CHECKED: 'Đã kiểm tra mã băm bản ghi nguồn',
+  H2B_ENVELOPE_SHA256: 'Đã đối chiếu SHA-256 của gói bản ghi nguồn',
+  DIRECT_PERSISTED: 'Liên kết bằng chứng được bộ phát hiện lưu trực tiếp',
+  PERSISTED_P17_SNAPSHOT: 'Bản chụp bằng chứng đã lưu của bộ phát hiện',
+  'Proxy P17 via SSH': 'Bộ phát hiện hành vi · kết nối SSH tới Proxy',
+  P17_G03_V3_SQLITE: 'Kho dữ liệu phân tích hành vi · SQLite',
+  'Proxy systemd snapshot': 'Trạng thái dịch vụ trên Proxy',
+  'Galera wsrep snapshots': 'Trạng thái sao chép cụm Galera',
+  'Portal source status report': 'Tình trạng kết nối các nguồn dữ liệu',
+  'p17-incident-durable-1': 'Bản ghi sự cố bền vững · phiên bản 1',
+  'portal-p16h-live-1': 'Nhật ký kiểm toán chuẩn hóa · phiên bản 1',
+  'portal-proxy-services-1': 'Trạng thái dịch vụ · phiên bản 1',
+  'portal-galera-node-1': 'Trạng thái nút Galera · phiên bản 1',
+  'openstack-inventory-1': 'Danh mục hạ tầng OpenStack · phiên bản 1',
+  'n91-portal-p17-vnext-1': 'Phân tích hành vi và chuỗi sự kiện · phiên bản 1',
+  'p17-lab-clone': 'Attack',
+  'n91-clone-auto-corr002-v2': 'Tự động cách ly máy thử nghiệm · CORR-002 · phiên bản 2',
+  'p17-incident-g03-dual-v3-20261104': 'Bộ phát hiện hành vi · G03 · phiên bản 3 · 04/11/2026',
+  'UNREVIEWED': 'Chưa rà soát', 'NONE': 'Chưa xử lý', 'VERIFIED_BEFORE': 'Đã xác minh trước thực thi',
+  'ATTEMPTED': 'Đã bắt đầu thực thi',
+  'db-firewall-p17.service': 'Bộ phát hiện hành vi · dịch vụ systemd',
+  'db-firewall-audit-ingest.service': 'Thu thập nhật ký kiểm toán · dịch vụ systemd',
+  Port: 'Port', Project: 'Project', Network: 'Network', 'Floating IP': 'Floating IP',
+  'Compute host': 'Compute host', 'Revision Neutron': 'Revision (Neutron)',
+  'Port Security': 'Port Security', 'Port status': 'Trạng thái Port',
+  'Backend': 'Dịch vụ xử lý', 'Frontend': 'Giao diện', 'Snapshot': 'Bản chụp dữ liệu',
+  VERIFIED_EQUAL: 'Mã băm khớp bản ghi nguồn',
+  'P17 snapshot reader': 'Nguồn dữ liệu phân tích sự cố',
+  'Proxy P17 SSH reader': 'Nguồn dữ liệu sự cố từ Proxy',
+  'P17 worker live': 'Bộ phát hiện hành vi và sự cố',
+  'P16H canonical reader': 'Bộ đọc nhật ký bảo mật',
+  'P17.5 controller': 'Bộ điều khiển cách ly và khôi phục',
+  'P17 snapshot': 'Bản ghi phân tích sự cố',
+  'P16H canonical audit (independent source)': 'Nhật ký bảo mật chuẩn hóa',
+  'P16H canonical audit': 'Nhật ký bảo mật chuẩn hóa',
+  'P15 risk score': 'Điểm đánh giá rủi ro',
   'P15 cao trên một request': 'Điểm rủi ro cao trên một yêu cầu',
   'P17 tương quan SQL injection': 'Tương quan SQL injection',
   'P17 tương quan truy cập dữ liệu nhạy cảm': 'Truy cập dữ liệu nhạy cảm có tương quan',
@@ -60,6 +133,7 @@ const labels = {
   SYSTEM_HEALTH: 'Trạng thái hệ thống', OTHER: 'Khác', NOT_PROVIDED: 'Chưa cung cấp',
   UNKNOWN_SOURCE: 'Chưa xác định nguồn', PORTAL_ANNOTATION: 'Ghi chú của Portal',
   FRESH: 'Đã cập nhật', STALE: 'Chưa cập nhật', UNKNOWN: 'Chưa xác định',
+  OUT_OF_ORDER: 'Đến sai thứ tự', FUTURE_SKEW: 'Thời điểm ở tương lai',
   UNAVAILABLE: 'Chưa có dữ liệu', PARTIAL: 'Chưa đầy đủ', AVAILABLE: 'Có dữ liệu',
   HISTORICAL: 'Lịch sử', SNAPSHOT: 'Bản chụp', LIVE: 'Trực tiếp',
   LIVE_LAB: 'Trực tiếp · thử nghiệm', HISTORICAL_LAB: 'Lịch sử · thử nghiệm',
@@ -108,8 +182,8 @@ const labels = {
   captured_at: 'Chụp lúc', imported_at: 'Nhập lúc', freshness_state: 'Tình trạng cập nhật',
   execution_mode: 'Chế độ thực hiện', verification: 'Mức xác minh', context: 'Phạm vi dữ liệu',
   source_verified_recorded: 'Nguồn đã xác minh', isolation_authorized_recorded: 'Được phép cách ly',
-  'p17-proxy-reader': 'Nguồn sự cố từ Proxy', 'p17-snapshot': 'Bản chụp sự cố',
-  'p16-canonical-audit': 'Nhật ký kiểm toán', 'P17 outbox': 'Nguồn cảnh báo',
+  'p17-proxy-reader': 'Nguồn sự cố từ Proxy', 'p17-snapshot': 'Bản ghi sự cố',
+  'p16-canonical-audit': 'Nhật ký kiểm toán', 'P17 outbox': 'Nguồn cảnh báo bảo mật',
   'N91 defense source registry': 'Kho bằng chứng', 'P16H canonical': 'Nhật ký kiểm toán chuẩn',
   IMPORTED_OBSERVATION: 'Quan sát đã nhập', PLANNED: 'Đã lên kế hoạch',
   SOURCE_NOT_PROVIDED: 'Nguồn chưa cung cấp dữ liệu',
@@ -171,7 +245,45 @@ export function uiLabel(value) {
   if (value === null || value === undefined || value === '') return 'Chưa xác định'
   if (typeof value === 'boolean') return value ? 'Có' : 'Không'
   const key = String(value)
-  return Object.hasOwn(labels, key) ? labels[key] : key
+  return uiText(Object.hasOwn(valueLabels, key) ? valueLabels[key]
+    : Object.hasOwn(labels, key.trim()) ? labels[key.trim()]
+      : Object.hasOwn(normalizedFields, key.trim().toLowerCase()) ? normalizedFields[key.trim().toLowerCase()] : key)
+}
+
+export function uiErrorMessage(error) {
+  return sourceErrors[error?.code] || uiText(error?.message || 'Chưa đọc được nguồn dữ liệu.')
+}
+
+// Display copy only. API keys, source objects, URLs and exported evidence stay original.
+export function uiText(value) {
+  if (typeof value !== 'string') return value
+  if (/^\s*(SELECT|WITH|GRANT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP)\s/i.test(value)) return value
+  let result = value.replace(/\bP17[._]5\b/gi, 'bộ điều khiển phản ứng')
+    .replace(/\bP17[._]3\b/gi, 'bộ đánh giá điều kiện xử lý')
+    .replace(/\bP16H\b/gi, 'nhật ký kiểm toán chuẩn hóa')
+    .replace(/\bP17\b/gi, 'bộ phát hiện hành vi')
+    .replace(/\bP16\b/gi, 'API quản trị bảo mật')
+    .replace(/\bP15\b/gi, 'bộ đánh giá rủi ro')
+    .replace(/\bP14\b/gi, 'bộ thực thi chính sách')
+    .replace(/\bP19\b/gi, 'bộ kiểm thử nghiệm thu')
+  if (/\s/.test(result)) result = result
+    .replace(/\bCanonical(?: Audit)?\b/gi, 'nhật ký kiểm toán chuẩn hóa')
+    .replace(/\bsnapshot\b/gi, 'bản chụp')
+    .replace(/\bController\b/g, 'bộ điều khiển')
+    .replace(/\bworker\b/gi, 'bộ xử lý phát hiện')
+    .replace(/\bhash\b/gi, 'mã băm')
+    .replace(/\brequest\b/g, 'yêu cầu')
+    .replace(/\bincident\b/gi, 'sự cố')
+    .replace(/\bstream\b/g, 'luồng dữ liệu')
+    .replace(/\bEvent\b/g, 'sự kiện')
+    .replace(/\bupstream\b/gi, 'nguồn gốc')
+    .replace(/\bmetadata\b/gi, 'thông tin mô tả')
+    .replace(/\benvelope\b/gi, 'gói bản ghi')
+    .replace(/\bproduction\b/gi, 'môi trường vận hành')
+    .replace(/\bLAB\b/g, 'thử nghiệm')
+    .replace(/\blab\b/g, 'môi trường thử nghiệm')
+    .replace(/bộ phát hiện bộ phát hiện hành vi/g, 'bộ phát hiện hành vi')
+  return result
 }
 
 export function uiRoleList(value) {

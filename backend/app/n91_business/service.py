@@ -197,7 +197,8 @@ class BusinessService:
         with self.connection() as db:
             user = db.execute('SELECT * FROM users WHERE username=?', (username,)).fetchone()
         valid = verify_password(password, user['password_hash'] if user else self._dummy)
-        if not valid or not user or not user['active']:
+        if (not valid or not user or not user['active'] or
+                self.config.single_account_username is not None and username != self.config.single_account_username):
             # Unknown account names are not persisted; no password/token in audit.
             with self.connection(True) as db:
                 self._audit(db, 'UNAUTHENTICATED', 'LOGIN', None, request_id, outcome='DENIED')
@@ -216,6 +217,8 @@ class BusinessService:
         row = db.execute('SELECT u.*,s.expires_at,s.revoked FROM sessions s JOIN users u ON s.user_id=u.user_id WHERE s.token_hash=?',
                          (hashed,)).fetchone()
         if row is None or row['revoked'] or not row['active'] or row['expires_at'] <= self.clock():
+            raise BusinessError(401, 'SESSION_REQUIRED')
+        if self.config.single_account_username is not None and row['username'] != self.config.single_account_username:
             raise BusinessError(401, 'SESSION_REQUIRED')
         return row
 
@@ -425,6 +428,8 @@ class BusinessService:
             return [user_view(row) for row in rows]
 
     def create_user(self, actor, payload, key, request_id):
+        if self.config.single_account_username:
+            raise BusinessError(403, 'SINGLE_ACCOUNT_MODE')
         roles = roles_checked(payload['roles'])
         encoded = password_hash(payload['password'])
         safe_payload = {**payload, 'password': digest(payload['password'])}
@@ -442,6 +447,8 @@ class BusinessService:
             return self._idempotent(db, actor, key, ['create_user'], safe_payload, mutate)
 
     def update_user(self, actor, user_id, payload, key, request_id):
+        if self.config.single_account_username:
+            raise BusinessError(403, 'SINGLE_ACCOUNT_MODE')
         roles = roles_checked(payload['roles'])
         with self.connection(True) as db:
             self._actor(db, actor, 'admin')
@@ -473,6 +480,10 @@ class BusinessService:
                 if extended:
                     item.update(sequence=row['seq'], before=json.loads(row['before_json']) if row['before_json'] else None,
                                 after=json.loads(row['after_json']) if row['after_json'] else None)
+                    if item['action'] in {'WORKLOAD_QUARANTINE', 'WORKLOAD_RESTORE'}:
+                        for stage in ('before', 'after'):
+                            if isinstance(item[stage], list):
+                                item[stage] = {'ports': item[stage]}
                 result.append(item)
             return result
 

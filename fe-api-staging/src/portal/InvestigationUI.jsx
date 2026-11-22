@@ -7,6 +7,7 @@ import {
   currentMappingState,
 } from '../services/portalApi'
 import { Badge, display, FieldGrid, useTime } from './PortalUI'
+import { uiLabel } from '../services/uiLanguage'
 
 function useObservationClock() {
   const [, tick] = useState(0)
@@ -29,7 +30,7 @@ export function VerifiedSource({ mapping, meta, error, compact = false }) {
       </div>
       <small>Đối chiếu: {time(mapping?.observed_at)}</small>
       <small>
-        TTL:{' '}
+        Hiệu lực:{' '}
         {mapping?.ttl_seconds == null
           ? 'Chưa cung cấp'
           : `${mapping.ttl_seconds}s`}
@@ -37,7 +38,7 @@ export function VerifiedSource({ mapping, meta, error, compact = false }) {
       {!compact && (
         <p className="v4-panel-note">
           {state.verification === 'VERIFIED'
-            ? 'Danh tính nguồn được xác minh trong TTL. Trạng thái mạng vẫn cần quan sát Neutron riêng.'
+            ? 'Danh tính nguồn được xác minh trong thời hạn quan sát. Trạng thái mạng vẫn cần quan sát Neutron riêng.'
             : "Chưa có đối chiếu được xác minh còn hiệu lực. Thông tin dưới đây được giữ theo nguồn."}
           {mapping?.reason && (
             <>
@@ -60,13 +61,13 @@ const mappingLabels = {
 }
 const mappingReasons = {
   OPENSTACK_CONNECTION_FAILED: 'Chưa kết nối được API OpenStack.',
-  OPENSTACK_NOT_CONFIGURED: 'Backend chưa cấu hình nguồn OpenStack.',
+  OPENSTACK_NOT_CONFIGURED: 'Dịch vụ xử lý chưa cấu hình kết nối OpenStack.',
   MULTIPLE_CURRENT_PORT_MATCHES:
     "IP nguồn xuất hiện trên nhiều port; chưa đủ thông tin để chọn VM.",
   NO_CURRENT_PORT_MATCH_IN_PROJECT:
     'Không có port khớp IP trong project đang đọc.',
   PORT_NOT_ATTACHED_TO_KNOWN_COMPUTE_VM:
-    'Port chưa gắn với VM compute có trong inventory.',
+    'Port chưa gắn với máy ảo trong danh sách OpenStack.',
 }
 
 export function CurrentMapping({ mapping, error, compact = false }) {
@@ -75,31 +76,33 @@ export function CurrentMapping({ mapping, error, compact = false }) {
   const state = currentMappingState(mapping, Boolean(error), now)
   return (
     <div className="v4-verification">
-      <div>
-        <Badge
-          value={
-            state.state === 'MATCHED'
-              ? 'FRESH'
-              : state.state === 'AMBIGUOUS'
-                ? 'REVIEW_REQUIRED'
-                : state.state
-          }
-        >
-          {mappingLabels[state.state]}
-        </Badge>
-        <Badge value={state.freshness} />
-      </div>
+      {(!compact || !state.href) && (
+        <div>
+          <Badge
+            value={
+              state.state === 'MATCHED'
+                ? 'FRESH'
+                : state.state === 'AMBIGUOUS'
+                  ? 'REVIEW_REQUIRED'
+                  : state.state
+            }
+          >
+            {mappingLabels[state.state]}
+          </Badge>
+          {(!compact || state.freshness !== 'FRESH') && <Badge value={state.freshness} />}
+        </div>
+      )}
       {state.href && (
         <a className="v4-id-link" href={state.href}>
-          {mapping.server_name || mapping.server_id}
+          {mapping.server_name ? uiLabel(mapping.server_name) : mapping.server_id}
           {compact ? '' : " → Mở máy ảo / port"}
         </a>
       )}
-      <small>
+      {!compact && <><small>
         Neutron: {time(mapping?.observed_at)} · TTL{' '}
         {mapping?.ttl_seconds == null ? '—' : `${mapping.ttl_seconds}s`}
       </small>
-      <small>Danh tính lúc sự cố: chưa xác minh</small>
+      <small>Danh tính lúc sự cố: chưa xác minh</small></>}
       {compact && state.state !== 'MATCHED' && (
         <small>
           {mappingReasons[mapping?.reason] ||
@@ -121,7 +124,7 @@ export function CurrentMapping({ mapping, error, compact = false }) {
           )}
           <FieldGrid
             rows={[
-              ['VM tại lần quan sát', display(mapping?.server_name)],
+              ['VM tại lần quan sát', mapping?.server_name ? uiLabel(mapping.server_name) : 'Chưa có dữ liệu'],
               ["Mã máy ảo", display(mapping?.server_id)],
               ['Port', display(mapping?.port_id)],
               ['Project', display(mapping?.project_id)],
@@ -138,16 +141,18 @@ export function CurrentMapping({ mapping, error, compact = false }) {
   )
 }
 
-export function SecurityGroups({ groups = [], provided = true }) {
-  if (!provided) return <span className="v4-muted">Chưa cung cấp SG</span>
+export function SecurityGroups({ groups = [], provided = true, namesOnly = false }) {
+  if (!provided) return <span className="v4-muted">Chưa cung cấp Security Group</span>
   if (!groups.length)
-    return <span className="v4-muted">Không có SG trong bản ghi</span>
+    return <span className="v4-muted">Bản ghi không có Security Group</span>
   return (
     <ul className="v4-security-groups">
       {groups.map((group) => (
         <li key={group.id}>
-          <strong>{group.name || 'Tên chưa cung cấp'}</strong>
-          <code>{group.id}</code>
+          <strong title={namesOnly && !group.name ? group.id : undefined}>
+            {group.name || 'Tên chưa cung cấp'}
+          </strong>
+          {!namesOnly && <code>{group.id}</code>}
         </li>
       ))}
     </ul>
@@ -217,7 +222,7 @@ export function DecisionChecklist({ data }) {
   const checks = [
     ['qualified', "Bằng chứng đủ điều kiện"],
     ['source_verified', "Đối chiếu nguồn đã xác minh"],
-    ['workload_allowed', "Máy ảo nằm trong lab / allowlist"],
+    ['workload_allowed', "Máy ảo thuộc phạm vi thử nghiệm được cho phép"],
     ['operator_approved', 'Phê duyệt của operator'],
     ['source_fresh', 'Nguồn đánh giá còn mới'],
   ]
@@ -313,7 +318,7 @@ export function RiskExposure({ exposure, meta, error, compact = false }) {
           <p className="v4-panel-note">
             Exposure chỉ phản ánh sự cố gần đây trong cửa sổ trên, không kết
             luận VM đã bị xâm nhập. Nhãn Chưa xác định/STALE giữ nguyên khi thiếu thời
-            điểm hoặc TTL hợp lệ.
+            điểm hoặc thời hạn xác minh hợp lệ.
           </p>
         </>
       )}

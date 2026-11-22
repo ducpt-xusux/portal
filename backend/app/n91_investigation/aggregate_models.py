@@ -97,7 +97,7 @@ class CanonicalProjection(DTO):
     risk: EventRisk
     source_ref: ID
     payload_sha256: Hash | None
-    payload_hash_basis: Literal['UPSTREAM_UNVERIFIED'] | None
+    payload_hash_basis: Literal['UPSTREAM_UNVERIFIED', 'H2B_ENVELOPE_SHA256'] | None
 
 
 class EventMember(DTO):
@@ -105,10 +105,10 @@ class EventMember(DTO):
     projection: P17Projection
     canonical: CanonicalProjection | None
     canonical_availability: Literal['AVAILABLE', 'UNAVAILABLE', 'MISMATCH']
-    join_state: Literal['RECONSTRUCTED_WINDOW', 'MISMATCH', 'UNAVAILABLE']
-    candidate_basis: Literal['LEGACY_UNPINNED'] = 'LEGACY_UNPINNED'
-    hash_comparability: Literal['NOT_PROVEN', 'UNAVAILABLE']
-    eligible_for_corr: None = None
+    join_state: Literal['RECONSTRUCTED_WINDOW', 'DIRECT_PERSISTED', 'MISMATCH', 'UNAVAILABLE']
+    candidate_basis: Literal['LEGACY_UNPINNED', 'PERSISTED_P17_SNAPSHOT'] = 'LEGACY_UNPINNED'
+    hash_comparability: Literal['NOT_PROVEN', 'UNAVAILABLE', 'VERIFIED_EQUAL', 'MISMATCH']
+    eligible_for_corr: StrictBool | None = None
     reason_codes: list[ID]
 
 
@@ -117,10 +117,10 @@ class MembersPage(DTO):
     items: list[EventMember]
     authoritative_count: Count
     total_candidates: Count | None
-    verified_linked_count: Literal[0] | None = None
-    direct_membership_supported: Literal[False] = False
-    membership: Literal['RECONSTRUCTED_WINDOW', 'UNAVAILABLE']
-    candidate_basis: Literal['LEGACY_UNPINNED'] = 'LEGACY_UNPINNED'
+    verified_linked_count: Count | None = None
+    direct_membership_supported: StrictBool = False
+    membership: Literal['RECONSTRUCTED_WINDOW', 'DIRECT_PERSISTED', 'UNAVAILABLE']
+    candidate_basis: Literal['LEGACY_UNPINNED', 'PERSISTED_P17_SNAPSHOT'] = 'LEGACY_UNPINNED'
     matches_recorded_count: StrictBool | None
     limit: Annotated[StrictInt, Field(ge=1, le=100)]
     has_more: StrictBool
@@ -153,6 +153,15 @@ class DependentSection(DTO):
     reason_codes: list[ID]
 
 
+class RecordedDetection(DTO):
+    availability: Literal['AVAILABLE'] = 'AVAILABLE'
+    detector_version: ID
+    detector_sha256: Hash
+    snapshot_id: Hash
+    recorded_at: AwareDatetime
+    reason_codes: list[ID] = Field(default_factory=list)
+
+
 class AnalystCase(DTO):
     availability: Literal['AVAILABLE', 'UNAVAILABLE']
     overlay: Overlay | None = None
@@ -176,7 +185,7 @@ class InvestigationData(DTO):
     incident: RecordedIncident
     event_members: MembersPage
     alerts: AlertsSection
-    detection: DependentSection
+    detection: DependentSection | RecordedDetection
     decision: DependentSection
     response: DependentSection | ResponseHistory
     analyst_case: AnalystCase
@@ -192,7 +201,7 @@ class InvestigationMeta(DTO):
     overall_status: Literal['PARTIAL'] = 'PARTIAL'
     freshness_state: Literal['FRESH', 'HISTORICAL', 'STALE']
     execution_mode: Literal['HISTORICAL'] = 'HISTORICAL'
-    source_context: Literal['TEST', 'IMPORTED_UNVERIFIED']
+    source_context: Literal['TEST', 'IMPORTED_UNVERIFIED', 'LIVE_READONLY']
     sources: list[SourceAvailability]
     missing_fields: list[ID]
     limitations: list[str]

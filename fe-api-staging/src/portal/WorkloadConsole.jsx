@@ -124,7 +124,7 @@ export default function WorkloadConsole({ vm, meta, error }) {
         <p className="v4-panel-note">
           Nova: <Badge value={state} /> · Quan sát lúc {time(vm.observed_at)}.{' '}
           {state !== 'ACTIVE' &&
-            'Cần inventory mới và VM ACTIVE để mở console.'}
+            'Cần trạng thái OpenStack mới và máy ảo đang hoạt động để mở màn hình điều khiển.'}
         </p>
         {session && (
           <p className="v4-panel-note">

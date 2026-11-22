@@ -108,7 +108,7 @@ export function mapAuditEvent(record) {
     reason:
       record.reasons.join(' · ') ||
       (record.defaulted
-        ? 'P14 áp dụng default-deny vì query không thuộc workload được phép.'
+        ? 'Bộ thực thi chính sách áp dụng chặn mặc định vì query không thuộc workload được phép.'
         : 'Không có lý do bổ sung trong bản ghi.'),
     action: record.action,
     actionResult: record.action_result,

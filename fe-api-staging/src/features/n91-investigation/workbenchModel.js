@@ -130,17 +130,17 @@ const canonical = obj({
   risk,
   source_ref: id,
   payload_sha256: nullable(hash),
-  payload_hash_basis: nullable(literal('UPSTREAM_UNVERIFIED')),
+  payload_hash_basis: nullable(literal('UPSTREAM_UNVERIFIED', 'H2B_ENVELOPE_SHA256')),
 })
 const member = obj({
   event_ref: eventRef,
   projection,
   canonical: nullable(canonical),
   canonical_availability: literal('AVAILABLE', 'UNAVAILABLE', 'MISMATCH'),
-  join_state: literal('RECONSTRUCTED_WINDOW', 'MISMATCH', 'UNAVAILABLE'),
-  candidate_basis: literal('LEGACY_UNPINNED'),
-  hash_comparability: literal('NOT_PROVEN', 'UNAVAILABLE'),
-  eligible_for_corr: nothing,
+  join_state: literal('RECONSTRUCTED_WINDOW', 'DIRECT_PERSISTED', 'MISMATCH', 'UNAVAILABLE'),
+  candidate_basis: literal('LEGACY_UNPINNED', 'PERSISTED_P17_SNAPSHOT'),
+  hash_comparability: literal('NOT_PROVEN', 'UNAVAILABLE', 'VERIFIED_EQUAL', 'MISMATCH'),
+  eligible_for_corr: nullable(bool),
   reason_codes: ids,
 })
 const cursor = nullable((v) =>
@@ -151,10 +151,10 @@ const members = obj({
   items: list(member, 100),
   authoritative_count: count,
   total_candidates: nullable(count),
-  verified_linked_count: nullable(literal(0)),
-  direct_membership_supported: no,
-  membership: literal('RECONSTRUCTED_WINDOW', 'UNAVAILABLE'),
-  candidate_basis: literal('LEGACY_UNPINNED'),
+  verified_linked_count: nullable(count),
+  direct_membership_supported: bool,
+  membership: literal('RECONSTRUCTED_WINDOW', 'DIRECT_PERSISTED', 'UNAVAILABLE'),
+  candidate_basis: literal('LEGACY_UNPINNED', 'PERSISTED_P17_SNAPSHOT'),
   matches_recorded_count: nullable(bool),
   limit: (v) => {
     count(v)
@@ -178,6 +178,10 @@ const dependent = obj({
   availability: literal('UNAVAILABLE'),
   outcome: nothing,
   reason_codes: ids,
+})
+const recordedDetection = obj({
+  availability: literal('AVAILABLE'), detector_version: id, detector_sha256: hash,
+  snapshot_id: hash, recorded_at: time, reason_codes: ids,
 })
 const metricSeconds = (v) => check(typeof v === 'number' && Number.isFinite(v) && v >= 0)
 const cycleScope = { incident_id: id, cycle_id: id }
@@ -209,7 +213,7 @@ const responseHistory = obj({
   arm_context: nullable(obj({ kind: literal('OWNER_ARM'), timestamp: time, link_quality: literal('CONTEXT_ONLY'), source_ref: id })),
   provenance: obj({
     run_id: id, archive_sha256: hash, registry_generation: hash, origin_mode: id,
-    scope: literal('LAB', 'UNKNOWN'), source_context: literal('TEST', 'IMPORTED_UNVERIFIED'),
+    scope: literal('LAB', 'UNKNOWN'), source_context: literal('TEST', 'IMPORTED_UNVERIFIED', 'LIVE_READONLY'),
     artifacts: list(obj({
       label: literal('CONTAINMENT', 'CLONE_BEFORE', 'CLONE_AFTER', 'SG_SAMPLER', 'CONTROLLER_WATCH', 'RESTORE_VERIFICATION'),
       source_ref: id, sha256: hash,
@@ -359,7 +363,7 @@ const data = obj({
     has_more: bool,
     reason_codes: ids,
   }),
-  detection: dependent,
+  detection: value => value?.availability === 'AVAILABLE' ? recordedDetection(value) : dependent(value),
   decision: dependent,
   response: (value) => value?.schema_version === 'portal-response-history-1'
     ? responseHistory(value)
@@ -381,7 +385,7 @@ const meta = obj({
   overall_status: literal('PARTIAL'),
   freshness_state: literal('FRESH', 'HISTORICAL', 'STALE'),
   execution_mode: literal('HISTORICAL'),
-  source_context: literal('TEST', 'IMPORTED_UNVERIFIED'),
+  source_context: literal('TEST', 'IMPORTED_UNVERIFIED', 'LIVE_READONLY'),
   sources: list(source, 32),
   missing_fields: ids,
   limitations: list(text),
@@ -415,6 +419,9 @@ export function parseInvestigation(payload, expected) {
       m.next_cursor === payload.meta.next_cursor
   )
   check(m.total_candidates === null || m.total_candidates >= m.items.length)
+  if (m.direct_membership_supported) check(m.membership === 'DIRECT_PERSISTED' &&
+    m.candidate_basis === 'PERSISTED_P17_SNAPSHOT' && m.verified_linked_count === m.total_candidates &&
+    d.detection.availability === 'AVAILABLE')
   check(
     m.available ||
       (!m.items.length && !m.has_more && m.membership === 'UNAVAILABLE')
@@ -439,6 +446,9 @@ export function parseInvestigation(payload, expected) {
       )
     if (event.canonical_availability === 'MISMATCH')
       check(event.join_state === 'MISMATCH')
+    if (event.hash_comparability === 'VERIFIED_EQUAL') check(event.canonical !== null &&
+      event.canonical.payload_hash_basis === 'H2B_ENVELOPE_SHA256' &&
+      event.canonical.payload_sha256 === event.projection.payload_sha256)
   }
   for (const a of d.alerts.items)
     check(
