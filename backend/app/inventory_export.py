@@ -4,13 +4,18 @@ Observation timestamps belong to the remote collector. Reading a local file neve
 renews them, and an export can never authorize a cloud mutation.
 """
 from copy import deepcopy
+from dataclasses import replace
 from datetime import datetime
 import hashlib
 import json
+from pathlib import Path
+import sqlite3
+from tempfile import NamedTemporaryFile
 
 from .openstack_inventory import InventoryReader, InventoryError, identifier, TTL, MAX_BYTES
 from .proxy_services import unique_object
 from .schemas import iso
+from .ssh_openstack import SSHTransport
 
 
 def stamp(value):
@@ -21,6 +26,61 @@ def stamp(value):
 
 
 class InventoryExportReader(InventoryReader):
+    def __init__(self, settings, **kwargs):
+        super().__init__(settings, **kwargs)
+        path = getattr(settings, 'openstack_inventory_export_ssh_config_path', None)
+        self.export_transport = SSHTransport(path, 'reader') if path else None
+        self.export_error = None
+        self.export_attempt = None
+        if self.export_transport:
+            self.refresh_seconds = 8
+
+    def _fetch_export(self):
+        data, token = self.export_transport.rpc({'op': 'inventory_export'})
+        raw = json.dumps(data, separators=(',', ':')).encode()
+        target = self.settings.openstack_inventory_export_path
+        if token is not None or len(raw) > MAX_BYTES or target.is_symlink():
+            raise InventoryError('OPENSTACK_EXPORT_UNAVAILABLE')
+        with NamedTemporaryFile(dir=target.parent, prefix='.inventory-', delete=False) as stream:
+            candidate = Path(stream.name)
+        try:
+            candidate.write_bytes(raw)
+            config = replace(self.settings, openstack_inventory_export_path=candidate,
+                             openstack_inventory_export_ssh_config_path=None)
+            items, meta, _ = InventoryExportReader(config, clock=self.clock).read()
+            if meta['freshness_state'] != 'FRESH':
+                raise InventoryError(meta['last_error_code'])
+            with self.lock:
+                if self.last_success and stamp(meta['last_success']) <= self.last_success:
+                    raise InventoryError('OPENSTACK_EXPORT_STALE')
+                candidate.replace(target)
+                self.export_error = None
+            return items
+        finally:
+            candidate.unlink(missing_ok=True)
+
+    def sample(self):
+        if not self.export_transport:
+            return super().sample()
+        with self.lock:
+            self.export_attempt = self.clock()
+        try:
+            items = self._fetch_export()
+        except (InventoryError, OSError, ValueError, TypeError) as error:
+            with self.lock:
+                self.export_error = getattr(error, 'code', 'OPENSTACK_EXPORT_UNAVAILABLE')
+            raise InventoryError(self.export_error) from None
+        if self.history_store:
+            try:
+                self.history_store.record_workload_network(
+                    self.settings.openstack_project_id,
+                    [(item['server_id'], item['network_observed_at'], item['network_state']) for item in items],
+                    'NEUTRON_INVENTORY',
+                )
+                self.history_error = None
+            except sqlite3.Error:
+                self.history_error = 'WORKLOAD_NETWORK_HISTORY_UNAVAILABLE'
+
     def network_history(self, server_ids):
         try:
             return self._network_history(server_ids)
@@ -118,17 +178,22 @@ class InventoryExportReader(InventoryReader):
             self.fingerprint = hashlib.sha256(raw).hexdigest()
         except (OSError, ValueError, TypeError, KeyError, AttributeError, RecursionError):
             self.last_error = 'OPENSTACK_EXPORT_UNAVAILABLE'
+        error = self.export_error or self.last_error
         if self.cached is None:
-            raise InventoryError(self.last_error)
+            raise InventoryError(error)
         if not copy:
             return
-        stale = bool(self.last_error) or (self.clock() - self.last_success).total_seconds() > TTL
+        stale = bool(error) or (self.clock() - self.last_success).total_seconds() > TTL
         meta = {**self.export_meta, 'source_mode': 'REMOTE_READONLY', 'collection_mode': 'SSH_EXPORT',
                 'access_mode': 'LOCAL_REMOTE_READONLY', 'read_at': iso(self.clock()),
                 'freshness_state': 'STALE' if stale else 'FRESH',
                 'data_state': 'CACHED_STALE' if stale else 'CURRENT',
-                'last_error_code': self.last_error or ('OPENSTACK_EXPORT_STALE' if stale else None),
+                'last_error_code': error or ('OPENSTACK_EXPORT_STALE' if stale else None),
                 'source_ref': 'sha256:' + self.fingerprint}
+        if self.export_transport:
+            meta.update(refresh_seconds=self.refresh_seconds, network_history_error=self.history_error)
+            if self.export_attempt:
+                meta['last_attempt'] = iso(self.export_attempt)
         return deepcopy(self.cached), meta, self.fingerprint
 
 

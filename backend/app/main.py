@@ -69,6 +69,7 @@ def validate_business_database(config, settings, evidence):
         settings.openstack_credential_path, settings.openstack_console_credential_path,
         settings.openstack_quarantine_credential_path,
         settings.openstack_ssh_relay_config_path, settings.automatic_response_relay_config_path,
+        settings.openstack_inventory_export_ssh_config_path, settings.openstack_inventory_export_path,
         settings.investigation_policy_path, settings.investigation_controller_path,
         settings.investigation_controller_archive_path, settings.investigation_controller_binding_path,
         settings.evaluation_observations_path, settings.system_observations_path,
@@ -107,8 +108,12 @@ def create_app(settings: Settings | None = None, *, evidence_config: EvidenceCon
             snapshot_reader, config.context, settings.p16h_import_context) if settings.p17_snapshot_path else None)
     store = Store(settings.database_path)
     importer = Importer(settings, store)
-    inventory_class = (SessionInventoryReader if session_enabled and settings.openstack_ssh_relay_config_path
-                       else InventoryExportReader) if settings.openstack_inventory_export_path else InventoryReader
+    inventory_class = InventoryReader
+    if settings.openstack_inventory_export_path:
+        inventory_class = InventoryExportReader
+        if (session_enabled and settings.openstack_ssh_relay_config_path
+                and not settings.openstack_inventory_export_ssh_config_path):
+            inventory_class = SessionInventoryReader
     inventory = inventory_class(settings, history_store=store)
     recovery = QuarantineRecovery(WorkloadQuarantine(settings), business, store)
     automatic = None
@@ -159,7 +164,8 @@ def create_app(settings: Settings | None = None, *, evidence_config: EvidenceCon
             except BusinessError:
                 logging.getLogger(__name__).exception("Quarantine recovery database is not ready")
         tasks = [asyncio.create_task(poll())]
-        if settings.openstack_enabled and settings.openstack_quarantine_sg_id:
+        if settings.openstack_enabled and (settings.openstack_quarantine_sg_id
+                                           or settings.openstack_inventory_export_ssh_config_path):
             tasks.append(asyncio.create_task(poll_inventory()))
         if app.state.quarantine_ready:
             tasks.append(asyncio.create_task(poll_restore()))
