@@ -52,7 +52,7 @@ const labels = {
   'portal-galera-node-1': 'Trạng thái nút Galera · phiên bản 1',
   'openstack-inventory-1': 'Danh mục hạ tầng OpenStack · phiên bản 1',
   'n91-portal-p17-vnext-1': 'Phân tích hành vi và chuỗi sự kiện · phiên bản 1',
-  'p17-lab-clone': 'Attack',
+  'p17-lab-clone': 'attack',
   'n91-clone-auto-corr002-v2': 'Tự động cách ly máy thử nghiệm · CORR-002 · phiên bản 2',
   'p17-incident-g03-dual-v3-20261104': 'Bộ phát hiện hành vi · G03 · phiên bản 3 · 04/11/2026',
   'UNREVIEWED': 'Chưa rà soát', 'NONE': 'Chưa xử lý', 'VERIFIED_BEFORE': 'Đã xác minh trước thực thi',

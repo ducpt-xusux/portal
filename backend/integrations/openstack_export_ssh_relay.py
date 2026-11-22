@@ -17,6 +17,7 @@ SOURCE_KEYS = {
     'OPENSTACK_COMPUTE_URL', 'OPENSTACK_NETWORK_URL', 'OPENSTACK_PROJECT_ID',
     'OPENSTACK_QUARANTINE_SG_ID',
 }
+COMPUTE_HOSTS_KEY = 'COMPUTE_HOSTS_EXPORT_PATH'
 
 
 def main():
@@ -34,10 +35,14 @@ def main():
         if len(raw) > 16384:
             raise ValueError('Oversized source configuration')
         settings = json.loads(raw, object_pairs_hook=unique_object)
+        host_projection = settings.pop(COMPUTE_HOSTS_KEY, None)
         if settings.keys() != SOURCE_KEYS or not all(isinstance(v, str) for v in settings.values()):
             raise ValueError('Invalid source configuration')
         os.environ.update(settings)
         data = collect(Settings.from_env())
+        if isinstance(host_projection, str) and Path(host_projection).is_absolute():
+            from openstack_compute_hosts import add_compute_hosts
+            add_compute_hosts(data, Path(host_projection))
         result = json.dumps({'data': data}, separators=(',', ':')).encode()
         if len(result) > MAX_BYTES:
             raise ValueError('Oversized inventory response')
