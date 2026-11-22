@@ -48,7 +48,8 @@ export async function portalRequest(
     csrfToken,
     idempotencyKey,
     fetcher = globalThis.fetch,
-    timeout = 10000,
+    // The Controller read can take longer than the local Portal APIs.
+    timeout = path === '/system/automatic-response' ? 25000 : 10000,
   } = {}
 ) {
   const controller = new AbortController()
