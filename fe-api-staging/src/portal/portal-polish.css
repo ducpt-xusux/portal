@@ -1,0 +1,290 @@
+/*
+ * N91 Portal visual polish - drop-in, scoped to Portal v4.
+ * Source target: github.com/ducpt-xusux/portal @ 3624d544f5607e134e0916b2c86371ef88d72782
+ * Import AFTER portal/portal.css in fe-api-staging/src/main.jsx.
+ * Visual-only changes: no access-control, data-state or business-logic changes.
+ */
+.v4-app {
+  --polish-ink: #193247;
+  --polish-body: #334c5e;
+  --polish-muted: #596f80;
+  --polish-line: #dbe5eb;
+  --polish-paper: #ffffff;
+  --polish-canvas: #f4f7fa;
+  --polish-accent: #0a7382;
+  --polish-radius: 14px;
+  font-family: 'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--polish-body);
+  background: var(--polish-canvas);
+}
+
+/* Page frame: avoid tiny type floating inside very large cards. */
+.v4-app .v4-main {
+  max-width: 1600px;
+  padding: 24px clamp(16px, 2.3vw, 36px) 36px;
+}
+.v4-app .v4-page-content { gap: 18px; }
+.v4-app .panel {
+  border: 1px solid var(--polish-line);
+  border-radius: var(--polish-radius);
+  box-shadow: 0 4px 20px rgba(25, 50, 71, 0.035);
+  background: var(--polish-paper);
+}
+.v4-app .v4-panel { padding: 22px 24px; }
+.v4-app .v4-panel .panel-heading { gap: 12px; margin-bottom: 16px; }
+.v4-app .v4-panel .panel-heading h2 {
+  color: var(--polish-ink);
+  font-size: 18px;
+  font-weight: 720;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+}
+.v4-app .v4-panel .panel-heading p {
+  color: var(--polish-muted);
+  font-size: 14px;
+  line-height: 1.55;
+  margin-top: 4px;
+}
+.v4-app .eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  color: var(--polish-muted);
+  margin-bottom: 6px;
+}
+.v4-app .page-heading h1 {
+  color: var(--polish-ink);
+  font-size: clamp(27px, 2.4vw, 34px);
+  font-weight: 750;
+  line-height: 1.22;
+  letter-spacing: -0.035em;
+}
+.v4-app .page-heading p {
+  max-width: 65ch;
+  color: var(--polish-muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+/* Sidebar: readable text and a calmer active highlight. */
+.v4-app .sidebar { background: #112e42; }
+.v4-app .nav-item {
+  min-height: 48px;
+  height: auto;
+  padding: 10px 14px;
+  font-size: 15px;
+  font-weight: 580;
+  line-height: 1.3;
+  border-radius: 10px;
+  color: #ccdde6;
+}
+.v4-app .nav-item:hover { color: #fff; }
+.v4-app .nav-item.active { background: #1d4d60; font-weight: 680; }
+.v4-app .brand-word { letter-spacing: -0.02em; }
+.v4-app .brand-word > span { letter-spacing: 0.09em; }
+.v4-app .sidebar-help,
+.v4-app .environment-card > a,
+.v4-app .user-card { font-size: 13px; }
+.v4-app .v4-topbar,
+.v4-app .v4-topbar .breadcrumb { font-size: 13px; }
+.v4-app .v4-clock,
+.v4-app .v4-account,
+.v4-app .v4-top-select select,
+.v4-app .v4-source-select select { font-size: 12px; }
+.v4-app .v4-account small,
+.v4-app .v4-local-account { font-size: 12px; }
+
+/* Table: the prior 9-11px scale was too small for a thesis live demo. */
+.v4-app .v4-table {
+  font-size: 14px;
+  line-height: 1.45;
+  min-width: 680px;
+}
+.v4-app .v4-table th {
+  color: #536979;
+  background: #f4f7f9;
+  border-bottom: 1px solid var(--polish-line);
+  padding: 13px 14px;
+  font-size: 12px;
+  font-weight: 720;
+  line-height: 1.4;
+  letter-spacing: 0.015em;
+}
+.v4-app .v4-table td {
+  color: #2b4658;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 16px 14px;
+  border-bottom-color: #e8eef2;
+}
+.v4-app .v4-table td small,
+.v4-app .v4-table td time {
+  color: var(--polish-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin-top: 4px;
+}
+.v4-app .v4-table tbody tr:hover { background: #f7fbfc; }
+.v4-app .v4-table td code,
+.v4-app .v4-id-link {
+  font-size: 12px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+.v4-app .v4-id-link { color: #1e5c72; font-weight: 560; }
+.v4-app .v4-rule {
+  font-size: 12px;
+  font-weight: 580;
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+/* Status labels: semantics remain unchanged; improved contrast and size. */
+.v4-app .v4-badge,
+.v4-app .v4-table td .v4-badge {
+  padding: 5px 9px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 660;
+  line-height: 1.35;
+}
+.v4-app .v4-badge i { width: 6px; height: 6px; }
+.v4-app .v4-badge.good { color: #0a6147; background: #e6f5ec; }
+.v4-app .v4-badge.warn { color: #805500; background: #fff3d8; }
+.v4-app .v4-badge.danger { color: #a82d2d; background: #feebeb; }
+.v4-app .v4-badge.quarantine { color: #6434a1; background: #f0e8fb; }
+.v4-app .v4-badge.neutral { color: #526779; background: #edf1f4; }
+
+/* Source metadata: still visible, but lower priority than the actual results. */
+.v4-app .v4-source-status,
+.v4-app .v4-source-status strong {
+  color: var(--polish-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.v4-app .v4-panel > .v4-source-status {
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+}
+.v4-app .v4-panel-note,
+.v4-app .v4-notice,
+.v4-app .v4-notice p,
+.v4-app .v4-inline-warning,
+.v4-app .v4-form-intro {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.v4-app .v4-muted { color: var(--polish-muted); }
+
+/* Information grids, details and timeline. */
+.v4-app .v4-fields dt,
+.v4-app .v4-label,
+.v4-app .v4-detail-statuses > div > span:first-child { font-size: 12px; color: var(--polish-muted); }
+.v4-app .v4-fields dd,
+.v4-app .v4-detail-statuses strong { font-size: 14px; line-height: 1.5; color: var(--polish-ink); }
+.v4-app .v4-detail-statuses small,
+.v4-app .v4-timeline small,
+.v4-app .v4-timeline time { font-size: 12px; color: var(--polish-muted); }
+.v4-app .v4-subheading,
+.v4-app .v4-service-card h3 { font-size: 15px; font-weight: 680; color: var(--polish-ink); }
+.v4-app .v4-service-card { border-radius: 12px; padding: 18px; }
+.v4-app .v4-galera-summary strong { font-size: 21px; font-variant-numeric: tabular-nums; }
+.v4-app .v4-chart text { font-size: 12px; }
+.v4-app .v4-kpis .stat-value { font-variant-numeric: tabular-nums; }
+
+/* Navigation tabs and buttons are usable without zooming the browser. */
+.v4-app .v4-system-tabs { gap: 6px; padding-bottom: 9px; }
+.v4-app .v4-system-tabs > a {
+  padding: 10px 14px;
+  border-radius: 9px;
+  color: #516a7b;
+  font-size: 14px;
+  font-weight: 580;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.v4-app .v4-system-tabs > a.active { color: #16485e; background: #e5f1f3; font-weight: 700; }
+.v4-app .button,
+.v4-app .v4-pager .button,
+.v4-app .v4-login-button {
+  font-size: 14px;
+  font-weight: 660;
+  min-height: 40px;
+  line-height: 1.3;
+  border-radius: 9px;
+}
+.v4-app .button:focus-visible,
+.v4-app .v4-system-tabs a:focus-visible,
+.v4-app .nav-item:focus-visible { outline: 3px solid #58bdb5; outline-offset: 2px; }
+.v4-app .v4-pager { font-size: 13px; }
+.v4-app .v4-filter { font-size: 13px; color: #395469; gap: 7px; }
+.v4-app .v4-filter input,
+.v4-app .v4-filter select,
+.v4-app .v4-filter textarea {
+  font-size: 14px;
+  color: #263f51;
+  border-radius: 9px;
+  min-height: 42px;
+  padding: 10px 12px;
+}
+.v4-app .v4-filter input::placeholder,
+.v4-app .v4-filter textarea::placeholder { color: #718695; }
+.v4-app .v4-filters { padding: 16px 18px; gap: 12px; }
+.v4-app .v4-filters .text-button { font-size: 13px; }
+.v4-app .v4-dialog { border-radius: 16px; }
+.v4-app .v4-dialog h2 { font-size: 22px; line-height: 1.3; }
+.v4-app .v4-dialog input { font-size: 15px; min-height: 42px; }
+.v4-app .v4-footer { font-size: 12px; }
+
+/* Responsive: keep legible, horizontally scroll the rare wide data table. */
+@media (max-width: 1024px) {
+  .v4-app .v4-main { padding: 18px 18px 30px; }
+  .v4-app .v4-panel { padding: 18px 18px; }
+  .v4-app .v4-table { min-width: 630px; }
+}
+@media (max-width: 760px) {
+  .v4-app .v4-main { padding: 14px 12px 24px; }
+  .v4-app .v4-panel { padding: 16px 14px; }
+  .v4-app .page-heading h1 { font-size: 27px; }
+  .v4-app .v4-panel .panel-heading h2 { font-size: 17px; }
+  .v4-app .v4-table { font-size: 13px; }
+  .v4-app .v4-table td { padding: 13px 12px; }
+  .v4-app .v4-system-tabs > a { font-size: 13px; padding: 10px 11px; }
+  .v4-app .v4-source-status { font-size: 12px; }
+  .v4-app .v4-filters { padding: 14px 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .v4-app .button,
+  .v4-app .nav-item { transition: none; }
+}
+
+/* Keep long Vietnamese labels and technical fields inside the layout. */
+.v4-app .v4-main,
+.v4-app .v4-page-content,
+.v4-app .v4-panel,
+.v4-app .table-scroll { min-width: 0; }
+.v4-app .v4-fields dd,
+.v4-app .v4-page-heading p { overflow-wrap: anywhere; }
+.v4-app .v4-table th { text-transform: none; }
+.v4-app .v4-filter input::placeholder,
+.v4-app .v4-filter textarea::placeholder { color: var(--polish-muted); }
+.v4-app .v4-path-node > span:first-child { font-size: 13px; }
+.v4-app .n91-wb-meta { font-size: 13px; }
+.v4-app .button:disabled { opacity: 0.65; cursor: not-allowed; }
+.v4-app :where(a, button, input, select, textarea, summary, [tabindex="0"]):focus-visible {
+  outline: 2px solid var(--polish-accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 760px) {
+  .v4-app .v4-topbar { height: auto; min-height: 56px; padding: 6px 12px; }
+  .v4-app .v4-topbar .topbar-end { min-width: 0; flex-wrap: wrap; justify-content: flex-end; }
+  .v4-app .v4-top-select select { max-width: 100%; min-height: 36px; }
+  .v4-app .v4-page-heading .page-actions { max-width: 100%; flex-wrap: wrap; }
+  .v4-app .v4-path-nodes { flex-wrap: wrap; }
+  .v4-app .v4-path-node { flex-wrap: wrap; }
+  .v4-app .v4-filter input,
+  .v4-app .v4-filter select,
+  .v4-app .v4-filter textarea { font-size: 16px; }
+}
