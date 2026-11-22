@@ -34,6 +34,8 @@ export function PortalProvider({ children }) {
   const [singleAccount, setSingleAccount] = useState(false);
   const [workloadQuarantineAvailable, setWorkloadQuarantineAvailable] =
     useState(false);
+  const [controllerActionHistoryConfigured, setControllerActionHistoryConfigured] =
+    useState(true);
   const [accessAttempt, setAccessAttempt] = useState(0);
   const sessionAuthEnabled = access === "SESSION";
   const [sessionVersion, setSessionVersion] = useState(0);
@@ -81,6 +83,9 @@ export function PortalProvider({ children }) {
           setSingleAccount(data.single_account === true);
           setWorkloadQuarantineAvailable(
             data.workload_quarantine_available === true,
+          );
+          setControllerActionHistoryConfigured(
+            data.controller_action_history_configured !== false,
           );
         }
       })
@@ -198,6 +203,7 @@ export function PortalProvider({ children }) {
         sessionAuthEnabled,
         singleAccount,
         workloadQuarantineAvailable,
+        controllerActionHistoryConfigured,
         mode,
         setMode,
         timezone,
