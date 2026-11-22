@@ -151,7 +151,7 @@ def publish(source: str, output: str):
     finally:
         if temp is not None: temp.unlink(missing_ok=True)
     print('VNEXT_PORTAL_EXPORT_PASS', 'checkpoint='+str(payload['checkpoint']),
-          'events='+str(len(payload['events'])), 'cases='+str(len(payload['cases'])))
+          'events='+str(len(payload['events'])), 'cases='+str(len(payload['cases'])), flush=True)
 
 
 def main():

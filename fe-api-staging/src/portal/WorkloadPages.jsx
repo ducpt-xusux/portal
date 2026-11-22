@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import {
   freshness,
+  isOpenStackInventoryExport,
   mapWorkload,
   portalRequest,
   readCollection,
@@ -274,8 +275,8 @@ export function WorkloadsPage({ params }) {
     transform: (data) => readCollection(data, "workloads").map(mapWorkload),
   });
   const classificationMissing = resource.meta?.network_classification === "NOT_CONFIGURED";
-  const live = resource.meta?.source_mode === "LIVE";
-  const staleLive = live && freshness(resource.meta, Boolean(resource.error)) !== "FRESH";
+  const hasOpenStackObservation = resource.meta?.source_mode === "LIVE" || isOpenStackInventoryExport(resource.meta);
+  const stale = hasOpenStackObservation && freshness(resource.meta, Boolean(resource.error)) !== "FRESH";
   const applyFilters = (event) => {
     event.preventDefault();
     const query = new URLSearchParams(Object.entries(draft).filter(([, value]) => value)).toString();
@@ -313,7 +314,7 @@ export function WorkloadsPage({ params }) {
           )}
         </form>
         <ResourceNotice resource={resource} noun="danh sách máy ảo" />
-        {staleLive && !resource.error && <p className="v4-panel-note" role="status">Đang xem lần quan sát gần nhất.</p>}
+        {stale && !resource.error && <p className="v4-panel-note" role="status">Đang xem lần quan sát gần nhất.</p>}
         {classificationMissing && <p className="v4-panel-note">Dự án chưa cung cấp cấu hình Security Group cách ly.</p>}
         {resource.meta?.network_history_error && <p className="v4-panel-note" role="status">Tạm thời chưa đọc được lịch sử mạng.</p>}
         {resource.data && (resource.data.length ? (
@@ -332,7 +333,7 @@ export function WorkloadsPage({ params }) {
               <tbody>
                 {resource.data.map((vm) => {
                   const state = workloadNetworkStatus(vm.network_observation, resource.meta, Boolean(resource.error));
-                  const nova = live ? vm.nova_status : null;
+                  const nova = hasOpenStackObservation ? vm.nova_status : null;
                   const name = vm.name ? uiLabel(vm.name) : vm.server_id;
                   const vmUrl = `#/workloads/${encodeURIComponent(vm.server_id)}`;
                   const fixedIps = [...new Set(vm.ports.flatMap((port) => port.fixed_ips))];
@@ -349,8 +350,8 @@ export function WorkloadsPage({ params }) {
                   return (
                     <tr key={vm.server_id}>
                       <td><a className="workload-list-name" href={vmUrl}><Server size={16} aria-hidden="true" /> {name}</a></td>
-                      <td><Badge value={staleLive ? "STALE" : nova || "UNKNOWN"}>
-                        {staleLive ? "Dữ liệu cũ" : nova ? uiLabel(nova) : "Chưa xác minh"}
+                      <td><Badge value={stale ? "STALE" : nova || "UNKNOWN"}>
+                        {stale ? "Dữ liệu cũ" : nova ? uiLabel(nova) : "Chưa xác minh"}
                       </Badge></td>
                       <td>
                         <NetworkStatusBadge state={state} />
@@ -370,7 +371,7 @@ export function WorkloadsPage({ params }) {
           </div>
         ) : <Empty title="Không có máy ảo trong phạm vi lọc" />)}
         <CursorPager resource={resource} {...pager} />
-        {live && (
+        {hasOpenStackObservation && (
           <details className="portal-provenance workload-source-details">
             <summary>Nguồn OpenStack</summary>
             <FieldGrid rows={[

@@ -379,7 +379,7 @@ export function mapCurrentMapping(value) {
 }
 
 export function currentMappingState(mapping, failed = false, now = Date.now()) {
-  if (mapping?.source?.source_mode !== 'LIVE' && !isNeutronExport(mapping?.source))
+  if (mapping?.source?.source_mode !== 'LIVE' && !isOpenStackInventoryExport(mapping?.source))
     return { state: 'UNKNOWN', freshness: 'UNKNOWN', href: null }
   const age = now - Date.parse(mapping?.observation_from)
   const ttl = mapping?.ttl_seconds
@@ -711,7 +711,7 @@ export function mapSgHistory(value) {
 }
 
 export function workloadNetworkStatus(observation, meta, failed = false, now = Date.now()) {
-  if (meta?.source_mode === 'SNAPSHOT' || meta?.source_mode === 'REMOTE_READONLY' && !isNeutronExport(meta)) return 'UNKNOWN'
+  if (meta?.source_mode === 'SNAPSHOT' || meta?.source_mode === 'REMOTE_READONLY' && !isOpenStackInventoryExport(meta)) return 'UNKNOWN'
   const observed = Date.parse(observation?.observed_at)
   const ttl = number(meta?.network_stale_after_seconds) ?? 30
   const age = now - observed
@@ -724,7 +724,7 @@ export function workloadNetworkStatus(observation, meta, failed = false, now = D
     ? observation.state : 'UNKNOWN'
 }
 
-function isNeutronExport(meta) {
+export function isOpenStackInventoryExport(meta) {
   return meta?.source_mode === 'REMOTE_READONLY' && meta?.source_schema === 'openstack-inventory-1' && meta?.collection_mode === 'SSH_EXPORT'
 }
 
