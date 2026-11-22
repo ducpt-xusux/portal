@@ -5,10 +5,10 @@ import { uiLabel } from "../services/uiLanguage";
 
 const groups = (values) =>
   Array.isArray(values)
-    ? values.join(" · ") || "Không gán SG"
-    : "Không có bản ghi SG";
+    ? values.join(" · ") || "Chưa gán Security Group"
+    : "Nguồn chưa ghi Security Group";
 
-export default function QuarantineJournal({ serverId }) {
+export default function QuarantineJournal({ serverId, selectedOperationId }) {
   const time = useTime();
   const resource = useV4Resource(
     `/workloads/${encodeURIComponent(serverId)}/journal`,
@@ -18,7 +18,6 @@ export default function QuarantineJournal({ serverId }) {
   return (
     <Panel
       title="Nhật ký cách ly và khôi phục"
-      subtitle="Các lượt xử lý và bằng chứng nhóm bảo mật đã lưu"
       className="vm-journal-panel"
       action={
         <span className="vm-journal-count">
@@ -28,7 +27,7 @@ export default function QuarantineJournal({ serverId }) {
     >
       <div className="vm-journal-list">
         {resource.data.operations.map((operation) => (
-          <details className="vm-journal-entry" key={operation.operation_id}>
+          <details className="vm-journal-entry" key={operation.operation_id} open={operation.operation_id === selectedOperationId || undefined}>
             <summary>
               <span className="vm-journal-icon">
                 {operation.state === "RESTORED" ? (
@@ -48,11 +47,11 @@ export default function QuarantineJournal({ serverId }) {
               <table className="v4-table">
                 <thead>
                   <tr>
-                    <th>GIAI ĐOẠN</th>
-                    <th>CỔNG MẠNG</th>
-                    <th>NHÓM BẢO MẬT ĐÃ GHI NHẬN</th>
-                    <th>PHIÊN BẢN CỔNG</th>
-                    <th>MỐC NHẬT KÝ</th>
+                    <th>Giai đoạn</th>
+                    <th>Port</th>
+                    <th>Security Group đã ghi nhận</th>
+                    <th>Phiên bản cổng</th>
+                    <th>Mốc nhật ký</th>
                   </tr>
                 </thead>
                 <tbody>

@@ -1,6 +1,6 @@
 import { uiLabel, uiRoleList } from "./services/uiLanguage.js";
 import { Component, useEffect, useState } from "react";
-import { ChevronRight, Clock3, LogOut, Menu } from "lucide-react";
+import { Clock3, LogOut, Menu } from "lucide-react";
 import Sidebar from "./components/Sidebar";
 import useHashRoute from "./hooks/useHashRoute";
 import ApiDashboardPage from "./pages/ApiDashboardPage";
@@ -8,7 +8,6 @@ import ApiSecurityEventsPage from "./pages/ApiSecurityEventsPage";
 import ApiAuditSystemPage from "./pages/ApiAuditSystemPage";
 import DashboardPage from "./portal/N91CompactDashboard";
 import "./portal/n91Typography.css";
-import { dashboardHref } from "./services/dashboardFunnel";
 import { IncidentDetail, IncidentsPage } from "./portal/IncidentPages";
 import { EventDetail, EventsPage } from "./portal/EventPages";
 import {
@@ -108,6 +107,10 @@ function Shell() {
   }, [route.page, route.id, routeLabel]);
   const remountParams = { ...route.params };
   if (route.page === "incidents" && route.id) delete remountParams.wb_tab;
+  if (route.page === "events" && !route.id && route.params.view === "incidents") {
+    delete remountParams.incident_ref;
+    delete remountParams.stream_id;
+  }
   const pageKey = `${mode}:${route.page}:${route.id || ""}:${JSON.stringify(remountParams)}:${sessionVersion}`;
   let page;
   if (mode === "p16") {
@@ -136,20 +139,17 @@ function Shell() {
         route.id ? (
           <IncidentDetail id={route.id} params={route.params} />
         ) : (
-          <>
-            <IncidentNavigation analysis={route.params.analysis === "1"} />
-            {route.params.analysis === "1" ? (
-              <AnalysisPage params={route.params} />
-            ) : (
-              <IncidentsPage params={route.params} />
-            )}
-          </>
+          route.params.analysis === "1" ? (
+            <AnalysisPage params={route.params} navigation={<IncidentNavigation analysis />} />
+          ) : (
+            <IncidentsPage params={route.params} navigation={<IncidentNavigation />} />
+          )
         )
       ) : route.page === "events" ? (
         route.id ? (
           <EventDetail id={route.id} params={route.params} />
         ) : (
-          <EventsPage params={{ source: "canonical", ...route.params }} />
+          <EventsPage params={route.params} />
         )
       ) : route.page === "workloads" ? (
         route.id ? (
@@ -181,8 +181,6 @@ function Shell() {
         activePage={route.page === "actions" ? "workloads" : route.page}
         mobileOpen={mobileOpen}
         onClose={() => setMobileOpen(false)}
-        mode={mode}
-        user={auth.user}
       />
       <div className="main-shell">
         <header className="topbar v4-topbar">
@@ -195,8 +193,6 @@ function Shell() {
               <Menu size={21} />
             </button>
             <span className="breadcrumb">
-              Không gian làm việc
-              <ChevronRight size={14} />
               <strong>{routeLabel}</strong>
             </span>
           </div>
@@ -251,9 +247,8 @@ function Shell() {
         <main id="main" className="dashboard v4-main" tabIndex={-1}>
           {mode === "p16" && (
             <p className="v4-source-mode-notice">
-              Đang dùng nguồn audit . Các trạng thái hiển thị theo thông tin
-              nguồn của nguồn; không xác nhận trạng thái hoặc cách ly của
-              OpenStack.
+              Đang xem nhật ký kiểm toán. Trạng thái máy ảo và cách ly nằm trong
+              chế độ Portal.
             </p>
           )}
           {access === "OBSERVATION" &&
@@ -296,10 +291,6 @@ function Shell() {
               </PageBoundary>
             )}
           </div>
-          <footer className="dashboard-footer v4-footer">
-            <span>DBSEC Portal · Không gian quản trị</span>
-            <a href="#/system">Nguồn dữ liệu & trạng thái</a>
-          </footer>
         </main>
       </div>
     </div>

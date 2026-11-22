@@ -11,7 +11,7 @@ import { mapEvent, mapIncident, readCollection } from "../services/portalApi";
 import { auditEventQuery } from "../services/dashboardAudit";
 import { incidentHref } from "../services/incidentLinks";
 import { Badge, useTime } from "./PortalUI";
-import { uiLabel, uiErrorMessage } from "../services/uiLanguage";
+import { uiErrorMessage } from "../services/uiLanguage";
 import {
   dashboardMetrics,
   galeraNodeState,
@@ -72,13 +72,12 @@ function DashboardGalera() {
         <table className="n91-galera-exact-table">
           <thead>
             <tr>
-              <th>NÚT CƠ SỞ DỮ LIỆU</th>
-              <th>TRẠNG THÁI CỤM</th>
-              <th>SỐ NÚT BÁO CÁO</th>
-              <th>TRẠNG THÁI NÚT</th>
-              <th>SẴN SÀNG / KẾT NỐI CỤM</th>
-              <th>QUAN SÁT TRÊN NÚT</th>
-              <th>ĐỘ MỚI</th>
+              <th>Nút cơ sở dữ liệu</th>
+              <th>Trạng thái cụm</th>
+              <th>Số nút báo cáo</th>
+              <th>Trạng thái nút</th>
+              <th>Quan sát trên nút</th>
+              <th>Tình trạng cập nhật</th>
             </tr>
           </thead>
           <tbody>
@@ -105,9 +104,7 @@ function DashboardGalera() {
                           : "UNKNOWN"
                       }
                     >
-                      {state.valid
-                        ? uiLabel(node.wsrep_cluster_status)
-                        : "Chưa xác định"}
+                      {(state.valid && node.wsrep_cluster_status) || "Chưa xác định"}
                     </Badge>
                   </td>
                   <td>
@@ -125,15 +122,8 @@ function DashboardGalera() {
                           : "UNKNOWN"
                       }
                     >
-                      {state.valid
-                        ? uiLabel(node.wsrep_local_state_comment)
-                        : "Chưa xác định"}
+                      {(state.valid && node.wsrep_local_state_comment) || "Chưa xác định"}
                     </Badge>
-                  </td>
-                  <td>
-                    {state.valid
-                      ? `${uiLabel(node.wsrep_ready)} / ${uiLabel(node.wsrep_connected)}`
-                      : "—"}
                   </td>
                   <td>
                     {state.valid
@@ -208,7 +198,7 @@ export default function N91CompactDashboard() {
         : summary.meta?.source_mode === "SNAPSHOT"
           ? "Dữ liệu bản chụp"
           : summary.meta?.freshness_state === "FRESH"
-            ? "Nguồn dữ liệu bảo mật đã đọc"
+            ? "Đã cập nhật"
             : "Chưa xác minh độ mới";
   return (
     <section
@@ -222,9 +212,7 @@ export default function N91CompactDashboard() {
             <ShieldCheck size={26} strokeWidth={1.7} />
           </span>
           <div className="n91-hero-main">
-            <span className="n91-kicker">TRUNG TÂM GIÁM SÁT</span>
             <h1>Tổng quan bảo mật</h1>
-            <p>Theo dõi truy vấn cơ sở dữ liệu và các sự cố cần điều tra.</p>
           </div>
         </div>
         <div className="n91-hero-actions">
@@ -295,12 +283,9 @@ export default function N91CompactDashboard() {
         />
       </div>
       <div className="n91-clean-columns">
-        <section className="n91-clean-section">
+        <section className="n91-clean-section n91-recent-events">
           <header className="n91-section-head">
             <div>
-              <span className="n91-section-eyebrow">
-                {canonical ? "NHẬT KÝ TRUY VẤN" : "DỮ LIỆU PHÁT HIỆN"}
-              </span>
               <h2>Sự kiện gần đây</h2>
             </div>
             <a
@@ -336,7 +321,10 @@ export default function N91CompactDashboard() {
                   </span>
                   <span className="n91-item-action">
                     <Badge value={event.decision} />
-                    <b>{event.risk.score ?? "—"}</b>
+                  </span>
+                  <span className="n91-event-risk">
+                    <small>Rủi ro</small>
+                    <strong>{Number.isFinite(event.risk.score) ? `${event.risk.score}/100` : "—"}</strong>
                   </span>
                   <time className="n91-item-time">
                     {time(event.occurred_at)}
@@ -357,7 +345,6 @@ export default function N91CompactDashboard() {
         <section className="n91-clean-section">
           <header className="n91-section-head">
             <div>
-              <span className="n91-section-eyebrow">ĐIỀU TRA VÀ XỬ LÝ</span>
               <h2>Sự cố cần chú ý</h2>
             </div>
             <a className="n91-section-action" href="#/incidents">

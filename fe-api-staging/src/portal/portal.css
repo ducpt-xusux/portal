@@ -1612,12 +1612,6 @@
 .v4-incident-filters .v4-form-error {
   color: #ae3d3d;
 }
-.v4-filter-scope {
-  margin: 0;
-  color: #587386;
-  font-size: 11px;
-  line-height: 1.8;
-}
 .v4-incident-filters select:disabled,
 .v4-incident-filters option:disabled {
   color: #7f929f;

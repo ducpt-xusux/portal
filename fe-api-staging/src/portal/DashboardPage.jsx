@@ -210,7 +210,7 @@ function IncidentBreakdown({ resource }) {
                   <li key={row.value}>
                     <a
                       href={row.href}
-                      aria-label={`${label} ${row.value}: ${row.count} incidents`}
+                      aria-label={`${label} ${row.value}: ${row.count} sự cố`}
                     >
                       <span className="v4-breakdown-row">
                         <span>
@@ -387,7 +387,7 @@ function LiveDashboard({ params }) {
           </div>
         </div>
         <div className="v4-path-nodes">
-          {['SQL clients', 'DB Firewall', 'Galera Cluster'].map(
+          {['Ứng dụng SQL', 'Tường lửa cơ sở dữ liệu', 'Cụm Galera'].map(
             (name, index) => {
               const node = Array.isArray(data?.protection_path)
                 ? data.protection_path[index]

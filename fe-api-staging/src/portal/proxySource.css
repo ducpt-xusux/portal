@@ -142,7 +142,7 @@
 #n91-compact-overview .n91-galera-exact .n91-galera-title p{font-size:11px!important;margin:0!important}
 #n91-compact-overview .n91-galera-exact .n91-galera-warning{padding:3px 5px;color:#815c2c;font-size:11px!important;white-space:normal}
 #n91-compact-overview .n91-galera-table-wrap {max-width:100%;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;border-radius:6px}
-#n91-compact-overview table.n91-galera-exact-table {width:100%;min-width:940px;table-layout:fixed;border-collapse:collapse;color:#1b4057;text-align:left;font:500 12px/1.35 var(--n91-font-ui,Inter,'Segoe UI',Arial,sans-serif)!important}
+#n91-compact-overview table.n91-galera-exact-table {width:100%;min-width:690px;table-layout:fixed;border-collapse:collapse;color:#1b4057;text-align:left;font:500 12px/1.35 var(--n91-font-ui,Inter,'Segoe UI',Arial,sans-serif)!important}
 #n91-compact-overview .n91-galera-exact-table th {background:#f3f7f9;color:#51768d;font-size:10.8px!important;font-weight:750!important;line-height:1.3!important;padding:8px 9px!important;border-bottom:1px solid #dce8ed;vertical-align:middle;overflow-wrap:normal}
 #n91-compact-overview .n91-galera-exact-table td {padding:8px 9px!important;font-size:12px!important;line-height:1.35!important;vertical-align:middle;border-bottom:1px solid #e7eff2;overflow-wrap:break-word}
 #n91-compact-overview .n91-galera-exact-table tbody tr:last-child td{border-bottom:0}
@@ -152,7 +152,6 @@
 #n91-compact-overview .n91-galera-exact-table th:nth-child(4){width:14%}
 #n91-compact-overview .n91-galera-exact-table th:nth-child(5){width:14%}
 #n91-compact-overview .n91-galera-exact-table th:nth-child(6){width:17%}
-#n91-compact-overview .n91-galera-exact-table th:nth-child(7){width:9%}
 #n91-compact-overview .n91-galera-node-cell strong{display:block;color:#183e53;font-size:12.2px!important;font-weight:750!important}
 #n91-compact-overview .n91-galera-node-cell small{display:block;margin-top:3px;color:#6d8798;font-size:10.5px!important;line-height:1.35}
 #n91-compact-overview .n91-galera-numeric{text-align:center}
@@ -170,12 +169,10 @@
  #n91-compact-overview .n91-metric{min-height:100px!important}
 }
 @media(max-width:1200px){
- #n91-compact-overview table.n91-galera-exact-table{min-width:900px}
  #n91-compact-overview .n91-galera-exact-table td{font-size:11.5px!important}
 }
 @media(max-width:640px){
  #n91-compact-overview .n91-galera-exact .n91-galera-title p{display:block}
- #n91-compact-overview table.n91-galera-exact-table{min-width:990px}
  #n91-compact-overview .n91-galera-exact .n91-galera-heading-right{gap:6px}
 }
 
@@ -272,14 +269,12 @@
 #n91-compact-overview .n91-galera-node-cell strong {font-size: 13px !important}
 #n91-compact-overview .n91-galera-node-cell small {font-size: 11.7px !important;line-height:1.35 !important}
 #n91-compact-overview .n91-galera-observed {font-size: 12.3px !important;line-height:1.35 !important}
-#n91-compact-overview .n91-galera-exact-table {min-width: 1030px !important}
 #n91-compact-overview .n91-galera-exact-table th:nth-child(1) {width:20%}
-#n91-compact-overview .n91-galera-exact-table th:nth-child(2) {width:14%}
-#n91-compact-overview .n91-galera-exact-table th:nth-child(3) {width:11%}
-#n91-compact-overview .n91-galera-exact-table th:nth-child(4) {width:13%}
-#n91-compact-overview .n91-galera-exact-table th:nth-child(5) {width:17%}
-#n91-compact-overview .n91-galera-exact-table th:nth-child(6) {width:16%}
-#n91-compact-overview .n91-galera-exact-table th:nth-child(7) {width:9%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(2) {width:15%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(3) {width:12%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(4) {width:17%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(5) {width:21%}
+#n91-compact-overview .n91-galera-exact-table th:nth-child(6) {width:15%}
 
 /* Spacious monitor: use the whole vertical canvas instead of the old
    max-height 950px squash rule. Lists stretch naturally with screen height. */
@@ -340,7 +335,6 @@
 /* Narrow viewports may scroll; never cut off evidence or squeeze 7 columns
    into unreadable fragments. */
 @media (max-width:1050px) {
-  #n91-compact-overview .n91-galera-exact-table {min-width:1030px!important}
   #n91-compact-overview .n91-galera-table-wrap{overflow-x:auto}
   #n91-compact-overview .n91-hero p {display:block!important}
 }

@@ -186,6 +186,7 @@ def events(request:Request,limit:int=Query(100,ge=1,le=100),source_ip:str|None=N
     return envelope(request,raw,{'events':[{k:r.get(k) for k in ('event_id','stream_id','request_id',
         'stream_sequence','event_class','blocked','risk_status','risk_score','qualification')} |
         {'source_ip':r['trace'].get('source_ip'),
+         'event_time':r['trace'].get('event_time'),
          'matched_rules':r['trace'].get('p14',{}).get('matched_rules',[]),
          'detectors':r['trace'].get('p17',{}).get('matched_signals',[]),
          'case_id':r['trace'].get('p17',{}).get('case_id')}

@@ -12,6 +12,7 @@ from app.n91_business import BusinessConfig
 
 def export_fixture():
     trace = {'event_id': 'TEST-EVENT-1', 'source_ip': '192.0.2.10',
+             'event_time': '2026-11-21T15:52:00.353540+00:00',
              'p17': {'action_authorized': False, 'matched_signals': ['CORR-002']}}
     event = {'event_id': 'TEST-EVENT-1', 'stream_sequence': 1, 'blocked': False,
              'risk_score': 0, 'trace': trace}
@@ -53,6 +54,7 @@ def test_five_routes_use_real_application_and_keep_zero(source):
             assert client.post('/api/v1/p17-vnext/' + suffix, json={}).status_code == 405
         row = client.get('/api/v1/p17-vnext/events').json()['data']['events'][0]
         assert row['risk_score'] == 0 and row['blocked'] is False
+        assert row['event_time'] == '2026-11-21T15:52:00.353540+00:00'
         assert client.get('/api/v1/p17-vnext/cases?source_ip=192.0.2.11').json()['data']['cases'] == []
         assert client.get('/api/v1/p17-vnext/cases/missing').status_code == 404
     assert path.read_bytes() == original

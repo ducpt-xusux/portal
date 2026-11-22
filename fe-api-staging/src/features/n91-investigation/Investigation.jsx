@@ -1,5 +1,6 @@
 import ReportEventEvidence from "../../portal/ReportEventEvidence";
 import { Badge } from "../../portal/PortalUI";
+import { EventInvestigationLinks } from "../../portal/InvestigationFlow";
 import { useDetailView, compactFields } from "../../portal/DetailView";
 import { uiLabel, uiRoleList } from "../../services/uiLanguage.js";
 import { useEffect, useId, useState } from "react";
@@ -259,6 +260,8 @@ export function EventDetailSixTabs({
         {tab === "Overview" && (
           <>
             <ReportEventEvidence event={event} />
+            <details className="panel portal-provenance">
+              <summary>Kết quả thực thi và mốc kiểm toán</summary>
             <Fields
               rows={[
                 ["Quyết định · ", uiLabel(event.decision)],
@@ -277,10 +280,6 @@ export function EventDetailSixTabs({
                 ["Nhập vào Portal lúc (UTC)", event.imported_at],
               ]}
             />
-            <p className="n91-caption">
-              Quyết định chính sách và kết quả thực thi là hai trường riêng. Điểm rủi ro không cấp quyền
-              cách ly.
-            </p>
             {event.masked_query && (
               <>
                 <h3>Truy vấn đã che</h3>
@@ -288,6 +287,7 @@ export function EventDetailSixTabs({
               </>
             )}
             <Fields rows={Object.entries(event.time_basis)} />
+            </details>
           </>
         )}
         {tab === "Parser" && (
@@ -329,7 +329,7 @@ export function EventDetailSixTabs({
             )}
             <ul>
               {event.reasons.map((reason, i) => (
-                <li key={i}>{reason}</li>
+                <li key={i}>{uiLabel(reason)}</li>
               ))}
             </ul>
             <RulesExplorer api={api} event={event} compact />
@@ -339,7 +339,7 @@ export function EventDetailSixTabs({
           <>
             <Fields
               rows={[
-                ["Trạng thái rủi ro", uiLabel(event.risk.status)],
+                ["Trạng thái tính điểm", event.risk.status === "OK" ? "Đã tính điểm" : uiLabel(event.risk.status)],
                 ["Điểm từ nguồn", event.risk.score],
                 ["Mức độ ", uiLabel(event.risk.severity)],
                 ["Điểm gốc", event.raw_score],
@@ -354,7 +354,7 @@ export function EventDetailSixTabs({
                 <table>
                   <thead>
                     <tr>
-                      <th>Quy tắc / Nguồn</th>
+                      <th>Quy tắc / nguồn</th>
                       <th>Điểm</th>
                       <th>Lý do</th>
                     </tr>
@@ -364,7 +364,7 @@ export function EventDetailSixTabs({
                       <tr key={i}>
                         <td>{c.rule_id || c.source}</td>
                         <td>{show(c.score)}</td>
-                        <td>{show(c.reason)}</td>
+                        <td>{c.reason ? uiLabel(c.reason) : "—"}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -393,7 +393,7 @@ export function EventDetailSixTabs({
                 ["Mã yêu cầu", event.request_id],
                 [
                   "Liên kết bằng chứng với sự cố",
-                  "Chưa có dữ liệu · không tự ghép theo IP và thời gian",
+                  "Xem kết quả đối chiếu trong mục Tiếp tục điều tra sự kiện",
                 ],
               ]}
             />
@@ -422,6 +422,9 @@ export function EventInvestigation({
   return (
     <div className="n91-investigation">
       <Resource resource={resource} />
+      {resource.data?.event_id === eventId && resource.data?.stream_id === streamId && (
+        <EventInvestigationLinks event={resource.data} />
+      )}
       {resource.data && (
         <EventDetailSixTabs
           key={`${streamId}:${eventId}`}
@@ -470,7 +473,7 @@ export function EventCompare({ left, right }) {
         <table>
           <thead>
             <tr>
-              <th>Nguồn fact</th>
+              <th>Nguồn bằng chứng</th>
               <th>
                 APP selection{" "}
                 <a href={canonicalLink(comparison.left)}>
@@ -636,7 +639,7 @@ export function RulesExplorer({
             <table>
               <thead>
                 <tr>
-                  <th>Rule</th>
+                  <th>Quy tắc</th>
                   <th>Nhóm</th>
                   <th>Tác dụng</th>
                   <th>Nguồn</th>
@@ -762,7 +765,7 @@ export function SgLifecycle({ data }) {
   const current = lifecycleState(data, now);
   return (
     <section className="n91-investigation">
-      <h3>SG BEFORE / DURING / AFTER / hiện tại</h3>
+      <h3>Security Group trước, trong và sau cách ly</h3>
       <Notice>
         {data?.source?.execution_mode || "UNAVAILABLE"} · Lịch sử bộ điều khiển
         bằng chứng khác hiện tại Neutron read-back.
@@ -854,7 +857,7 @@ function GroupList({ groups }) {
       ))}
     </ul>
   ) : (
-    <p>Đã quan sát empty SG set</p>
+    <p>Bản ghi không có Security Group</p>
   );
 }
 export function LoadedSgLifecycle({ actionId, api = investigationApi }) {

@@ -105,12 +105,13 @@ export function ObservationAgeBadge({ value }) {
 }
 
 export function PageHeading({
-  eyebrow = "GIÁM SÁT BẢO MẬT",
+  eyebrow,
   title,
   description,
   resource,
   children,
 }) {
+  const { kind } = useDetailView();
   const Icon =
     {
       "Sự kiện bảo mật": ScrollText,
@@ -132,25 +133,27 @@ export function PageHeading({
           {description && <p>{description}</p>}
         </div>
       </div>
-      <div className="page-actions">
-        <DetailToggle />
-        {children}
-        {resource && (
-          <button
-            className="button secondary"
-            disabled={resource.loading}
-            onClick={resource.refresh}
-          >
-            <RefreshCw size={15} className={resource.loading ? "spin" : ""} />
-            Làm mới
-          </button>
-        )}
-      </div>
+      {(kind || resource || children) && (
+        <div className="page-actions">
+          <DetailToggle />
+          {children}
+          {resource && (
+            <button
+              className="button secondary"
+              disabled={resource.loading}
+              onClick={resource.refresh}
+            >
+              <RefreshCw size={15} className={resource.loading ? "spin" : ""} />
+              Làm mới
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-export function SourceStatus({ resource, label }) {
+export function SourceStatus({ resource, label, detailsOnly = false }) {
   const time = useTime();
   const { hideSourceSystem } = useSourceDisplay();
   const [, tick] = useState(0);
@@ -158,61 +161,39 @@ export function SourceStatus({ resource, label }) {
     const timer = setInterval(() => tick((value) => value + 1), 5000);
     return () => clearInterval(timer);
   }, []);
-  const state = freshness(resource.meta, Boolean(resource.error));
   const snapshot = resource.meta?.source_mode === "SNAPSHOT";
   const historical = resource.meta?.freshness_state === "HISTORICAL";
-  if (hideSourceSystem) {
-    // Dashboard gọn: bỏ tên nguồn kỹ thuật (source_system) và nhãn
-    // HISTORICAL, chỉ giữ trạng thái đọc được và mốc thời gian nguồn.
-    const value =
-      resource.data === null
-        ? "UNKNOWN"
-        : sourceState(resource.meta, Boolean(resource.error));
-    return (
-      <div className="v4-source-status">
-        <span>
-          <Database size={14} />
-          <Badge value={value} />
-        </span>
-        <span>
-          {resource.meta?.read_at
-            ? `Đọc ${snapshot ? "tệp " : ""}lúc ${time(resource.meta.read_at)}`
-            : "Chưa đọc được nguồn"}
-          {resource.meta?.data_as_of &&
-            ` · ${snapshot ? "Chốt bản chụp" : "Dữ liệu đến"} ${time(resource.meta.data_as_of)}`}
-        </span>
-      </div>
-    );
-  }
+  const state = historical ? "HISTORICAL" : freshness(resource.meta, Boolean(resource.error));
+  const meta = resource.meta;
+  if (!meta || (resource.error && resource.data == null)) return null;
+  const value = resource.error || state === "STALE"
+    ? "STALE"
+    : hideSourceSystem
+      ? sourceState(meta)
+      : snapshot || historical
+        ? "HISTORICAL"
+        : state;
   return (
     <div className="v4-source-status">
-      <span>
-        <Database size={14} />
-        <strong>
-          {label || uiLabel(resource.meta?.source_system || "UNKNOWN")}
-        </strong>
-        <Badge
-          value={
-            resource.data === null
-              ? "UNKNOWN"
-              : resource.error
-                ? "STALE"
-                : snapshot || historical
-                  ? "HISTORICAL"
-                  : state
-          }
-        />
-        {snapshot && !historical && state !== "FRESH" && (
-          <Badge value={state} />
-        )}
-      </span>
-      <span>
-        {resource.meta?.read_at
-          ? `Đọc ${snapshot ? "tệp " : ""}lúc ${time(resource.meta.read_at)}`
-          : "Chưa đọc được nguồn"}
-        {resource.meta?.data_as_of &&
-          ` · ${snapshot ? "Chốt bản chụp" : "Dữ liệu đến"} ${time(resource.meta.data_as_of)}`}
-      </span>
+      {!detailsOnly && (
+        <span>
+          {!["FRESH", "PARTIAL"].includes(value) && <Badge value={value}>
+            {value === "HISTORICAL" ? "Bản ghi lịch sử" : uiLabel(value)}
+          </Badge>}
+          {meta.data_as_of && (
+            <>{snapshot ? "Bản chụp lúc" : "Dữ liệu đến"} <time dateTime={meta.data_as_of}>{time(meta.data_as_of)}</time></>
+          )}
+        </span>
+      )}
+      <details className="v4-source-details">
+        <summary>Thông tin nguồn</summary>
+        <FieldGrid showAll rows={[
+          ["Nguồn dữ liệu", label || uiLabel(meta.source_system)],
+          ["Portal đọc lúc", time(meta.read_at)],
+          ["Dữ liệu đến", time(meta.data_as_of)],
+          ["Tình trạng cập nhật", uiLabel(state)],
+        ]} />
+      </details>
     </div>
   );
 }
@@ -324,6 +305,7 @@ export function Panel({
   children,
   className = "",
   action,
+  sourceDetailsOnly = false,
 }) {
   const { compact, kind } = useDetailView();
   if (
@@ -335,7 +317,7 @@ export function Panel({
       "Kho bằng chứng",
       "Đối chiếu máy ảo",
       "Ghi chú rà soát",
-      "Đánh giá phản ứng",
+      "Đánh giá điều kiện ứng phó",
     ].includes(title)
   )
     return null;
@@ -353,7 +335,7 @@ export function Panel({
       </div>
       {resource && (
         <>
-          <SourceStatus resource={resource} />
+          <SourceStatus resource={resource} detailsOnly={sourceDetailsOnly} />
           <ResourceNotice resource={resource} noun={title.toLowerCase()} />
         </>
       )}
@@ -362,9 +344,9 @@ export function Panel({
   );
 }
 
-export function FieldGrid({ rows }) {
+export function FieldGrid({ rows, showAll = false }) {
   const { compact } = useDetailView();
-  const visible = compact ? compactFields(rows) : rows;
+  const visible = compact && !showAll ? compactFields(rows) : rows;
   return (
     <dl className="v4-fields">
       {visible.map(([name, value]) => (
@@ -415,7 +397,7 @@ export function FilterHeading() {
   return (
     <div className="portal-filter-title">
       <SlidersHorizontal size={16} />
-      Bộ lọc dữ liệu
+      Bộ lọc
     </div>
   );
 }

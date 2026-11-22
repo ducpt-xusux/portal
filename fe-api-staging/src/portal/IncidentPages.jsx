@@ -12,7 +12,7 @@ import {
 } from "../features/n91-investigation/workbenchModel.js";
 import { incidentHref } from "../services/incidentLinks.js";
 import { IncidentBusinessPanel } from "../features/n91-business";
-import { useId, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { ArrowLeft, ArrowUpRight, FileText, RefreshCw } from "lucide-react";
 import usePortalResource from "../hooks/usePortalResource";
 import {
@@ -90,19 +90,19 @@ export function IncidentTable({ incidents, compact = false, meta, error }) {
       <table className={`v4-table ${compact ? "" : "v4-investigation-table"}`}>
         <thead>
           <tr>
-            <th>SỰ CỐ / NGUỒN</th>
-            <th>TÍN HIỆU</th>
-            <th>MỨC ĐỘ / ĐỘ TIN CẬY</th>
+            <th>Sự cố / nguồn</th>
+            <th>Tín hiệu</th>
+            <th>Mức độ</th>
             <th title="Số bằng chứng do bộ phát hiện hành vi ghi nhận; chưa chứng minh số bản ghi nhật ký kiểm toán chuẩn hóa đã đối chiếu.">
-              BẰNG CHỨNG PHÁT HIỆN
+              Bằng chứng phát hiện
             </th>
             {!compact && (
               <>
-                <th>PHÁT HIỆN / PHẢN ỨNG</th>
-                <th>XÁC MINH NGUỒN</th>
+                <th>Phát hiện / ứng phó</th>
+                <th>Xác minh nguồn</th>
               </>
             )}
-            <th>LẦN CUỐI</th>
+            <th>Lần cuối</th>
             <th>
               <span className="sr-only">Chi tiết</span>
             </th>
@@ -125,13 +125,9 @@ export function IncidentTable({ incidents, compact = false, meta, error }) {
               </td>
               <td>
                 <Badge value={incident.severity} />
-                <small>{uiLabel(incident.confidence)}</small>
               </td>
               <td>
                 <strong>{display(incident.evidence_count)}</strong>
-                <small>
-                  Điểm rủi ro cao nhất: {display(incident.p15_peak_score)}
-                </small>
               </td>
               {!compact && (
                 <td>
@@ -175,10 +171,8 @@ export function IncidentTable({ incidents, compact = false, meta, error }) {
   );
 }
 
-export function IncidentsPage({ params }) {
+export function IncidentsPage({ params, navigation }) {
   const { auth, timezone, sessionAuthEnabled } = usePortal();
-  const time = useTime(),
-    supportId = useId();
   const [draft, setDraft] = useState(() => initialIncidentDraft(params));
   const [formError, setFormError] = useState("");
   const support = readIncidentFilterSupport(auth.incidentFilters);
@@ -214,11 +208,10 @@ export function IncidentsPage({ params }) {
   return (
     <>
       <PageHeading
-        eyebrow="ĐIỀU TRA VÀ ỨNG PHÓ"
         title="Sự cố"
-        description="Theo dõi bằng chứng phát hiện, rà soát và quá trình xử lý sự cố."
         resource={query.error ? undefined : resource}
       />
+      {navigation}
       {canReadWorkbench(auth, sessionAuthEnabled) && (
         <StandaloneResponseHistory
           initiallyOpen={params.response_history === "1"}
@@ -244,14 +237,14 @@ export function IncidentsPage({ params }) {
           ]}
         />
         <SelectFilter
-          label="Danh sách mức độ"
+          label="Mức độ"
           value={draft.severity}
           onChange={update("severity")}
           options={[
             ["", "Tất cả mức độ"],
             ...["LOW", "WARNING", "HIGH", "CRITICAL"].map((value) => [
               value,
-              value,
+              uiLabel(value),
             ]),
             ...(draft.severity &&
             draft.severity !== "ALL" &&
@@ -310,7 +303,6 @@ export function IncidentsPage({ params }) {
           value={draft.review_state}
           onChange={update("review_state")}
           disabled={!support.review_state}
-          describedBy={supportId}
           options={[
             ["", "Tất cả rà soát"],
             ...["UNREVIEWED", "ACKNOWLEDGED", "REVIEWED"].map((value) => [
@@ -324,7 +316,6 @@ export function IncidentsPage({ params }) {
           value={draft.response_state}
           onChange={update("response_state")}
           disabled={!supportedResponse.length}
-          describedBy={supportId}
           options={[
             ["", "Tất cả trạng thái xử lý"],
             ...["NONE", "QUARANTINED", "RESTORED", "UNKNOWN"].map((value) => [
@@ -343,19 +334,6 @@ export function IncidentsPage({ params }) {
         <a className="text-button" href="#/incidents">
           Đặt lại
         </a>
-        <p id={supportId} className="v4-filter-support">
-          {!support.review_state &&
-            "Nguồn hiện chưa hỗ trợ lọc Rà soát sự cố. "}
-          {supportedResponse.length === 1 && supportedResponse[0] === "UNKNOWN"
-            ? "Phản ứng hiện chỉ lọc được Chưa xác định; chưa có dữ liệu để xác nhận các trạng thái còn lại."
-            : !supportedResponse.length
-              ? "Nguồn chưa công bố khả năng lọc trạng thái phản ứng."
-              : `Trạng thái phản ứng có thể lọc: ${supportedResponse.join(", ")}.`}
-        </p>
-        <p className="v4-filter-support">
-          Khoảng gần nhất tính tại lúc Áp dụng và được giữ trên URL. Chọn từ–đến
-          để xem sự cố lịch sử; khoảng có đủ hai mốc tối đa 30 ngày.
-        </p>
         {formError && (
           <p className="v4-form-error v4-filter-support" role="alert">
             {formError}
@@ -378,15 +356,7 @@ export function IncidentsPage({ params }) {
           </div>
         </div>
       )}
-      {!query.error && (
-        <p className="v4-filter-scope">
-          {params.from || params.to
-            ? `Đang lọc Last Seen: ${params.from ? time(params.from) : "từ đầu lịch sử"} → ${params.to ? time(params.to) : "đến cuối lịch sử"}.`
-            : "Đang xem toàn bộ lịch sử trong nguồn ."}{" "}
-          Sắp xếp lần xuất hiện cuối mới nhất trước.
-        </p>
-      )}
-      <Panel title="Sự cố" resource={query.error ? undefined : resource}>
+      <Panel title="Danh sách sự cố" resource={query.error ? undefined : resource}>
         {resource.data &&
           (resource.data.length ? (
             <IncidentTable
@@ -422,15 +392,14 @@ function EvidencePanel({ id }) {
   return (
     <Panel
       title="Bằng chứng sự cố"
-      subtitle="Liên kết sự kiện và phương pháp xác định tập hợp (membership)"
       resource={resource}
     >
       {resource.data && (
         <>
           <p className="v4-panel-note">
-            Tập hợp (membership):{" "}
+            Cách liên kết sự kiện:{" "}
             <strong>{uiLabel(resource.data.membership)}</strong>. Tập tái dựng
-            theo cửa sổ không phải membership bất biến.
+            theo khoảng thời gian cần đối chiếu với nguồn đã lưu.
           </p>
           <p className="v4-panel-note">
             Số yêu cầu ghi nhận {display(resource.data.recordedCount)} yêu cầu;
@@ -443,11 +412,11 @@ function EvidencePanel({ id }) {
             <table className="v4-table">
               <thead>
                 <tr>
-                  <th>SỰ KIỆN / MÃ YÊU CẦU</th>
-                  <th>THỜI ĐIỂM</th>
-                  <th>QUY TẮC</th>
-                  <th>ĐIỂM RỦI RO</th>
-                  <th>QUYẾT ĐỊNH</th>
+                  <th>Sự kiện / mã yêu cầu</th>
+                  <th>Thời điểm</th>
+                  <th>Quy tắc</th>
+                  <th>Điểm rủi ro</th>
+                  <th>Quyết định</th>
                 </tr>
               </thead>
               <tbody>
@@ -517,7 +486,7 @@ export function NetworkObservation({ observation, meta, error }) {
               ? "Security groups hiện tại"
               : "Security groups lần quan sát trước",
             Array.isArray(observation?.security_group_ids)
-              ? observation.security_group_ids.join(" · ") || "Không có SG"
+              ? observation.security_group_ids.join(" · ") || "Không có Security Group"
               : "Chưa xác minh",
           ],
         ]}
@@ -542,7 +511,7 @@ function DecisionPanel({ id }) {
   );
   return (
     <Panel
-      title="Đánh giá phản ứng"
+      title="Đánh giá điều kiện ứng phó"
       subtitle="Kiểm tra điều kiện, không thay đổi mạng"
       resource={resource}
       action={
@@ -584,7 +553,6 @@ function NotesPanel({ id }) {
   return (
     <Panel
       title="Ghi chú rà soát"
-      subtitle="Ghi vào Portal · không thay đổi trạng thái phát hiện "
     >
       <form
         key={sessionVersion}
@@ -696,7 +664,6 @@ function LegacyIncidentDetail({ id }) {
         Sự cố
       </a>
       <PageHeading
-        eyebrow="ĐIỀU TRA SỰ CỐ"
         title="Chi tiết sự cố"
         description={id}
         resource={resource}

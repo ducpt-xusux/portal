@@ -30,7 +30,7 @@ export function VerifiedSource({ mapping, meta, error, compact = false }) {
       </div>
       <small>Đối chiếu: {time(mapping?.observed_at)}</small>
       <small>
-        TTL:{' '}
+        Hiệu lực:{' '}
         {mapping?.ttl_seconds == null
           ? 'Chưa cung cấp'
           : `${mapping.ttl_seconds}s`}
@@ -38,7 +38,7 @@ export function VerifiedSource({ mapping, meta, error, compact = false }) {
       {!compact && (
         <p className="v4-panel-note">
           {state.verification === 'VERIFIED'
-            ? 'Danh tính nguồn được xác minh trong TTL. Trạng thái mạng vẫn cần quan sát Neutron riêng.'
+            ? 'Danh tính nguồn được xác minh trong thời hạn quan sát. Trạng thái mạng vẫn cần quan sát Neutron riêng.'
             : "Chưa có đối chiếu được xác minh còn hiệu lực. Thông tin dưới đây được giữ theo nguồn."}
           {mapping?.reason && (
             <>
@@ -67,7 +67,7 @@ const mappingReasons = {
   NO_CURRENT_PORT_MATCH_IN_PROJECT:
     'Không có port khớp IP trong project đang đọc.',
   PORT_NOT_ATTACHED_TO_KNOWN_COMPUTE_VM:
-    'Port chưa gắn với VM compute có trong inventory.',
+    'Port chưa gắn với máy ảo trong danh sách OpenStack.',
 }
 
 export function CurrentMapping({ mapping, error, compact = false }) {
@@ -76,20 +76,22 @@ export function CurrentMapping({ mapping, error, compact = false }) {
   const state = currentMappingState(mapping, Boolean(error), now)
   return (
     <div className="v4-verification">
-      <div>
-        <Badge
-          value={
-            state.state === 'MATCHED'
-              ? 'FRESH'
-              : state.state === 'AMBIGUOUS'
-                ? 'REVIEW_REQUIRED'
-                : state.state
-          }
-        >
-          {compact && state.state === 'MATCHED' && state.freshness === 'FRESH' ? 'Khớp IP' : mappingLabels[state.state]}
-        </Badge>
-        {(!compact || state.freshness !== 'FRESH') && <Badge value={state.freshness} />}
-      </div>
+      {(!compact || !state.href) && (
+        <div>
+          <Badge
+            value={
+              state.state === 'MATCHED'
+                ? 'FRESH'
+                : state.state === 'AMBIGUOUS'
+                  ? 'REVIEW_REQUIRED'
+                  : state.state
+            }
+          >
+            {mappingLabels[state.state]}
+          </Badge>
+          {(!compact || state.freshness !== 'FRESH') && <Badge value={state.freshness} />}
+        </div>
+      )}
       {state.href && (
         <a className="v4-id-link" href={state.href}>
           {mapping.server_name ? uiLabel(mapping.server_name) : mapping.server_id}
@@ -139,16 +141,18 @@ export function CurrentMapping({ mapping, error, compact = false }) {
   )
 }
 
-export function SecurityGroups({ groups = [], provided = true }) {
-  if (!provided) return <span className="v4-muted">Chưa cung cấp SG</span>
+export function SecurityGroups({ groups = [], provided = true, namesOnly = false }) {
+  if (!provided) return <span className="v4-muted">Chưa cung cấp Security Group</span>
   if (!groups.length)
-    return <span className="v4-muted">Không có SG trong bản ghi</span>
+    return <span className="v4-muted">Bản ghi không có Security Group</span>
   return (
     <ul className="v4-security-groups">
       {groups.map((group) => (
         <li key={group.id}>
-          <strong>{group.name || 'Tên chưa cung cấp'}</strong>
-          <code>{group.id}</code>
+          <strong title={namesOnly && !group.name ? group.id : undefined}>
+            {group.name || 'Tên chưa cung cấp'}
+          </strong>
+          {!namesOnly && <code>{group.id}</code>}
         </li>
       ))}
     </ul>
@@ -164,7 +168,7 @@ export function SgHistory({ data }) {
   return (
     <div className="v4-sg-history">
       <h3 className="v4-subheading">
-        nhóm bảo mật trước / trong / sau hành động
+        Security Group trước / trong / sau hành động
       </h3>
       <p className="v4-panel-note">
         Các mốc đã ghi nhận là bằng chứng lịch sử; trạng thái hiện tại lấy từ
@@ -314,7 +318,7 @@ export function RiskExposure({ exposure, meta, error, compact = false }) {
           <p className="v4-panel-note">
             Exposure chỉ phản ánh sự cố gần đây trong cửa sổ trên, không kết
             luận VM đã bị xâm nhập. Nhãn Chưa xác định/STALE giữ nguyên khi thiếu thời
-            điểm hoặc TTL hợp lệ.
+            điểm hoặc thời hạn xác minh hợp lệ.
           </p>
         </>
       )}

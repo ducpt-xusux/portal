@@ -1,1 +1,142 @@
-.n91-analysis{display:grid;gap:16px;min-width:0}.n91-analysis h1{margin:0}.n91-analysis-scope{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:#617b8a;font-size:13px;margin:0}.n91-analysis-filter{display:grid;gap:6px;font-size:13px;font-weight:650;max-width:340px;margin-bottom:20px}.n91-analysis-filter input{border:1px solid #cedce4;border-radius:9px;padding:11px;background:#fff}.n91-analysis-case{display:flex;align-items:center;gap:14px;padding:18px 0;border-top:1px solid #e4ecf1}.n91-analysis-case>div{flex:1}.n91-analysis-case h3{margin:0 0 7px;font-size:16px}.n91-analysis-case p{color:#6e8492;margin:0;font-size:13px}.n91-analysis-note{padding:14px;border:1px solid #ecd9ac;background:#fff9ee;border-radius:10px;color:#76591f}.n91-analysis-columns{display:grid;grid-template-columns:1fr 1fr;gap:16px}.n91-analysis-trace{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0}.n91-analysis-trace section{border:1px solid #e0e8ed;border-radius:10px;background:#f8fbfc;padding:14px}.n91-analysis-trace h3{margin:0 0 8px;font-size:14px}.n91-analysis-trace p{font-size:13px;margin:0;overflow-wrap:anywhere}.n91-analysis-evidence{border:1px solid #dce6ed;border-radius:10px;padding:15px;margin-bottom:12px}.n91-analysis-evidence>summary{display:flex;gap:16px;align-items:center;justify-content:space-between;cursor:pointer}.n91-analysis-evidence>summary span{font-size:13px;color:#577383}.n91-analysis details>summary{cursor:pointer}.n91-analysis details details{margin:12px 0}.n91-analysis code{overflow-wrap:anywhere}@media(max-width:900px){.n91-analysis-trace{grid-template-columns:1fr 1fr}.n91-analysis-columns{grid-template-columns:1fr}.n91-analysis-case,.n91-analysis-evidence>summary{flex-wrap:wrap}}@media(max-width:600px){.n91-analysis-trace{grid-template-columns:1fr}}
+.n91-analysis{display:grid;gap:16px;min-width:0}.n91-analysis h1{margin:0}.n91-analysis-scope{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:#617b8a;font-size:13px;margin:0}.n91-analysis-filter{display:grid;gap:6px;font-size:13px;font-weight:650;max-width:340px;margin-bottom:20px}.n91-analysis-filter input{border:1px solid #cedce4;border-radius:9px;padding:11px;background:#fff}.n91-analysis-case{display:flex;align-items:center;gap:14px;padding:18px 0;border-top:1px solid #e4ecf1}.n91-analysis-case>div{flex:1}.n91-analysis-case h3{margin:0 0 7px;font-size:16px}.n91-analysis-case p{color:#6e8492;margin:0;font-size:13px}.n91-analysis-note{padding:14px;border:1px solid #ecd9ac;background:#fff9ee;border-radius:10px;color:#76591f}.n91-analysis-columns{display:grid;grid-template-columns:1fr 1fr;gap:16px}.n91-analysis-trace{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0}.n91-analysis-trace section{border:1px solid #e0e8ed;border-radius:10px;background:#f8fbfc;padding:14px}.n91-analysis-trace h3{margin:0 0 8px;font-size:14px}.n91-analysis-trace p{font-size:13px;margin:0;overflow-wrap:anywhere}.n91-analysis-evidence{border:1px solid #dce6ed;border-radius:10px;padding:15px;margin-bottom:12px}.n91-analysis-evidence>summary{display:flex;gap:16px;align-items:center;justify-content:space-between;cursor:pointer}.n91-analysis-evidence>summary span{font-size:13px;color:#577383}.n91-analysis details>summary{cursor:pointer}.n91-analysis details details{margin:12px 0}.n91-analysis code{overflow-wrap:anywhere}@media(max-width:900px){.n91-analysis-trace{grid-template-columns:1fr 1fr}.n91-analysis-columns{grid-template-columns:1fr}.n91-analysis-case,.n91-analysis-evidence>summary{flex-wrap:wrap}}@media(max-width:600px){.n91-analysis-trace{grid-template-columns:1fr}}
+.n91-analysis-count {
+  color: #22576b;
+  font-size: 13px;
+  font-weight: 650;
+}
+.n91-analysis-items {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-inline-start: 17px;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.n91-analysis-items > li::marker {
+  color: #577383;
+}
+.n91-analysis-technical-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+  gap: 12px;
+}
+.n91-analysis-technical-items strong {
+  display: block;
+  margin-bottom: 6px;
+}
+.n91-case-masthead {
+  display: grid;
+  gap: 9px;
+}
+.n91-case-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+.n91-case-heading p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 9px;
+  align-items: center;
+  margin: 6px 0 0;
+  color: var(--portal-muted);
+  font-size: .875rem;
+}
+.n91-case-masthead > dl {
+  border-top: 1px solid var(--portal-line);
+  margin: 4px 0 0;
+  padding-top: 9px;
+}
+.n91-case-query {
+  border-top: 1px solid var(--portal-line);
+}
+.n91-case-query > summary {
+  display: grid;
+  grid-template-columns: minmax(90px, 1fr) minmax(0, 1.35fr) minmax(60px, .6fr) auto;
+  gap: 3px 12px;
+  align-items: center;
+  list-style: none;
+  padding: 9px 2px;
+  color: var(--portal-muted);
+  font-size: .8125rem;
+}
+.n91-case-query > summary::-webkit-details-marker {
+  display: none;
+}
+.n91-case-query > summary strong {
+  color: var(--portal-ink);
+}
+.n91-case-query-state {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.n91-case-query[open] .n91-case-query-state > svg {
+  transform: rotate(180deg);
+}
+.n91-case-query-body {
+  padding-bottom: 12px;
+}
+.n91-case-query-body > a {
+  color: var(--portal-accent);
+  font-weight: 650;
+}
+.n91-case-more {
+  margin-top: 12px;
+}
+@media (max-width: 570px) {
+  .n91-case-query > summary {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .n91-case-query-state {
+    grid-row: 1;
+    grid-column: 2;
+  }
+}
+.n91-analysis-executions {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.n91-analysis-executions > li {
+  border: 1px solid #dce6ed;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.n91-analysis-execution-head,
+.n91-analysis-links,
+.n91-analysis-pager {
+  display: flex;
+  gap: 8px 18px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.n91-analysis-execution-head,
+.n91-analysis-pager {
+  justify-content: space-between;
+}
+.n91-analysis-execution-head p {
+  color: #577383;
+  font-size: 13px;
+  margin: 4px 0 0;
+}
+.n91-analysis-links {
+  margin-top: 8px;
+  font-size: 13px;
+}
+.n91-analysis-execution-evidence {
+  font-size: 13px;
+  margin-top: 7px;
+}
+.n91-analysis-execution-evidence ul {
+  margin: 8px 0 0;
+  padding-left: 20px;
+}
+.n91-analysis-pager {
+  margin-top: 14px;
+}

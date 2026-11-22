@@ -50,7 +50,6 @@ export default function GaleraPanel({ compact = false, standalone = false }) {
   return (
     <Panel
       title="Cụm cơ sở dữ liệu Galera"
-      subtitle="Trạng thái đồng bộ và khả năng phục vụ của từng nút"
       resource={resource}
       action={
         <div className="v4-proxy-actions">
@@ -140,13 +139,13 @@ export default function GaleraPanel({ compact = false, standalone = false }) {
                   <table className="v4-table v4-galera-table">
                     <thead>
                       <tr>
-                        <th>NÚT CƠ SỞ DỮ LIỆU</th>
-                        <th>TRẠNG THÁI CỤM</th>
-                        <th>SỐ NÚT BÁO CÁO</th>
-                        <th>TRẠNG THÁI NÚT</th>
-                        <th>SẴN SÀNG / KẾT NỐI CỤM</th>
-                        <th>QUAN SÁT TRÊN NÚT</th>
-                        <th>ĐỘ MỚI</th>
+                        <th>Nút cơ sở dữ liệu</th>
+                        <th>Trạng thái cụm</th>
+                        <th>Số nút báo cáo</th>
+                        <th>Trạng thái nút</th>
+                        <th>Sẵn sàng / kết nối cụm</th>
+                        <th>Quan sát trên nút</th>
+                        <th>Tình trạng cập nhật</th>
                       </tr>
                     </thead>
                     <tbody>

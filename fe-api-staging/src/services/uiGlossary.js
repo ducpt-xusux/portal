@@ -92,8 +92,8 @@ export const valueLabels = {
   SENSITIVE: 'Dữ liệu nhạy cảm', INJECTION: 'Chèn mã SQL', CONTEXT: 'Phạm vi truy cập',
   DETECTION: 'Phát hiện hành vi', MANUAL: 'Thủ công', SYSTEM: 'Hệ thống',
   PENDING_REVIEW: 'Chờ rà soát', NOT_REQUIRED: 'Không bắt buộc',
-  'SG lifecycle': 'Diễn biến nhóm bảo mật', 'Original SGs': 'Nhóm bảo mật gốc',
-  'During SGs': 'Nhóm bảo mật khi cách ly', 'After SGs': 'Nhóm bảo mật sau khôi phục',
+  'SG lifecycle': 'Diễn biến Security Group', 'Original SGs': 'Security Group gốc',
+  'During SGs': 'Security Group khi cách ly', 'After SGs': 'Security Group sau khôi phục',
 }
 
 export const sourceErrors = {

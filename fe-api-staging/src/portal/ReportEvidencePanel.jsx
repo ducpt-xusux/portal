@@ -18,7 +18,6 @@ export default function ReportEvidencePanel() {
   return (
     <Panel
       title="Bằng chứng TLS, quyền SQL và khôi phục"
-      subtitle="Các phép đo giữ nguyên phạm vi, thời gian và mã băm tài liệu gốc"
       resource={resource}
     >
       {resource.data?.artifacts.map((artifact, index) => (
@@ -45,8 +44,8 @@ export default function ReportEvidencePanel() {
               <table className="v4-table">
                 <thead>
                   <tr>
-                    <th>TRƯỜNG NGUỒN</th>
-                    <th>KẾT QUẢ ĐÃ GHI NHẬN</th>
+                    <th>Trường nguồn</th>
+                    <th>Kết quả đã ghi nhận</th>
                   </tr>
                 </thead>
                 <tbody>

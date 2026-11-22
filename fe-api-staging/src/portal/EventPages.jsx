@@ -1,5 +1,5 @@
 import ReportEventEvidence from "./ReportEventEvidence";
-import { uiLabel, uiRoleList } from "../services/uiLanguage.js";
+import { signalName, uiLabel, uiRoleList } from "../services/uiLanguage.js";
 import { useState } from "react";
 import {
   EventComparePicker,
@@ -7,8 +7,8 @@ import {
 } from "../features/n91-investigation/Investigation";
 import { auditEventQuery } from "../services/dashboardAudit";
 import { ArrowLeft, ArrowUpRight, Search } from "lucide-react";
-import { mapEvent, readCollection } from "../services/portalApi";
-import { incidentHref } from "../services/incidentLinks";
+import { mapEvent, mapIncident, readCollection } from "../services/portalApi";
+import { analysisCaseHref, analysisEventHref, incidentEventsHref, incidentHref, incidentSectionHref } from "../services/incidentLinks";
 import { useCursor, useV4Resource } from "./IncidentPages";
 import {
   Badge,
@@ -89,7 +89,6 @@ function EventAuditComparison({ event }) {
   return (
     <Panel
       title="Đối chiếu nhật ký kiểm toán"
-      subtitle="Dữ liệu kiểm toán và bản chiếu phát hiện được đọc độc lập"
     >
       {canonical.loading && !matching && (
         <p className="v4-panel-note" role="status">
@@ -124,12 +123,10 @@ function EventAuditComparison({ event }) {
       {matching && problems.length === 0 && (
         <>
           <ReportEventEvidence event={matching} />
-          <p className="v4-panel-note">
-            Cùng mã sự kiện; các thuộc tính định danh chung phù hợp. Phần dưới
-            là thông tin <strong>từ bản ghi kiểm toán chuẩn</strong>, không phải
-            dữ liệu gốc của bản chiếu phát hiện.
-          </p>
+          <details className="portal-provenance">
+            <summary>Kết quả thực thi từ nhật ký</summary>
           <FieldGrid
+            showAll
             rows={[
               ["Hành động đã kiểm toán", uiLabel(matching.effective_action)],
               [
@@ -149,24 +146,12 @@ function EventAuditComparison({ event }) {
               ["Điểm rủi ro kiểm toán", matching.risk.score ?? "Không có"],
             ]}
           />
+          </details>
           {riskDisagrees && (
             <p className="v4-inline-warning" role="status">
               Điểm rủi ro khác nhau giữa nguồn kiểm toán và nguồn phát hiện. Cần
               kiểm tra thời điểm và chính sách xử lý, không tự hợp nhất.
             </p>
-          )}
-          {matching.score_breakdown?.length > 0 && (
-            <details className="v4-json">
-              <summary>Thành phần điểm rủi ro từ kiểm toán</summary>
-              <ul className="v4-reasons">
-                {matching.score_breakdown.map((part, index) => (
-                  <li key={index}>
-                    {part.rule_id || "Nguồn khác"}: {part.score ?? "N/A"} điểm
-                    {part.reason ? ` — ${part.reason}` : ""}
-                  </li>
-                ))}
-              </ul>
-            </details>
           )}
           {matching.masked_query && (
             <details className="v4-json">
@@ -183,19 +168,54 @@ function EventAuditComparison({ event }) {
   );
 }
 
+function EventIncidentLinks({ event }) {
+  const related = event.recorded_incidents ?? event.incident_refs.map((incident_id) => ({ incident_id }));
+  if (related.length === 0) {
+    return event.recorded_incidents
+      ? <small>Chưa có liên kết</small>
+      : <span title="Chưa đối chiếu được với hồ sơ phát hiện" aria-label="Chưa đối chiếu được với hồ sơ phát hiện">—</span>;
+  }
+  const verified = Boolean(event.recorded_incidents) || event.incident_membership === "DIRECT_PERSISTED";
+  return (
+    <ul className="v4-event-incident-links">
+      {related.map(({ incident_id, signal_rule }) => {
+        const href = incidentEventsHref(incident_id, event.stream_id)
+          || incidentHref(incident_id, event.stream_id);
+        const title = signalName(signal_rule);
+        const label = `${verified ? "Nhóm" : "Dựng lại"} ${incident_id.slice(-8)}`;
+        const tone = Array.from(incident_id).reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) % 5, 0);
+        return (
+          <li key={incident_id}>
+            {href ? (
+              <a
+                href={href}
+                title={title ? `${title} · ${incident_id}` : incident_id}
+                aria-label={title ? `${label} · ${title}` : label}
+                data-tone={verified ? tone : "reconstructed"}
+              >
+                {label}
+              </a>
+            ) : label}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export function EventTable({ events, compact = false }) {
   const time = useTime();
   return (
     <div className="table-scroll">
-      <table className="v4-table">
+      <table className="v4-table v4-events-list-table">
         <thead>
           <tr>
-            <th>SỰ KIỆN / THỜI GIAN</th>
-            <th>NGUỒN</th>
-            <th>QUYẾT ĐỊNH</th>
-            <th>ĐIỂM RỦI RO</th>
-            <th>QUY TẮC ÁP DỤNG</th>
-            {!compact && <th>LOẠI / SỰ CỐ</th>}
+            <th>Mã sự kiện / thời gian</th>
+            <th>Nguồn</th>
+            <th>Quyết định</th>
+            <th>Điểm rủi ro</th>
+            <th>Quy tắc áp dụng</th>
+            {!compact && <th>Nhóm sự cố</th>}
             <th>
               <span className="sr-only">Chi tiết</span>
             </th>
@@ -215,19 +235,13 @@ export function EventTable({ events, compact = false }) {
               </td>
               <td>
                 <code>{display(event.source_ip)}</code>
-                <small>{event.db_user || "Withheld / chưa cung cấp"}</small>
+                {event.db_user && <small>{event.db_user}</small>}
               </td>
               <td>
                 <Badge value={event.decision} />
-                {event.effective_action &&
-                  !["UNKNOWN", "UNAVAILABLE"].includes(
-                    event.effective_action,
-                  ) && (
-                    <small>Áp dụng: {uiLabel(event.effective_action)}</small>
-                  )}
               </td>
               <td>
-                <strong>{event.risk.score ?? "N/A"}</strong>
+                <strong>{event.risk.score ?? "—"}</strong>
                 {event.risk.status !== "OK" && (
                   <small>{riskStatusLabel(event.risk.status)}</small>
                 )}
@@ -246,25 +260,12 @@ export function EventTable({ events, compact = false }) {
                 </span>
                 {!event.matched_rules.length && "—"}
               </td>
-              {!compact && (
-                <td>
-                  <Badge value={event.p17_event_class} />
-                  {event.incident_refs.map((id) => (
-                    <a
-                      key={id}
-                      className="v4-id-link"
-                      href={incidentHref(id, event.stream_id)}
-                    >
-                      {id}
-                    </a>
-                  ))}
-                </td>
-              )}
+              {!compact && <td><EventIncidentLinks event={event} /></td>}
               <td>
                 <a
                   className="row-detail"
                   href={`#/events/${encodeURIComponent(event.event_id)}?${auditEventQuery(event)}`}
-                  aria-label={`Mở event ${event.event_id}`}
+                  aria-label={`Mở sự kiện ${event.event_id}`}
                 >
                   <ArrowUpRight size={16} />
                 </a>
@@ -284,13 +285,210 @@ const localInput = (value, zone) =>
         .slice(0, 16)
     : "";
 
+const groupedEventsUrl = "#/events?view=incidents";
+const timelineUrl = "#/events?view=timeline&source=canonical";
+const groupSignalOptions = [
+  ["", "Tất cả loại sự cố"],
+  ...["CORR-001", "CORR-002", "CORR-003", "CORR-004", "CORR-005"]
+    .map((code) => [code, signalName(code)]),
+];
+
+function EventViewNavigation({ grouped }) {
+  return (
+    <nav className="v4-system-tabs" aria-label="Chế độ xem sự kiện">
+      <a href={groupedEventsUrl} className={grouped ? "active" : undefined} aria-current={grouped ? "page" : undefined}>
+        Theo sự cố
+      </a>
+      <a href={timelineUrl} className={grouped ? undefined : "active"} aria-current={grouped ? undefined : "page"}>
+        Theo thời gian
+      </a>
+    </nav>
+  );
+}
+
+const incidentTitle = (incident) => signalName(incident.signal_rule) || incident.signal_rule || "Sự cố";
+
+function IncidentEventMembers({ incident }) {
+  const time = useTime();
+  const pager = useCursor();
+  const membership = incident.evidence_membership;
+  const canReadMembers = Boolean(incidentEventsHref(incident.incident_id, incident.stream_id))
+    && membership !== "UNAVAILABLE";
+  const resource = useV4Resource("/events", {
+    enabled: canReadMembers,
+    params: { source: "p17", incident_ref: incident.incident_id, stream_id: incident.stream_id,
+      limit: 25, cursor: pager.cursor },
+    transform: (data) => readCollection(data, "events").map(mapEvent),
+  });
+  const detailsUrl = incidentSectionHref(incident.incident_id, incident.stream_id, "detection");
+  const members = resource.data;
+  const validMembers = members?.every((event) =>
+    event.stream_id === incident.stream_id && event.incident_refs.includes(incident.incident_id));
+  const total = validMembers ? resource.meta?.total_count ?? members.length : null;
+
+  return (
+    <section className="panel v4-panel event-group-members" aria-labelledby="event-group-heading">
+      <header className="event-group-heading">
+        <div>
+          <h2 id="event-group-heading">{incidentTitle(incident)}</h2>
+          <p>
+            <code>{incident.incident_id}</code>
+            {incident.source_ip && <span>IP nguồn <strong>{incident.source_ip}</strong></span>}
+          </p>
+        </div>
+        {detailsUrl && <a className="button secondary" href={detailsUrl}>Mở hồ sơ sự cố <ArrowUpRight size={15} /></a>}
+      </header>
+      {canReadMembers ? (
+        <>
+          <ResourceNotice resource={resource} noun="sự kiện của hồ sơ" />
+          {members && (validMembers ? (
+            <>
+              <div className="event-group-members-caption">
+                <strong>{total} sự kiện</strong>
+                <span>{membership === "DIRECT_PERSISTED"
+                  ? "Bằng chứng do bộ phát hiện lưu"
+                  : membership === "RECONSTRUCTED_WINDOW"
+                    ? "Đối chiếu theo mốc thời gian"
+                    : "Nguồn chưa xác nhận cách liên kết"}</span>
+              </div>
+              {members.length ? <EventTable events={members} compact />
+                : <Empty title="Hồ sơ chưa có sự kiện để hiển thị" />}
+              {(pager.history.length > 0 || resource.meta?.has_more) && <CursorPager resource={resource} {...pager} />}
+            </>
+          ) : <p role="alert">Chưa xác minh được sự kiện thuộc đúng hồ sơ này.</p>)}
+        </>
+      ) : <Empty title="Nguồn chưa cung cấp danh sách sự kiện của hồ sơ này" />}
+    </section>
+  );
+}
+
+function GroupedEvents({ incidentRef, streamId, signalRule }) {
+  const time = useTime();
+  const pager = useCursor();
+  const [refreshCount, setRefreshCount] = useState(0);
+  const resource = useV4Resource("/incidents", {
+    params: { limit: 8, cursor: pager.cursor, signal_rule: signalRule || undefined },
+    transform: (data) => readCollection(data, "incidents").map(mapIncident),
+  });
+  const incidents = resource.data ?? [];
+  const showAnalysis = Boolean(signalRule && resource.data?.length === 0 && !resource.error);
+  const analysis = useV4Resource("/p17-vnext/cases", {
+    enabled: showAnalysis,
+    params: { detector: signalRule, limit: 50 },
+    transform: (data) => readCollection(data, "cases"),
+  });
+  const analysisLinks = showAnalysis && !analysis.error
+    ? (analysis.data ?? [])
+        .filter((item) => Array.isArray(item.signals) && item.signals.includes(signalRule))
+        .map((item) => ({ ...item, href: analysisCaseHref(item.case_id, item.stream_id) }))
+        .filter((item) => item.href)
+    : [];
+  const hasSelection = incidentRef !== undefined || streamId !== undefined;
+  const validSelection = incidentEventsHref(incidentRef, streamId);
+  const isSelected = (incident) => incident.incident_id === incidentRef && incident.stream_id === streamId;
+  const listed = hasSelection ? incidents.find(isSelected) : incidents[0];
+  const detail = useV4Resource(validSelection ? `/incidents/${encodeURIComponent(incidentRef)}` : null, {
+    enabled: Boolean(validSelection && !listed && (resource.data || resource.error)),
+    transform: mapIncident,
+  });
+  const selected = listed ?? (detail.data && isSelected(detail.data) ? detail.data : null);
+  const visibleIncidents = selected && !listed ? [selected, ...incidents] : incidents;
+  const refresh = () => {
+    resource.refresh();
+    detail.refresh();
+    analysis.refresh();
+    setRefreshCount((count) => count + 1);
+  };
+
+  return (
+    <>
+      <PageHeading title="Sự kiện bảo mật" resource={{ ...resource, refresh }} />
+      <EventViewNavigation grouped />
+      <div className="event-group-layout">
+        <section className="panel v4-panel event-group-picker" aria-labelledby="event-group-list-heading">
+          <h2 id="event-group-list-heading">Nhóm sự cố</h2>
+          <SelectFilter
+            label="Loại sự cố"
+            value={signalRule}
+            options={groupSignalOptions}
+            onChange={(value) => {
+              window.location.hash = value
+                ? `${groupedEventsUrl}&signal_rule=${encodeURIComponent(value)}`
+                : groupedEventsUrl;
+            }}
+          />
+          <ResourceNotice resource={resource} noun="danh sách sự cố" />
+          {resource.data && (visibleIncidents.length ? (
+            <ul className="event-group-list">
+              {visibleIncidents.map((incident) => {
+                const key = `${incident.stream_id}:${incident.incident_id}`;
+                const url = incidentEventsHref(incident.incident_id, incident.stream_id);
+                const href = url && signalRule ? `${url}&signal_rule=${encodeURIComponent(signalRule)}` : url;
+                const label = (
+                  <>
+                    <strong>{incidentTitle(incident)}</strong>
+                    {incident.last_seen && <time dateTime={incident.last_seen}>{time(incident.last_seen)}</time>}
+                    <span>
+                      <code>{incident.incident_id}</code>
+                      {incident.evidence_count !== null && <span>{incident.evidence_count} sự kiện</span>}
+                    </span>
+                  </>
+                );
+                return <li key={key}>{href
+                  ? <a href={href} aria-current={incident === selected ? "true" : undefined}>{label}</a>
+                  : <div className="event-group-list-item">{label}</div>}</li>;
+              })}
+            </ul>
+          ) : <Empty title={signalRule ? "Chưa có hồ sơ sự cố loại này" : "Chưa có sự cố"}
+            text={analysisLinks.length ? "Đã ghi nhận tín hiệu trong Phân tích hành vi." : ""}>
+              {analysisLinks.length > 0 && (
+                <ul className="event-group-analysis-links">
+                  {analysisLinks.map((item) => (
+                    <li key={item.href}>
+                      <a className="v4-text-link" href={item.href}>
+                        Mở phân tích{item.source_ip ? ` · ${item.source_ip}` : ""}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Empty>)}
+          {(pager.history.length > 0 || resource.meta?.has_more) && <CursorPager resource={resource} {...pager} />}
+        </section>
+        {selected ? (
+          <IncidentEventMembers key={`${selected.stream_id}:${selected.incident_id}:${refreshCount}`} incident={selected} />
+        ) : hasSelection ? (
+          <section className="panel v4-panel">
+            <ResourceNotice resource={detail} noun="hồ sơ sự cố" />
+            {!resource.loading && !detail.loading && !detail.error && <Empty title="Không tìm thấy sự cố trong luồng dữ liệu này" />}
+          </section>
+        ) : null}
+      </div>
+    </>
+  );
+}
+
 export function EventsPage({ params }) {
+  const { view, ...query } = params;
+  if (view === "incidents" || (!view && !Object.keys(query).length)) {
+    const signalRule = groupSignalOptions.find(([code]) => code === query.signal_rule)?.[0];
+    return <GroupedEvents incidentRef={query.incident_ref} streamId={query.stream_id} signalRule={signalRule} />;
+  }
+  return <ChronologicalEvents params={{ source: "canonical", ...query }} />;
+}
+
+function ChronologicalEvents({ params }) {
   const { timezone } = usePortal();
   const [draft, setDraft] = useState(params);
   const [error, setError] = useState("");
   const pager = useCursor();
   const resource = useV4Resource("/events", {
-    params: { ...params, limit: 25, cursor: pager.cursor },
+    params: {
+      ...params,
+      limit: 25,
+      cursor: pager.cursor,
+      include_incident_links: params.source === "canonical" ? "true" : undefined,
+    },
     interval: 5000,
     transform: (data) => readCollection(data, "events").map(mapEvent),
   });
@@ -299,15 +497,10 @@ export function EventsPage({ params }) {
   return (
     <>
       <PageHeading
-        eyebrow="SỰ KIỆN BẢO MẬT"
         title="Sự kiện bảo mật"
-        description={
-          params.source === "canonical"
-            ? "Nhật ký kiểm toán đã nhập, phạm vi lịch sử có thể chưa đầy đủ."
-            : undefined
-        }
         resource={resource}
       />
+      <EventViewNavigation />
       {["TEST", "EVALUATION"].includes(resource.meta?.import_context) && (
         <p className="v4-inline-warning" role="status">
           Dữ liệu {uiLabel(resource.meta.import_context).toLowerCase()} · bản
@@ -474,7 +667,7 @@ export function EventsPage({ params }) {
           href={
             params.source === "canonical"
               ? "#/events?source=canonical"
-              : "#/events"
+              : `#/events?view=timeline&source=${encodeURIComponent(params.source)}`
           }
         >
           Đặt lại
@@ -486,14 +679,16 @@ export function EventsPage({ params }) {
         )}
       </form>
       <details className="n91-secondary-comparison">
-        <summary>So sánh APP / Clone theo kiểm toán chuẩn IDs</summary>
+        <summary>So sánh truy vấn của máy ứng dụng và máy thử nghiệm</summary>
         <EventComparePicker />
       </details>
       <Panel
-        title="Sự kiện bảo mật"
-        subtitle="Một dòng cho mỗi sự kiện · nguồn và phạm vi hiển thị bên dưới"
+        title="Nhật ký sự kiện"
         resource={resource}
       >
+        {resource.meta?.incident_link_error && (
+          <p className="v4-panel-note">Tạm thời chưa đọc được nguồn liên kết sự cố.</p>
+        )}
         {resource.data &&
           (resource.data.length ? (
             <EventTable events={resource.data} />
@@ -515,7 +710,6 @@ export function EventDetail({ id, params }) {
           Sự kiện bảo mật
         </a>
         <PageHeading
-          eyebrow="CHI TIẾT SỰ KIỆN"
           title="Chi tiết sự kiện"
           description={id}
         />
@@ -535,6 +729,7 @@ function LegacyEventDetail({ id, params }) {
     transform: mapEvent,
   });
   const event = resource.data;
+  const analysisUrl = analysisEventHref(event);
   return (
     <>
       <a
@@ -549,7 +744,6 @@ function LegacyEventDetail({ id, params }) {
         Sự kiện bảo mật
       </a>
       <PageHeading
-        eyebrow="CHI TIẾT SỰ KIỆN"
         title="Chi tiết sự kiện"
         description={id}
         resource={resource}
@@ -564,7 +758,12 @@ function LegacyEventDetail({ id, params }) {
             : "Sự kiện nguồn"
         }
       />
-      <ResourceNotice resource={resource} noun="event" />
+      <ResourceNotice resource={resource} noun="sự kiện" />
+      {analysisUrl && (
+        <section className="investigation-related" aria-label="Liên kết điều tra sự kiện">
+          <a href={analysisUrl}>Xem phân tích hành vi của truy vấn này</a>
+        </section>
+      )}
       {event && (
         <>
           {["TEST", "EVALUATION"].includes(event.source_provenance.context) && (
@@ -697,7 +896,7 @@ function LegacyEventDetail({ id, params }) {
                     {event.reasons.length ? (
                       <ul className="v4-reasons">
                         {event.reasons.map((reason, index) => (
-                          <li key={index}>{reason}</li>
+                          <li key={index}>{uiLabel(reason)}</li>
                         ))}
                       </ul>
                     ) : (
@@ -745,10 +944,10 @@ function LegacyEventDetail({ id, params }) {
                       <table className="v4-table v4-breakdown-table">
                         <thead>
                           <tr>
-                            <th>NGUỒN / RULE</th>
-                            <th>NHÓM</th>
-                            <th>ĐIỂM</th>
-                            <th>LÝ DO</th>
+                            <th>Nguồn / quy tắc</th>
+                            <th>Nhóm</th>
+                            <th>Điểm</th>
+                            <th>Lý do</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -781,7 +980,6 @@ function LegacyEventDetail({ id, params }) {
               {(!compact || event.incident_refs.length > 0) && (
                 <Panel
                   title="Sự cố liên quan"
-                  subtitle="Liên kết bằng chứng theo nguồn "
                 >
                   {event.incident_refs.length ? (
                     <div className="v4-link-list">

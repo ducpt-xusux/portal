@@ -54,8 +54,12 @@ export function runRenderCases(fixture) {
     assert.equal((html.match(/role="tab"/g) || []).length, 5)
     assert.equal((html.match(/aria-selected="true"/g) || []).length, 1)
     assert.match(html, /role="tabpanel"/)
-    assert.match(html, /Nguồn đã xác minh/)
-    assert.match(html, /Được phép cách ly/)
+    if (tab === 'response') {
+      assert.match(html, /Cờ cấp phép trong hồ sơ phát hiện<\/dt><dd>Không<\/dd>/)
+    } else {
+      assert.doesNotMatch(html, /Cờ cấp phép trong hồ sơ phát hiện/)
+    }
+    assert.doesNotMatch(html, /Được phép cách ly \(bộ phát hiện\)/)
     assert.match(html, /Cao/)
     assert.doesNotMatch(html, /undefined|NaN|<form/)
     checks++
@@ -69,22 +73,23 @@ export function runRenderCases(fixture) {
     const payload = structuredClone(fixture)
     payload.data.detection.reason_codes[0] = reason
     const html = render('detection', { resource: { ...base, payload } })
-    assert.match(html, expectedText)
+    assert.match(render('response', { resource: { ...base, payload } }), expectedText)
     assert.match(html, /Số bằng chứng bộ phát hiện ghi nhận/)
     assert.match(html, /Ứng viên tái dựng/)
     assert.match(html, /Liên kết trực tiếp<\/span><strong>—<\/strong>/)
-    assert.match(html, /Liên kết dựng lại theo cửa sổ thời gian/)
+    assert.match(html, /Các truy vấn dưới đây được đối chiếu theo thời gian trong lịch sử/)
+    assert.doesNotMatch(html, /Cấu hình bộ phát hiện|Nguồn và phạm vi của hồ sơ/)
     assert.doesNotMatch(html, /DETECTOR_PROFILE_|Ngưỡng tương quan|Yêu cầu đủ điều kiện/)
     checks++
   }
   const timeline = render('timeline')
   assert.match(timeline, /1 · Phát hiện/)
-  assert.match(timeline, /2 · Quyết định/)
+  assert.match(timeline, /2 · Đánh giá trong hồ sơ phát hiện/)
   assert.match(timeline, /3 · Xử lý/)
-  assert.match(timeline, /Liên kết dựng lại theo cửa sổ thời gian/)
+  assert.match(timeline, /Các truy vấn dưới đây được đối chiếu theo thời gian trong lịch sử/)
   assert.match(timeline, /Chưa xác định phiên bản bộ phát hiện/)
   assert.ok(
-    timeline.indexOf('Phân trang sự kiện nghi vấn') <
+    timeline.indexOf('Phân trang truy vấn') >
       timeline.indexOf('class="n91-wb-event"')
   )
   assert.match(timeline, /<details class="n91-wb-event"><summary>/)
@@ -94,7 +99,7 @@ export function runRenderCases(fixture) {
   const responseHistory = render('response', { resource: { ...base, payload: historyPayload } })
   assert.match(responseHistory, /20,125 giây/)
   assert.match(responseHistory, /Chưa có đủ hai mốc thời gian/)
-  assert.match(responseHistory, /Đã quan sát tập SG rỗng/)
+  assert.match(responseHistory, /Bản ghi không có Security Group/)
   assert.match(responseHistory, /Chưa có quan sát/)
   assert.match(responseHistory, /Quan sát Neutron đã hết hạn/)
   assert.match(render('response'), /#\/incidents\?response_history=1/)
@@ -135,7 +140,7 @@ export function runRenderCases(fixture) {
   })
   assert.match(stale, /Chưa cập nhật/)
   assert.match(stale, /bản đọc thành công trước/)
-  assert.match(stale, /Nguồn đã xác minh/)
+  assert.match(stale, /Phát hiện ban đầu/)
   checks++
   const notes = render('notes')
   assert.match(notes, /Chưa có dữ liệu/)

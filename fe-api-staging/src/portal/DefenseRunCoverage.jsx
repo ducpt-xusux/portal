@@ -9,7 +9,7 @@ const observations = {
   BLOCK: 'Audit ghi nhận yêu cầu bị chặn.',
   CORR002_CANDIDATES: 'Ba yêu cầu riêng biệt được đối chiếu với sự cố CORR-002.',
   LAB_QUARANTINE: 'bộ điều khiển ghi nhận cách ly trong lab. Probe TCP của máy clone bị timeout trong khoảng này.',
-  LAB_RESTORE: 'Hai bản chụp đúng port xác nhận bộ nhóm bảo mật gốc đã được khôi phục.',
+  LAB_RESTORE: 'Hai bản chụp đúng port xác nhận bộ Security Group gốc đã được khôi phục.',
   FIXTURES_PENDING: 'Đã nhập danh mục ca kiểm thử.',
   AUDIT_MASKED: 'Audit ghi nhận trạng thái đã che nội dung cho ba yêu cầu.',
   TLS_HA_SAMPLES: 'Có kết quả TLS hai chặng và kiểm tra chuyển đổi dự phòng độc lập.',

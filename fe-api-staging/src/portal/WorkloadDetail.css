@@ -60,7 +60,7 @@
 }
 .vm-detail-page .vm-eyebrow {
   font-size: 0.75rem;
-  letter-spacing: 0.13em;
+  letter-spacing: .015em;
   color: #6a8490;
   font-weight: 650;
   margin: 0 0 7px;

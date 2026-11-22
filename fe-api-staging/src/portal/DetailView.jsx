@@ -31,7 +31,6 @@ const keptFields = new Set([
   'mức độ', 'độ tin cậy', 'status', 'trạng thái phát hiện', 'điểm rủi ro cao nhất score',
   'điểm rủi ro cao nhất', 'nguồn đã xác minh', 'được phép cách ly', 'lần đầu', 'lần cuối',
   'phát hiện', 'số bằng chứng', 'phản ứng', 'mã luồng', 'mã yêu cầu', 'trạng thái',
-  'nguồn đã xác minh (bộ phát hiện)', 'được phép cách ly (bộ phát hiện)',
 ])
 export function compactFields(rows) {
   return rows.filter(([name, value]) => keptFields.has(normalize(name)) && meaningful(value))

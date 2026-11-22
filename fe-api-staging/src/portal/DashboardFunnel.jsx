@@ -159,7 +159,7 @@ export function EvaluationDashboard({ params }) {
   return (
     <>
       <PageHeading
-        eyebrow="ĐÁNH GIÁ · KẾT QUẢ ĐÃ LƯU"
+        eyebrow="Kết quả đã lưu"
         title="Tổng quan đánh giá"
         description="Kết quả đánh giá theo từng lần thực hiện."
       />

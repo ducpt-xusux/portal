@@ -296,6 +296,40 @@ def decision_unavailable(request: Request, incident_id: IdPath):
     fail(503, "P17_3_DECISION_NOT_PROVIDED", "A snapshot is not a live P17.3 decision or action authorization.")
 
 
+def add_recorded_incident_links(request, result):
+    """Annotate the audit list with verified links without changing its records or filters."""
+    items = result["data"]["items"]
+    if not items:
+        return
+    try:
+        snapshot, error = request.app.state.p17_reader.read()
+    except SnapshotError as exc:
+        snapshot, error = None, exc.code
+    if error:
+        result["meta"]["incident_link_error"] = error
+        return
+
+    by_event = {row.event_id: row for row in snapshot.events}
+    persisted = {}
+    linked_incidents = {
+        capture["snapshot_id"]: (capture["incident_id"], capture["signal_rule"])
+        for capture in snapshot.export.tables.portal_evidence_snapshots_v1
+    }
+    for member in snapshot.export.tables.portal_evidence_members_v1:
+        persisted.setdefault(member["event_id"], set()).add(linked_incidents[member["snapshot_id"]])
+    for item in items:
+        projected = by_event.get(item["event_id"])
+        provenance = item["source_provenance"]
+        if (projected and item["stream_id"] == projected.stream_id and item["request_id"]
+                and item["request_id"] == projected.request_id
+                and provenance["payload_hash_basis"] == "H2B_ENVELOPE_SHA256"
+                and provenance["payload_sha256"] == projected.payload_sha256):
+            item["recorded_incidents"] = [
+                {"incident_id": incident_id, "signal_rule": signal_rule}
+                for incident_id, signal_rule in sorted(persisted.get(item["event_id"], ()))
+            ]
+
+
 @router.get("/events")
 def events(
     request: Request,
@@ -314,17 +348,21 @@ def events(
     stream_id: Annotated[str | None, Query(max_length=160)] = None,
     from_: Annotated[AwareDatetime | None, Query(alias="from")] = None,
     to: AwareDatetime | None = None,
+    include_incident_links: bool = False,
 ):
     check_range(from_, to)
     if risk_min is not None and risk_max is not None and risk_min > risk_max:
         fail(400, "INVALID_RISK_RANGE")
     if source == "canonical":
-        return canonical_audit.events(request, limit, cursor, {
+        result = canonical_audit.events(request, limit, cursor, {
             "source_ip": str(source_ip) if source_ip else None, "decision": decision, "rule": rule,
             "incident_ref": incident_ref, "event_class": event_class, "risk_status": risk_status,
             "risk_min": risk_min, "risk_max": risk_max, "db_user": db_user, "stream_id": stream_id,
             "from": iso(from_) if from_ else None, "to": iso(to) if to else None,
         })
+        if include_incident_links:
+            add_recorded_incident_links(request, result)
+        return result
     snapshot, error = read(request)
     member_ids = None
     if incident_ref:

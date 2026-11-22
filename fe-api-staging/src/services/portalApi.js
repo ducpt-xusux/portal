@@ -235,6 +235,10 @@ export function mapEvent(record) {
     p17_event_class: string(record.p17_event_class),
     stream_sequence: count(record.stream_sequence),
     incident_refs: strings(record.incident_refs),
+    incident_membership: string(record.incident_membership),
+    recorded_incidents: Array.isArray(record.recorded_incidents)
+      ? record.recorded_incidents.map(object).filter((incident) => typeof incident.incident_id === 'string')
+      : null,
     source_provenance: safeProvenance(record.source_provenance),
     source_metadata: {
       ...Object.fromEntries(

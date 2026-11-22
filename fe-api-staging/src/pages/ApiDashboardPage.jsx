@@ -206,12 +206,12 @@ export default function ApiDashboardPage() {
           <table className="events-table">
             <thead>
               <tr>
-                <th>THỜI GIAN</th>
-                <th>NGUỒN / DB USER</th>
-                <th>TRUY VẤN ĐÃ CHE</th>
-                <th>MỨC ĐỘ / ĐIỂM RỦI RO</th>
-                <th>QUYẾT ĐỊNH</th>
-                <th>CHI TIẾT</th>
+                <th>Thời gian</th>
+                <th>Nguồn / tài khoản cơ sở dữ liệu</th>
+                <th>Truy vấn đã che</th>
+                <th>Mức độ / điểm rủi ro</th>
+                <th>Quyết định</th>
+                <th>Chi tiết</th>
               </tr>
             </thead>
             <tbody>

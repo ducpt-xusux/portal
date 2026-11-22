@@ -5,11 +5,17 @@ import {
   FieldGrid,
   Panel,
   PageHeading,
+  SourceStatus,
   useTime,
 } from "../../portal/PortalUI";
-import { ShieldAlert, ScanSearch } from "lucide-react";
+import { ArrowLeft, ChevronDown, RefreshCw, ShieldAlert, ScanSearch } from "lucide-react";
 import { evidenceDecision } from "../../services/proxyPresentation";
-import { uiLabel } from "../../services/uiLanguage";
+import { signalName, uiLabel } from "../../services/uiLanguage";
+import { analysisCaseHref, analysisEventHref, incidentSectionHref, sameRequestEvent } from "../../services/incidentLinks";
+import { eventHref } from "../n91-investigation/workbenchModel";
+import { EventInvestigationLinks } from "../../portal/InvestigationFlow";
+import { usePortal } from "../../portal/PortalContext";
+import { AnalysisExecutions, useAnalysisExecutions } from "./AnalysisExecutions";
 import "./analysis.css";
 
 const list = (value) => (Array.isArray(value) ? value : []);
@@ -19,23 +25,21 @@ const number = (value) =>
     : "—";
 const href = (key, id) =>
   `#/incidents?analysis=1${key ? `&${key}=${encodeURIComponent(id)}` : ""}`;
-const signals = {
-  "CORR-001": "Vi phạm chính sách lặp lại",
-  "CORR-002": "Thử chèn mã SQL nhiều lần",
-  "CORR-003": "Truy cập dữ liệu nhạy cảm lặp lại",
-  "CORR-004": "Kết hợp nhiều kỹ thuật",
-  "CORR-005": "Lỗi tương thích giao thức lặp lại",
-  "CORR-012": "Truy cập từ nguồn không được phép",
-  "CORR-013": "Chèn mã SQL từ nguồn không được phép",
-  "CORR-014": "Dò tìm cấu trúc lặp lại",
-  "CORR-015": "Dò tìm rồi thử hành vi nguy hiểm",
-  "CORR-022": "Chuỗi hành vi tăng mức nguy hiểm",
-};
-const signalTitle = (code) => signals[code] || code;
+const signalTitle = (code) => signalName(code) || code;
 const caseTitle = (value) =>
   list(value.signals).includes("CORR-002")
     ? "Nghi vấn chèn mã SQL lặp lại"
     : "Hồ sơ hành vi cần xem xét";
+
+function AnalysisItems({ values, format = (value) => value, empty = "—" }) {
+  const items = list(values);
+  if (!items.length) return <p>{empty}</p>;
+  return (
+    <ul className="n91-analysis-items">
+      {items.map((item) => <li key={item}>{format(item)}</li>)}
+    </ul>
+  );
+}
 
 export function IncidentNavigation({ analysis }) {
   return (
@@ -65,34 +69,29 @@ function Trace({ event }) {
   const p14 = trace.p14 || {},
     p15 = trace.p15 || {},
     p17 = trace.p17 || {};
+  const riskScore = event.risk_score ?? p15.score;
+  const riskStatus = p15.status || event.risk_status;
   const evaluations = Object.entries(p17.detector_evaluations || {});
   return (
     <>
       <div className="n91-analysis-trace">
         <section>
           <h3>Kiểm soát truy vấn</h3>
-          <p>
-            {list(p14.matched_rules).join(" · ") ||
-              "Chưa có quy tắc trong bản xuất"}
-          </p>
+          <AnalysisItems values={p14.matched_rules} empty="Chưa có quy tắc trong bản xuất" />
         </section>
         <section>
-          <h3>Đánh giá rủi ro</h3>
+          <h3>Điểm rủi ro</h3>
           <p>
-            {number(event.risk_score ?? p15.score)}/100 ·{" "}
-            {p15.status ? uiLabel(p15.status) : "Chưa xác minh"}
+            {Number.isFinite(riskScore) ? `${number(riskScore)}/100` : "Chưa có điểm"}
           </p>
         </section>
         <section>
           <h3>Phát hiện hành vi</h3>
-          <p>
-            {list(p17.matched_signals).map(signalTitle).join(" · ") ||
-              "Chưa có mẫu mới khớp"}
-          </p>
-        </section>
-        <section>
-          <h3>Phản ứng</h3>
-          <p>Xem quyết định xử lý trong hồ sơ sự cố hoặc mục Ứng phó tự động.</p>
+          <AnalysisItems
+            values={p17.matched_signals}
+            format={signalTitle}
+            empty="Chưa có mẫu mới khớp"
+          />
         </section>
       </div>
       {evaluations.length > 0 && (
@@ -102,10 +101,10 @@ function Trace({ event }) {
             <table className="v4-table">
               <thead>
                 <tr>
-                  <th>MẪU PHÁT HIỆN</th>
-                  <th>ĐÁNH GIÁ</th>
-                  <th>ĐÃ GHI NHẬN</th>
-                  <th>MỐC THAM CHIẾU</th>
+                  <th>Mẫu phát hiện</th>
+                  <th>Đánh giá</th>
+                  <th>Đã ghi nhận</th>
+                  <th>Mốc tham chiếu</th>
                 </tr>
               </thead>
               <tbody>
@@ -133,113 +132,136 @@ function Trace({ event }) {
         <p>
           Mã sự kiện: <code>{event.event_id}</code>
         </p>
-        <p>Quy tắc: {list(p14.matched_rules).join(", ") || "—"}</p>
-        <p>Mẫu: {list(p17.matched_signals).join(", ") || "—"}</p>
+        <div className="n91-analysis-technical-items">
+          <div><strong>Mã quy tắc</strong><AnalysisItems values={p14.matched_rules} /></div>
+          <div><strong>Mã mẫu hành vi</strong><AnalysisItems values={p17.matched_signals} /></div>
+        </div>
+        <p>Trạng thái tính điểm: {riskStatus === "OK" ? "Đã tính điểm" : uiLabel(riskStatus)}</p>
       </details>
     </>
   );
 }
 
-function CaseDetail({ data }) {
-  const time = useTime();
-  const evidence = [...list(data.evidence)].sort(
-    (a, b) => a.event_ms - b.event_ms,
+function RelatedResponseIncidents({ streamId, evidence }) {
+  const { sessionAuthEnabled } = usePortal();
+  const resource = useV4Resource("/system/automatic-response", {
+    enabled: sessionAuthEnabled && evidence.length > 0,
+    interval: 0,
+  });
+  if (resource.error) return null;
+  const seen = new Set();
+  const matches = [];
+  for (const row of list(resource.data?.decisions)) {
+    if (row.stream_id !== streamId || seen.has(row.incident_id)) continue;
+    const href = incidentSectionHref(row.incident_id, row.stream_id, "response");
+    if (!href) continue;
+    const shared = new Set();
+    for (const member of list(row.evidence?.incident?.evidence)) {
+      if (evidence.some((event) => sameRequestEvent(event, { ...member, stream_id: row.stream_id }))) {
+        shared.add(member.event_id);
+      }
+    }
+    seen.add(row.incident_id);
+    if (shared.size) matches.push({ row, href, count: shared.size });
+  }
+  if (!matches.length) return null;
+  return (
+    <details className="panel portal-provenance">
+      <summary>Sự cố dùng chung truy vấn ({matches.length})</summary>
+      <ul>
+        {matches.map(({ row, href, count }) => (
+          <li key={row.incident_id}>
+            <a href={href}>{signalName(row.evidence?.incident?.correlation_rule) || row.incident_id}</a>
+            {" · "}{count} truy vấn cùng nhóm · {uiLabel(row.state)}
+          </li>
+        ))}
+      </ul>
+    </details>
   );
-  const span =
-    evidence.length > 1 && evidence.every((e) => Number.isFinite(e.event_ms))
-      ? (evidence.at(-1).event_ms - evidence[0].event_ms) / 1000
-      : null;
+}
+
+function CaseDetail({ data, resource }) {
+  const [shown, setShown] = useState(10);
+  const time = useTime();
+  const evidence = [...list(data.evidence)].sort((a, b) => b.event_ms - a.event_ms);
+  const span = evidence.length > 1 && evidence.every((event) => Number.isFinite(event.event_ms))
+    ? (evidence[0].event_ms - evidence.at(-1).event_ms) / 1000
+    : null;
   return (
     <>
-      <a className="incident-back" href={href()}>
-        ← Danh sách hồ sơ
-      </a>
-      <Panel title={caseTitle(data)} action={<Badge value={data.status} />}>
-        <p className="n91-analysis-note">
-          Hồ sơ dựa trên truy vấn đã ghi nhận; không chứng minh tấn công thành
-          công và không cấp quyền cách ly.
-        </p>
-        <FieldGrid
-          rows={[
-            ["IP nguồn", data.source_ip],
-            ["Mức độ", <Badge value={data.severity} />],
-            ["Điểm rủi ro cao nhất", `${number(data.peak_p15)}/100`],
-            ["Bằng chứng", number(data.evidence_count)],
-          ]}
-        />
-      </Panel>
-      <div className="n91-analysis-columns">
-        <Panel title="Hành vi được nhận diện">
-          {list(data.signals).map((signal) => (
-            <p key={signal}>
-              <Badge value="WARNING">{signalTitle(signal)}</Badge>
-            </p>
-          ))}
-        </Panel>
-        <Panel title="Kết luận và ứng phó">
-          <FieldGrid
-            rows={[
-              ["Trạng thái", <Badge value={data.status} />],
-              [
-                "Biện pháp cách ly",
-                data.response === "NO_ACTION"
-                  ? "Chưa cách ly"
-                  : "Chưa xác minh",
-              ],
-              [
-                "Được phép tự động cách ly",
-                data.isolation_authorized === false ? "Không" : "Chưa xác minh",
-              ],
-              [
-                "Phạm vi bằng chứng",
-                data.evidence_export_complete === true
-                  ? "Đã xuất đủ thành viên hồ sơ"
-                  : "Giới hạn, chưa đủ để kết luận toàn bộ",
-              ],
-            ]}
-          />
-        </Panel>
-      </div>
-      <Panel title="Truy vấn làm bằng chứng">
-        {span !== null && (
-          <p className="n91-analysis-note">
-            Khoảng cách giữa các bằng chứng:{" "}
-            <strong>
-              {span.toLocaleString("vi-VN", {
-                minimumFractionDigits: 3,
-                maximumFractionDigits: 3,
-              })}{" "}
-              giây
-            </strong>
-            .
-          </p>
+      <header className="n91-case-masthead">
+        <a className="incident-back" href={href()}>
+          <ArrowLeft size={15} aria-hidden="true" /> Hồ sơ phân tích
+        </a>
+        <div className="n91-case-heading">
+          <div>
+            <h1>{caseTitle(data)}</h1>
+            <p>IP nguồn <strong>{data.source_ip || "—"}</strong> <Badge value={data.status} /></p>
+          </div>
+          <button className="button secondary" type="button" disabled={resource.loading} onClick={resource.refresh}>
+            <RefreshCw size={15} className={resource.loading ? "spin" : ""} /> Làm mới
+          </button>
+        </div>
+        <FieldGrid rows={[
+          ["Số truy vấn", number(data.evidence_count)],
+          ["Điểm rủi ro cao nhất", Number.isFinite(data.peak_p15) ? `${number(data.peak_p15)}/100` : "Chưa có điểm"],
+          ["Mức độ", uiLabel(data.severity)],
+          ["Cập nhật bằng chứng", time(data.updated_at)],
+        ]} />
+      </header>
+      <Panel title="Truy vấn làm bằng chứng" className="n91-case-queries">
+        {data.evidence_export_complete === false && (
+          <p className="n91-analysis-note">Bản xuất có {evidence.length} truy vấn trong tổng số {number(data.evidence_count)} đã ghi nhận.</p>
         )}
         {evidence.length ? (
-          evidence.map((event) => (
-            <details className="n91-analysis-evidence" key={event.event_id}>
-              <summary>
-                <strong>Truy vấn thứ tự {event.stream_sequence ?? "—"}</strong>
-                <span>
-                  {time(event.trace?.event_time)} · {number(event.risk_score)}
-                  /100 <Badge value={evidenceDecision(event)} />
-                </span>
-              </summary>
-              <Trace event={event} />
-              <a href={href("event_id", event.event_id)}>
-                Mở chi tiết sự kiện →
-              </a>
-            </details>
-          ))
-        ) : (
-          <p>Bản xuất chưa có bằng chứng để xem.</p>
-        )}
+          <>
+            <div className="n91-case-query-list">
+              {evidence.slice(0, shown).map((event) => {
+                const eventUrl = analysisEventHref(event);
+                const stamp = event.trace?.event_time;
+                return (
+                  <details className="n91-case-query" key={event.event_id}>
+                    <summary>
+                      <strong>Truy vấn {event.stream_sequence ?? "—"}</strong>
+                      <time dateTime={stamp}>{time(stamp)}</time>
+                      <span>{Number.isFinite(event.risk_score) ? `${number(event.risk_score)}/100` : "Chưa có điểm"}</span>
+                      <span className="n91-case-query-state">
+                        <Badge value={evidenceDecision(event)} />
+                        <ChevronDown size={15} aria-hidden="true" />
+                      </span>
+                    </summary>
+                    <div className="n91-case-query-body">
+                      <Trace event={event} />
+                      {eventUrl && <a href={eventUrl}>Mở phân tích của truy vấn</a>}
+                    </div>
+                  </details>
+                );
+              })}
+            </div>
+            {evidence.length > shown && (
+              <button className="button secondary n91-case-more" type="button" onClick={() => setShown(shown + 10)}>
+                Xem thêm truy vấn
+              </button>
+            )}
+          </>
+        ) : <p>Bản xuất chưa có truy vấn để xem.</p>}
       </Panel>
-      <details>
-        <summary>Thông tin kỹ thuật của hồ sơ</summary>
-        <p>
-          Mã hồ sơ: <code>{data.case_id}</code>
-        </p>
-        <p>{list(data.signals).join(", ")}</p>
+      <Panel title="Mẫu hành vi trong hồ sơ">
+        <AnalysisItems values={data.signals} format={signalTitle} empty="Hồ sơ chưa có mẫu hành vi được ghi nhận." />
+      </Panel>
+      <RelatedResponseIncidents streamId={data.stream_id} evidence={evidence} />
+      <details className="panel portal-provenance">
+        <summary>Thông tin nguồn và phạm vi</summary>
+        <SourceStatus resource={resource} label="Bản xuất phân tích hành vi" />
+        <FieldGrid rows={[
+          ["Mã hồ sơ", data.case_id],
+          ["Phạm vi bằng chứng", data.evidence_export_complete === true ? "Đã xuất đủ truy vấn của hồ sơ" : "Bản xuất giới hạn"],
+          ["Khoảng thời gian của chuỗi", span === null ? null : `${span.toLocaleString("vi-VN", { maximumFractionDigits: 3 })} giây`],
+          ["Hành động do hồ sơ phân tích ghi nhận", data.response === "NO_ACTION" ? "Không thực thi" : uiLabel(data.response)],
+          ["Cờ cấp phép trong hồ sơ phân tích", uiLabel(data.isolation_authorized)],
+        ]} />
+        <strong>Mã mẫu hành vi</strong>
+        <AnalysisItems values={data.signals} />
       </details>
     </>
   );
@@ -247,30 +269,95 @@ function CaseDetail({ data }) {
 
 function EventDetail({ event }) {
   const time = useTime();
+  const auditUrl = eventHref(event, "canonical");
+  const caseUrl = analysisCaseHref(event.trace?.p17?.case_id, event.stream_id);
   return (
     <>
-      <a className="incident-back" href={href()}>
-        ← Hồ sơ phân tích
+      <a className="incident-back" href={caseUrl || href()}>
+        ← {caseUrl ? "Hồ sơ chứa truy vấn này" : "Danh sách hồ sơ phân tích"}
       </a>
       <Panel
-        title="Chi tiết sự kiện"
+        title="Phân tích một truy vấn"
         action={<Badge value={evidenceDecision(event)} />}
       >
         <FieldGrid
           rows={[
             ["IP nguồn", event.trace?.source_ip],
             ["Thứ tự", event.stream_sequence],
-            ["Điểm rủi ro", `${number(event.risk_score)}/100`],
             ["Thời gian", time(event.trace?.event_time)],
           ]}
         />
+        {auditUrl && <a href={auditUrl}>Đối chiếu cùng sự kiện trong nhật ký kiểm toán</a>}
         <Trace event={event} />
       </Panel>
+      <EventInvestigationLinks event={event} analysis />
     </>
   );
 }
 
-export function AnalysisPage({ params }) {
+function QueryList({ resource }) {
+  const [filter, setFilter] = useState("");
+  const [page, setPage] = useState(0);
+  const time = useTime();
+  const events = list(resource.data?.events);
+  const filtered = events.filter((event) =>
+    event.source_ip?.includes(filter.trim()) || !filter.trim(),
+  );
+  const pageSize = 15;
+  const activePage = Math.min(page, Math.max(0, Math.ceil(filtered.length / pageSize) - 1));
+  const start = activePage * pageSize;
+  return (
+    <Panel
+      title="Truy vấn đã phân tích"
+      subtitle={resource.data?.source_total > events.length
+        ? `Đang xem ${events.length} trong ${number(resource.data.source_total)} truy vấn ở nguồn.`
+        : undefined}
+    >
+      <label className="n91-analysis-filter">
+        Lọc theo IP nguồn
+        <input type="search" value={filter} onChange={(event) => {
+          setFilter(event.target.value);
+          setPage(0);
+        }} />
+      </label>
+      {filtered.length > 0 ? (
+        <>
+          <div className="table-scroll">
+            <table className="v4-table">
+              <thead>
+                <tr>
+                  <th>Truy vấn</th>
+                  <th>Thời điểm</th>
+                  <th>IP nguồn</th>
+                  <th>Kết quả tường lửa</th>
+                  <th>Rủi ro</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.slice(start, start + pageSize).map((event) => (
+                  <tr key={event.event_id}>
+                    <td><a href={analysisEventHref(event)}>Truy vấn số {event.stream_sequence}</a></td>
+                    <td>{time(event.event_time)}</td>
+                    <td>{event.source_ip || "—"}</td>
+                    <td><Badge value={evidenceDecision(event)} /></td>
+                    <td>{number(event.risk_score)}/100</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <nav className="n91-analysis-pager" aria-label="Phân trang truy vấn">
+            <button className="button secondary" disabled={activePage === 0} onClick={() => setPage(activePage - 1)}>Trang trước</button>
+            <span>{start + 1}–{Math.min(start + pageSize, filtered.length)} / {filtered.length}</span>
+            <button className="button secondary" disabled={start + pageSize >= filtered.length} onClick={() => setPage(activePage + 1)}>Trang sau</button>
+          </nav>
+        </>
+      ) : <p>Chưa có truy vấn trong bản xuất và phạm vi lọc hiện tại.</p>}
+    </Panel>
+  );
+}
+
+export function AnalysisPage({ params, navigation }) {
   const [ip, setIp] = useState("");
   const key = params.case_id ? "cases" : params.event_id ? "events" : null;
   const id = params.case_id || params.event_id;
@@ -283,29 +370,62 @@ export function AnalysisPage({ params }) {
     params: { limit: 50 },
     interval: 10000,
   });
-  const resource = id ? detail : cases;
+  const showQueries = !id && params.view === "queries";
+  const events = useV4Resource("/p17-vnext/events", {
+    enabled: !id,
+    params: { limit: 100 },
+    interval: 10000,
+  });
+  const { sessionAuthEnabled } = usePortal();
+  const executions = useAnalysisExecutions(sessionAuthEnabled && !id && !showQueries);
+  const resource = id ? detail : showQueries ? events : cases;
+  const refresh = () => {
+    if (id) {
+      detail.refresh();
+    } else {
+      cases.refresh();
+      events.refresh();
+      executions.response.refresh();
+      executions.journal.refresh();
+    }
+  };
+  const detailMismatch = id && detail.data && (
+    detail.data[key === "cases" ? "case_id" : "event_id"] !== id ||
+    (params.stream_id && detail.data.stream_id !== params.stream_id) ||
+    (key === "events" && params.request_id && detail.data.request_id !== params.request_id)
+  );
   const time = useTime();
   const rows = list(cases.data?.cases).filter(
     (value) => !ip || String(value.source_ip || "").includes(ip.trim()),
   );
+  if (key === "cases" && detail.data && !detail.error && !detailMismatch) {
+    return <div className="n91-analysis"><CaseDetail data={detail.data} resource={detail} /></div>;
+  }
   return (
     <div className="n91-analysis">
       <PageHeading
-        eyebrow="PHÂN TÍCH VÀ ĐIỀU TRA"
         title="Phân tích hành vi"
-        description="Đối chiếu chuỗi hành vi và các sự kiện làm bằng chứng cho từng hồ sơ."
-        resource={resource}
+        resource={{ loading: resource.loading && !resource.data, refresh }}
       />
-      <p className="n91-analysis-scope">
-        <Badge
-          value={resource.error ? "UNKNOWN" : resource.meta?.freshness_state}
-        />{" "}
-        Phạm vi: tối đa 50 hồ sơ, 100 sự kiện · Chỉ xem xét · Không tự động cách
-        ly
-        {resource.meta?.data_as_of && (
-          <> · Nguồn: {time(resource.meta.data_as_of)}</>
-        )}
-      </p>
+      {navigation}
+      {!id && (
+        <nav className="v4-system-tabs v4-sub-tabs" aria-label="Danh sách phân tích">
+          <a href={href()} className={!showQueries ? "active" : ""} aria-current={!showQueries ? "page" : undefined}>
+            Hồ sơ tổng hợp{cases.data && !cases.error ? ` (${cases.data.shown})` : ""}
+          </a>
+          <a href={`${href()}&view=queries`} className={showQueries ? "active" : ""} aria-current={showQueries ? "page" : undefined}>
+            Truy vấn đã phân tích{events.data && !events.error ? ` (${events.data.source_total})` : ""}
+          </a>
+        </nav>
+      )}
+      <SourceStatus resource={resource} label="Bản xuất phân tích hành vi" />
+      {!id && !showQueries && sessionAuthEnabled && (
+        <AnalysisExecutions
+          {...executions}
+          cases={cases.error ? [] : list(cases.data?.cases)}
+          events={events.error ? [] : list(events.data?.events)}
+        />
+      )}
       {resource.loading && !resource.data && (
         <p role="status">Đang đọc hồ sơ đã ghi nhận…</p>
       )}
@@ -318,18 +438,19 @@ export function AnalysisPage({ params }) {
             Thử lại
           </button>
         </div>
+      ) : detailMismatch ? (
+        <p className="n91-analysis-note" role="alert">
+          Bản ghi trả về khác mã trong liên kết. Mở lại từ sự kiện hoặc hồ sơ gốc.
+        </p>
       ) : (
         resource.data &&
         (id ? (
-          key === "cases" ? (
-            <CaseDetail data={detail.data} />
-          ) : (
-            <EventDetail event={detail.data} />
-          )
+          <EventDetail event={detail.data} />
+        ) : showQueries ? (
+          <QueryList resource={events} />
         ) : (
           <Panel
-            title="Hồ sơ cần xem xét"
-            action={<Badge value="UNKNOWN">Chỉ đọc</Badge>}
+            title="Hồ sơ hành vi theo nguồn"
           >
             <label className="n91-analysis-filter">
               Lọc theo IP nguồn
@@ -350,11 +471,12 @@ export function AnalysisPage({ params }) {
                       {number(value.evidence_count)} truy vấn làm bằng chứng ·
                       Điểm rủi ro cao nhất {number(value.peak_p15)}/100
                     </p>
+                    {value.updated_at && <p>Ghi nhận gần nhất {time(value.updated_at)}</p>}
                   </div>
                   <Badge value={value.severity} />
                   <a
                     className="button secondary"
-                    href={href("case_id", value.case_id)}
+                    href={analysisCaseHref(value.case_id, value.stream_id) || href("case_id", value.case_id)}
                   >
                     Xem hồ sơ →
                   </a>
@@ -363,10 +485,6 @@ export function AnalysisPage({ params }) {
             ) : (
               <p>Chưa có hồ sơ trong bản xuất và phạm vi lọc hiện tại.</p>
             )}
-            <p className="muted">
-              Hồ sơ phân tích không tự động cộng vào tổng số sự cố đã ghi nhận
-              trước nâng cấp.
-            </p>
           </Panel>
         ))
       )}

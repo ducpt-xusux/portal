@@ -1,6 +1,7 @@
 import NetworkHistory from "./NetworkHistory";
 import QuarantineJournal from "./QuarantineJournal";
 import { uiLabel, uiRoleList } from "../services/uiLanguage.js";
+import { incidentSectionHref } from "../services/incidentLinks";
 import { LoadedSgLifecycle } from "../features/n91-investigation/Investigation";
 import { useState } from "react";
 import {
@@ -34,7 +35,6 @@ import {
   Empty,
   FieldGrid,
   Filter,
-  FilterHeading,
   PageHeading,
   Panel,
   ResourceNotice,
@@ -68,18 +68,18 @@ const QUARANTINE_ERRORS = {
   RESTORE_PORT_CHANGED:
     "Cấu hình cổng đã thay đổi. Kiểm tra trực tiếp trong Neutron trước khi khôi phục.",
   RESTORE_PORT_SCOPE_CHANGED:
-    "Danh sách cổng mạng đã thay đổi. Kiểm tra trực tiếp trong Neutron.",
+    "Danh sách Port đã thay đổi. Kiểm tra trực tiếp trong Neutron.",
   RESTORE_CONFIGURATION_CHANGED:
-    "Dự án hoặc nhóm bảo mật cô lập đã thay đổi.",
+    "Dự án hoặc Security Group cô lập đã thay đổi.",
   RESTORE_OPERATION_CHANGED:
     "Lượt cô lập đã thay đổi. Hãy kiểm tra lại trạng thái.",
-  RESTORE_HISTORY_UNAVAILABLE: "Đã khôi phục SG, nhưng chưa lưu đủ lịch sử.",
+  RESTORE_HISTORY_UNAVAILABLE: "Đã khôi phục Security Group. Nhật ký chưa lưu đủ chi tiết.",
   QUARANTINE_RESTORE_UNVERIFIED:
-    "Chưa xác minh được khôi phục nhóm bảo mật cũ. Kiểm tra các cổng trong Neutron trước khi thử lại.",
+    "Chưa xác minh được khôi phục Security Group cũ. Kiểm tra các cổng trong Neutron trước khi thử lại.",
   QUARANTINE_APPLIED_AUDIT_INCOMPLETE:
     "Neutron đã xác nhận cô lập. Chưa ghi được kết quả vào nhật ký Portal.",
   QUARANTINE_SG_NOT_EMPTY_OR_OUTSIDE_PROJECT:
-    "nhóm bảo mật cô lập phải thuộc dự án và không có luật cho phép.",
+    "Security Group cô lập phải thuộc dự án và không có luật cho phép.",
 };
 
 function WorkloadQuarantine({ vm, resource }) {
@@ -95,6 +95,7 @@ function WorkloadQuarantine({ vm, resource }) {
     interval: 3000,
   });
   const operation = status.data;
+  const responseUrl = incidentSectionHref(operation?.incident_id, operation?.stream_id, "response");
   const state = operation?.state;
   const restoring = state === "RESTORING" || state === "APPLYING";
   const canRestore = state === "QUARANTINED" || state === "RESTORE_FAILED";
@@ -135,7 +136,7 @@ function WorkloadQuarantine({ vm, resource }) {
         },
       );
       const message = restore
-        ? `Neutron đã xác nhận khôi phục SG của ${name}.`
+        ? `Neutron đã xác nhận khôi phục Security Group của ${name}.`
         : `Neutron đã xác nhận cô lập ${name}.`;
       setNotice(
         data?.history_saved === false
@@ -160,7 +161,7 @@ function WorkloadQuarantine({ vm, resource }) {
   return (
     <Panel
       title="Điều khiển bảo mật"
-      subtitle="Cô lập kết nối hoặc khôi phục nhóm bảo mật đã lưu."
+      subtitle="Cô lập kết nối hoặc khôi phục Security Group đã lưu."
       className="vm-control-panel"
       action={
         !confirming && (
@@ -190,12 +191,12 @@ function WorkloadQuarantine({ vm, resource }) {
             : "Máy ảo sẽ giữ trạng thái cô lập cho đến khi bạn bấm Khôi phục."}
         </p>
       )}
-      {restoring && <p role="status">Đang xử lý thay đổi nhóm bảo mật.</p>}
+      {restoring && <p role="status">Đang xử lý thay đổi Security Group.</p>}
       {state === "RESTORED" && (
         <p className="vm-action-success" role="status">
           <CircleCheck size={18} />
           <span>
-            Nhóm bảo mật đã khôi phục
+            Security Group đã khôi phục
             <small>{time(operation.restored_at)}</small>
           </span>
         </p>
@@ -204,7 +205,7 @@ function WorkloadQuarantine({ vm, resource }) {
         <div className="v4-proxy-snapshot">
           <strong>Ứng phó tự động theo chính sách thử nghiệm</strong>
           <p>{operation.incident_id} · {uiLabel(operation.policy_version)}</p>
-          <a href="#/system/automatic-response">Xem quyết định, xác minh nguồn và bằng chứng</a>
+          <a href={responseUrl || "#/system/automatic-response"}>Xem quyết định, xác minh nguồn và bằng chứng</a>
         </div>
       )}
       {operation?.error_code && (
@@ -272,214 +273,114 @@ export function WorkloadsPage({ params }) {
     interval: 15000,
     transform: (data) => readCollection(data, "workloads").map(mapWorkload),
   });
-  const classificationMissing =
-    resource.meta?.network_classification === "NOT_CONFIGURED";
+  const classificationMissing = resource.meta?.network_classification === "NOT_CONFIGURED";
   const live = resource.meta?.source_mode === "LIVE";
-  const staleLive =
-    live && freshness(resource.meta, Boolean(resource.error)) !== "FRESH";
+  const staleLive = live && freshness(resource.meta, Boolean(resource.error)) !== "FRESH";
+  const applyFilters = (event) => {
+    event.preventDefault();
+    const query = new URLSearchParams(Object.entries(draft).filter(([, value]) => value)).toString();
+    window.location.hash = `/workloads${query ? `?${query}` : ""}`;
+  };
+
   return (
     <>
-      <PageHeading
-        eyebrow="HẠ TẦNG VÀ KẾT NỐI"
-        title="Máy ảo"
-        description="Quản lý trạng thái máy ảo, kết nối mạng và các lượt cô lập/khôi phục."
-        resource={resource}
-      />
-      {resource.meta?.source_mode === "LIVE" && (
-        <div className="v4-snapshot-notice">
-          <strong>
-            Nova / Neutron · inventory thật · cập nhật theo chu kỳ{" "}
-            {resource.meta.refresh_seconds || 15} giây
-          </strong>
-          <p>
-            Project: {display(resource.meta.project_id)} · Quan sát gần nhất{" "}
-            {time(resource.meta.data_as_of)}.
-          </p>
-          {staleLive && (
-            <p role="status">
-              Chưa đọc được kết quả mới; đang giữ dữ liệu lần thành công trước
-              với nhãn STALE. {resource.meta.last_error_code || ""}
-            </p>
-          )}
-          {classificationMissing && (
-            <p>Chưa xác định được nhóm bảo mật cô lập cho dự án này.</p>
-          )}
-          {resource.meta.network_history_error && (
-            <p role="status">
-              Lịch sử trạng thái mạng tạm thời không truy cập được.
-            </p>
-          )}
-        </div>
-      )}
-      <form
-        className="panel v4-filters"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const query = new URLSearchParams(
-            Object.entries(draft).filter(([, value]) => value),
-          ).toString();
-          window.location.hash = `/workloads${query ? `?${query}` : ""}`;
-        }}
-      >
-        <FilterHeading />
-        <Filter label="Tên máy ảo">
-          <input
-            placeholder="Tìm tên VM"
-            value={draft.name || ""}
-            maxLength={128}
-            onChange={(event) =>
-              setDraft((current) => ({ ...current, name: event.target.value }))
-            }
-          />
-        </Filter>
-
-        <SelectFilter
-          label="Trạng thái mạng"
-          value={draft.network_state}
-          onChange={(value) =>
-            setDraft((current) => ({ ...current, network_state: value }))
-          }
-          options={[
-            ["", "Tất cả"],
-            ...Object.entries(NETWORK_LABELS)
-              .filter(([value]) => value !== "STALE")
-              .map(([value, label]) => [
-                value,
-                label,
-                value !== "UNKNOWN" && classificationMissing,
-              ]),
-          ]}
-        />
-        <button className="button primary">Áp dụng</button>
-        <a className="text-button" href="#/workloads">
-          Đặt lại
-        </a>
-      </form>
-      <Panel
-        title="Danh sách máy ảo"
-        subtitle="Danh sách máy ảo và cổng mạng được đọc từ OpenStack"
-        resource={resource}
-      >
-        {resource.data &&
-          (resource.data.length ? (
-            <div className="table-scroll">
-              <table className="v4-table">
-                <thead>
-                  <tr>
-                    <th>MÁY ẢO</th>
-                    <th>TRẠNG THÁI NOVA</th>
-                    <th>TRẠNG THÁI MẠNG</th>
-                    <th>IP NỘI BỘ / FLOATING IP</th>
-                    <th>SECURITY GROUP</th>
-                    <th>QUAN SÁT</th>
-                    <th>
-                      <span className="sr-only">Chi tiết</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {resource.data.map((vm) => {
-                    const state = workloadNetworkStatus(
-                      vm.network_observation,
-                      resource.meta,
-                      Boolean(resource.error),
-                    );
-                    const nova = live ? vm.nova_status : null;
-                    return (
-                      <tr key={vm.server_id}>
-                        <td>
-                          <a
-                            className="v4-id-link"
-                            href={`#/workloads/${encodeURIComponent(vm.server_id)}`}
-                            >
-                              {vm.name ? uiLabel(vm.name) : vm.server_id}
-                          </a>
-                        </td>
-                        <td>
-                          <Badge
-                            value={staleLive ? "STALE" : nova || "UNKNOWN"}
-                          >
-                            {staleLive ? "Dữ liệu cũ" : nova || "Chưa xác minh"}
-                          </Badge>
-                        </td>
-                        <td>
-                          <NetworkStatusBadge state={state} />
-                          <NetworkHistory
-                            entries={vm.network_history}
-                            serverId={vm.server_id}
-                            name={vm.name ? uiLabel(vm.name) : vm.server_id}
-                          />
-                        </td>
-                        <td>
-                          {vm.ports.length
-                            ? vm.ports.map((port, index) => (
-                                <div
-                                  className="v4-port-brief"
-                                  key={port.port_id || index}
-                                >
-                                  <code>
-                                    {port.fixed_ips.join(", ") ||
-                                      "Chưa có fixed IP"}
-                                  </code>
-                                  <small>
-                                    FIP: {port.floating_ips.join(", ") || "—"}
-                                  </small>
-                                </div>
-                              ))
-                            : "Chưa có thông tin cổng mạng"}
-                        </td>
-                        <td>
-                          {vm.ports.map((port, index) => (
-                            <div
-                              className="v4-port-brief"
-                              key={port.port_id || index}
-                            >
-                              <small>Port {port.port_id || "Chưa có ID"}</small>
-                              <NetworkStatusBadge
-                                state={workloadNetworkStatus(
-                                  {
-                                    state: port.network_state,
-                                    observed_at: port.observed_at,
-                                    verification: live
-                                      ? "LIVE_NEUTRON_READ"
-                                      : null,
-                                  },
-                                  resource.meta,
-                                  Boolean(resource.error),
-                                )}
-                              />
-                              <SecurityGroups
-                                groups={port.security_groups}
-                                provided={port.security_groups_provided}
-                              />
-                            </div>
-                          ))}
-                        </td>
-
-                        <td>{time(vm.network_observed_at)}</td>
-                        <td>
-                          <a
-                            className="row-detail"
-                            href={`#/workloads/${encodeURIComponent(vm.server_id)}`}
-                            aria-label={`Xem máy ảo ${vm.name ? uiLabel(vm.name) : vm.server_id}`}
-                          >
-                            <ArrowUpRight size={16} />
-                          </a>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <Empty
-              title="Không có máy ảo trong phạm vi truy cập"
-              text="Danh sách phụ thuộc quyền đọc Nova và Neutron của Portal."
+      <PageHeading title="Máy ảo" resource={resource} />
+      <section className="panel v4-panel workload-inventory" aria-label="Danh sách máy ảo">
+        <form className="v4-filters workload-list-filters" onSubmit={applyFilters}>
+          <Filter label="Tên máy ảo">
+            <input
+              type="search"
+              placeholder="Nhập tên máy ảo"
+              value={draft.name || ""}
+              maxLength={128}
+              onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
             />
-          ))}
+          </Filter>
+          <SelectFilter
+            label="Kết nối mạng"
+            value={draft.network_state}
+            onChange={(value) => setDraft((current) => ({ ...current, network_state: value }))}
+            options={[
+              ["", "Tất cả"],
+              ...Object.entries(NETWORK_LABELS)
+                .filter(([value]) => value !== "STALE")
+                .map(([value, label]) => [value, label, value !== "UNKNOWN" && classificationMissing]),
+            ]}
+          />
+          <button className="button primary">Lọc</button>
+          {(draft.name || draft.network_state || params.name || params.network_state) && (
+            <a className="button secondary" href="#/workloads" onClick={() => setDraft({})}>Đặt lại</a>
+          )}
+        </form>
+        <ResourceNotice resource={resource} noun="danh sách máy ảo" />
+        {staleLive && !resource.error && <p className="v4-panel-note" role="status">Đang xem lần quan sát gần nhất.</p>}
+        {classificationMissing && <p className="v4-panel-note">Dự án chưa cung cấp cấu hình Security Group cách ly.</p>}
+        {resource.meta?.network_history_error && <p className="v4-panel-note" role="status">Tạm thời chưa đọc được lịch sử mạng.</p>}
+        {resource.data && (resource.data.length ? (
+          <div className="table-scroll">
+            <table className="v4-table workload-list-table">
+              <thead>
+                <tr>
+                  <th>Máy ảo</th>
+                  <th>Trạng thái Nova</th>
+                  <th>Kết nối mạng</th>
+                  <th>Địa chỉ IP</th>
+                  <th>Security Group</th>
+                  <th>Quan sát lúc</th>
+                </tr>
+              </thead>
+              <tbody>
+                {resource.data.map((vm) => {
+                  const state = workloadNetworkStatus(vm.network_observation, resource.meta, Boolean(resource.error));
+                  const nova = live ? vm.nova_status : null;
+                  const name = vm.name ? uiLabel(vm.name) : vm.server_id;
+                  const vmUrl = `#/workloads/${encodeURIComponent(vm.server_id)}`;
+                  const fixedIps = [...new Set(vm.ports.flatMap((port) => port.fixed_ips))];
+                  const externalIps = [...new Set(vm.ports.flatMap((port) => port.floating_ips))];
+                  const groupsById = new Map();
+                  for (const port of vm.ports) {
+                    for (const group of port.security_groups) {
+                      if (group.name || !groupsById.has(group.id)) groupsById.set(group.id, group);
+                    }
+                  }
+                  const groups = [...groupsById.values()];
+                  const groupsProvided = groups.length > 0 ||
+                    (vm.ports.length > 0 && vm.ports.every((port) => port.security_groups_provided));
+                  return (
+                    <tr key={vm.server_id}>
+                      <td><a className="workload-list-name" href={vmUrl}><Server size={16} aria-hidden="true" /> {name}</a></td>
+                      <td><Badge value={staleLive ? "STALE" : nova || "UNKNOWN"}>
+                        {staleLive ? "Dữ liệu cũ" : nova ? uiLabel(nova) : "Chưa xác minh"}
+                      </Badge></td>
+                      <td>
+                        <NetworkStatusBadge state={state} />
+                        <NetworkHistory entries={vm.network_history} serverId={vm.server_id} name={name} />
+                      </td>
+                      <td>
+                        {fixedIps.length ? fixedIps.map((ip) => <code key={ip}>{ip}</code>) : "—"}
+                        {externalIps.map((ip) => <small key={ip}>Floating IP <code>{ip}</code></small>)}
+                      </td>
+                      <td><SecurityGroups groups={groups} provided={groupsProvided} namesOnly /></td>
+                      <td><time dateTime={vm.network_observed_at}>{time(vm.network_observed_at)}</time></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : <Empty title="Không có máy ảo trong phạm vi lọc" />)}
         <CursorPager resource={resource} {...pager} />
-      </Panel>
+        {live && (
+          <details className="portal-provenance workload-source-details">
+            <summary>Nguồn OpenStack</summary>
+            <FieldGrid rows={[
+              ["Project", display(resource.meta.project_id)],
+              ["Quan sát gần nhất", time(resource.meta.data_as_of)],
+              ["Chu kỳ đọc", resource.meta.refresh_seconds ? `${resource.meta.refresh_seconds} giây` : null],
+            ]} />
+          </details>
+        )}
+      </section>
     </>
   );
 }
@@ -497,8 +398,7 @@ function PortsPanel({ vmId, selectedPort }) {
   );
   return (
     <Panel
-      title="Cổng mạng và nhóm bảo mật"
-      subtitle="Kết nối và nhóm bảo mật đang áp dụng trên từng cổng mạng"
+      title="Port và Security Group"
       resource={resource}
       className="vm-ports-panel"
     >
@@ -506,7 +406,7 @@ function PortsPanel({ vmId, selectedPort }) {
         resource.data &&
         !resource.data.some((port) => port.port_id === selectedPort) && (
           <p className="v4-panel-note" role="status">
-            Port từ liên kết sự cố không còn thuộc VM này trong inventory hiện
+            Port từ hồ sơ sự cố không còn thuộc máy ảo này trong danh sách hiện
             tại. Hãy đọc lại đối chiếu tại sự cố.
           </p>
         )}
@@ -535,9 +435,9 @@ function PortsPanel({ vmId, selectedPort }) {
                     <Plug2 size={19} />
                   </span>
                   <div>
-                    <h3>Cổng mạng {index + 1}</h3>
+                    <h3>Port {index + 1}</h3>
                     <div className="v4-copy-row">
-                      <span>{port.port_id || "Cổng mạng chưa có mã"}</span>
+                      <span>{port.port_id || "Port chưa có mã"}</span>
                       <CopyId value={port.port_id} />
                     </div>
                   </div>
@@ -569,7 +469,7 @@ function PortsPanel({ vmId, selectedPort }) {
                     ]}
                   />
                 </div>
-                <h3 className="v4-subheading">Nhóm bảo mật đang áp dụng</h3>
+                <h3 className="v4-subheading">Security Group đang áp dụng</h3>
                 <SecurityGroups
                   groups={port.security_groups}
                   provided={port.security_groups_provided}
@@ -599,7 +499,7 @@ function PortsPanel({ vmId, selectedPort }) {
             ))}
           </div>
         ) : (
-          <Empty title="Không có cổng mạng trong phạm vi truy cập" />
+          <Empty title="Không có Port trong phạm vi truy cập" />
         ))}
     </Panel>
   );
@@ -631,9 +531,9 @@ export function ActionHistory({ serverId, incidentId }) {
             <table className="v4-table">
               <thead>
                 <tr>
-                  <th>HÀNH ĐỘNG / SỰ CỐ</th>
-                  <th>KẾT QUẢ GHI NHẬN</th>
-                  <th>THỜI ĐIỂM</th>
+                  <th>Hành động / sự cố</th>
+                  <th>Kết quả ghi nhận</th>
+                  <th>Thời điểm</th>
                 </tr>
               </thead>
               <tbody>
@@ -714,7 +614,6 @@ export function WorkloadDetail({ id, params = {} }) {
               <Server size={27} strokeWidth={1.7} />
             </div>
             <div>
-              <p className="vm-eyebrow">HẠ TẦNG MÁY ẢO</p>
               <h1>{vm?.name ? uiLabel(vm.name) : "Chi tiết máy ảo"}</h1>
             </div>
           </div>
@@ -791,7 +690,7 @@ export function WorkloadDetail({ id, params = {} }) {
             <div>
               <span>Kết nối mạng</span>
               <strong>{vm.ports.length} port</strong>
-              <small>Theo inventory OpenStack</small>
+              <small>Theo OpenStack</small>
             </div>
           </div>
         </div>
@@ -832,7 +731,7 @@ export function WorkloadDetail({ id, params = {} }) {
         <section className="vm-overview-layout" aria-label="Overview máy ảo">
           <div className="vm-main-column">
             <PortsPanel vmId={id} selectedPort={params.port_id} />
-            <QuarantineJournal serverId={id} />
+            <QuarantineJournal serverId={id} selectedOperationId={params.operation_id} />
             <ActionHistory serverId={id} />
           </div>
           <aside className="vm-side-column">
@@ -857,7 +756,7 @@ export function WorkloadDetail({ id, params = {} }) {
                 <NetworkStatusBadge state={networkState} />
               </div>
               <p>
-                Trạng thái mạng được xác minh bằng nhóm bảo mật trên Neutron.
+                Trạng thái mạng được xác minh bằng Security Group trên Neutron.
               </p>
               <NetworkHistory
                 entries={vm.network_history}
@@ -902,7 +801,7 @@ export function ActionDetail({ id }) {
   const groups = (value) =>
     Array.isArray(value)
       ? value.filter((item) => typeof item === "string").join(" · ") ||
-        "Không có SG"
+        "Không có Security Group"
       : "Chưa có bằng chứng";
   return (
     <>
@@ -911,7 +810,6 @@ export function ActionDetail({ id }) {
         Máy ảo
       </a>
       <PageHeading
-        eyebrow="CHI TIẾT XỬ LÝ"
         title="Chi tiết hành động"
         description={id}
         resource={resource}
@@ -947,7 +845,7 @@ export function ActionDetail({ id }) {
               ]}
             />
           </Panel>
-          <Panel title="SG lifecycle">
+          <Panel title="Security Group theo từng giai đoạn">
             <LoadedSgLifecycle actionId={id} />
           </Panel>
         </div>

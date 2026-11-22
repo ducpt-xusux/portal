@@ -1,12 +1,9 @@
 import {
   Activity,
-  ArrowUpRight,
   Blocks,
   ChevronRight,
-  CircleHelp,
   FileClock,
   LayoutDashboard,
-  LockKeyhole,
   Server,
   ShieldCheck,
   X,
@@ -21,16 +18,16 @@ const navigation = [
     href: "#/dashboard",
   },
   {
-    label: "Sự cố",
-    icon: ShieldCheck,
-    page: "incidents",
-    href: "#/incidents",
-  },
-  {
     label: "Sự kiện bảo mật",
     icon: FileClock,
     page: "events",
     href: "#/events",
+  },
+  {
+    label: "Sự cố",
+    icon: ShieldCheck,
+    page: "incidents",
+    href: "#/incidents",
   },
   { label: "Máy ảo", icon: Server, page: "workloads", href: "#/workloads" },
   { label: "Hệ thống", icon: Activity, page: "system", href: "#/system" },
@@ -40,8 +37,6 @@ export default function Sidebar({
   mobileOpen,
   onClose,
   activePage = "dashboard",
-  mode,
-  user,
 }) {
   const [compact, setCompact] = useState(
     () => window.matchMedia("(max-width:760px)").matches,
@@ -111,7 +106,7 @@ export default function Sidebar({
             <ShieldCheck size={25} strokeWidth={1.8} />
           </span>
           <span className="brand-word">
-            DBSEC<span>CỔNG QUẢN TRỊ BẢO MẬT</span>
+            DBSEC<span>Cổng quản trị bảo mật</span>
           </span>
         </a>
         <button
@@ -125,8 +120,7 @@ export default function Sidebar({
           <Blocks size={15} />
           <span>Đám mây riêng OpenStack</span>
         </div>
-        <div className="nav-caption">KHÔNG GIAN LÀM VIỆC</div>
-        <nav className="navigation">
+        <nav className="navigation" aria-label="Các trang của Portal">
           {navigation.map(({ label, icon: Icon, page, href }) => (
             <a
               key={label}
@@ -137,39 +131,15 @@ export default function Sidebar({
             >
               <Icon size={19} strokeWidth={1.8} />
               <span>{label}</span>
-              {activePage === page && <span className="nav-active-dot" />}
             </a>
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <div className="environment-card">
-            <a href="#/system" onClick={onClose}>
-              Kiểm tra nguồn <ArrowUpRight size={15} />
-            </a>
-          </div>
           <a className="sidebar-help" href="#/system/sources" onClick={onClose}>
             <Activity size={17} />
-            <span>Trạng thái nguồn dữ liệu</span>
+            <span>Nguồn dữ liệu</span>
             <ChevronRight size={15} />
           </a>
-          <div className="user-card">
-            <span className="avatar">
-              {mode === "v4" && user
-                ? user.login?.charAt(0).toUpperCase()
-                : "V"}
-            </span>
-            <div>
-              <strong>
-                {mode === "v4" && user ? user.login : "Chưa đăng nhập"}
-              </strong>
-              <span>
-                {mode === "v4" && user
-                  ? user.role
-                  : "Không có phiên người dùng"}
-              </span>
-            </div>
-            <LockKeyhole size={15} />
-          </div>
         </div>
       </aside>
     </>

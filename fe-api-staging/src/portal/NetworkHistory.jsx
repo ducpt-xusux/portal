@@ -22,7 +22,7 @@ export default function NetworkHistory({ entries = [], serverId, name }) {
       <header><div><h2 id={heading}>Lịch sử cách ly</h2><p>{name || serverId}</p></div><button type="button" className="button secondary" onClick={() => setOpen(false)}>Đóng ✕</button></header>
       {resource.loading && <p role="status">Đang đọc lịch sử…</p>}
       {resource.error || resource.meta?.network_history_error ? <div role="alert">Chưa đọc được lịch sử cách ly. <button type="button" onClick={resource.refresh}>Thử lại</button></div> : resource.data && <>
-        {rows.length ? <div className="table-scroll"><table className="v4-table"><thead><tr><th>LẦN</th><th>BẮT ĐẦU CÁCH LY</th><th>KHÔI PHỤC</th><th>KẾT QUẢ GHI NHẬN</th></tr></thead><tbody>
+        {rows.length ? <div className="table-scroll"><table className="v4-table"><thead><tr><th>Lần</th><th>Bắt đầu cách ly</th><th>Khôi phục</th><th>Kết quả ghi nhận</th></tr></thead><tbody>
           {rows.map((row, index) => <tr key={`${row.started}:${row.restored}:${index}`}><td>{index + 1}</td><td>{row.started ? time(row.started) : 'Ngoài phạm vi lịch sử'}</td><td>{row.restored ? time(row.restored) : '—'}</td><td><Badge value={row.restored ? 'NORMAL' : 'UNKNOWN'}>{row.restored ? 'Đã khôi phục' : 'Chưa có mốc khôi phục'}</Badge></td></tr>)}
         </tbody></table></div> : <p>Chưa có lần cách ly được xác minh trong phạm vi lịch sử hiện có.</p>}
         <p className="muted">Tối đa 10 mốc thay đổi mạng gần nhất. Đây là lịch sử quan sát mạng, chưa phải toàn bộ hành động của bộ điều khiển.</p>

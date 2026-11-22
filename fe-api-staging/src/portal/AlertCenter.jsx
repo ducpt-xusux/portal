@@ -179,12 +179,12 @@ function AlertFeed({ filters, onRestart }) {
             <table className="v4-table v4-alert-table">
               <thead>
                 <tr>
-                  <th>THỜI GIAN</th>
-                  <th>CẢNH BÁO / TÍN HIỆU</th>
-                  <th>MỨC ĐỘ / ĐIỂM ĐỈNH</th>
-                  <th>IP NGUỒN</th>
-                  <th>SỰ CỐ</th>
-                  <th>CHI TIẾT</th>
+                  <th>Thời gian</th>
+                  <th>Cảnh báo / tín hiệu</th>
+                  <th>Mức độ / điểm cao nhất</th>
+                  <th>IP nguồn</th>
+                  <th>Sự cố</th>
+                  <th>Chi tiết</th>
                 </tr>
               </thead>
               <tbody>

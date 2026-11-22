@@ -232,7 +232,7 @@ export default function ApiAuditSystemPage({ tab, ruleId }) {
                   ['Firewall listener', 'Chưa kết nối'],
                   ['OpenStack / Nova / Neutron', "Ngoài phạm vi "],
                   ['Galera Primary / Synced', "Chưa có kiểm tra"],
-                  ["VM / nhóm bảo mật", 'Chưa có inventory'],
+                  ["VM / Security Group", 'Chưa có inventory'],
                   ['Correlation / isolation', 'Chưa triển khai'],
                 ].map(([name, value]) => (
                   <div key={name}>
@@ -257,11 +257,11 @@ export default function ApiAuditSystemPage({ tab, ruleId }) {
               <table className="events-table">
                 <thead>
                   <tr>
-                    <th>POLICY</th>
-                    <th>RISK</th>
-                    <th>RUNTIME MODE</th>
-                    <th>EVENTS</th>
-                    <th>LẦN CUỐI</th>
+                    <th>Chính sách</th>
+                    <th>Rủi ro</th>
+                    <th>Chế độ áp dụng</th>
+                    <th>Số sự kiện</th>
+                    <th>Lần cuối</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -306,10 +306,10 @@ export default function ApiAuditSystemPage({ tab, ruleId }) {
             <table className="events-table">
               <thead>
                 <tr>
-                  <th>TRƯỜNG</th>
-                  <th>KIỂU / FORMAT</th>
-                  <th>BẮT BUỘC</th>
-                  <th>GIÁ TRỊ CHO PHÉP</th>
+                  <th>Trường</th>
+                  <th>Kiểu / định dạng</th>
+                  <th>Bắt buộc</th>
+                  <th>Giá trị cho phép</th>
                 </tr>
               </thead>
               <tbody>
@@ -360,12 +360,12 @@ export default function ApiAuditSystemPage({ tab, ruleId }) {
             <table className="events-table">
               <thead>
                 <tr>
-                  <th>RULE</th>
-                  <th>MÔ TẢ TRONG AUDIT</th>
-                  <th>ĐIỂM</th>
-                  <th>PHÂN LOẠI</th>
-                  <th>POLICY / RISK</th>
-                  <th>SỐ SỰ KIỆN</th>
+                  <th>Quy tắc</th>
+                  <th>Mô tả trong nhật ký</th>
+                  <th>Điểm</th>
+                  <th>Phân loại</th>
+                  <th>Chính sách / rủi ro</th>
+                  <th>Số sự kiện</th>
                   <th>Đã bật</th>
                 </tr>
               </thead>
